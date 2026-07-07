@@ -1,0 +1,22 @@
+{
+  "name": "eWash",
+  "private": true,
+  "version": "1.0.0",
+  "license": "MIT",
+  "description": "eWash - multi-tenant laundry management SaaS (Vue 3 + Cloudflare Workers + D1)",
+  "workspaces": [
+    "api",
+    "web"
+  ],
+  "scripts": {
+    "start": "bash scripts/up.sh",
+    "up": "bash scripts/up.sh",
+    "build": "bun run --cwd web build",
+    "dev:api": "bun run --cwd api dev",
+    "dev:web": "bun run --cwd web dev",
+    "deploy": "bash scripts/deploy.sh",
+    "db:generate": "bun run --cwd api db:generate",
+    "db:migrate:local": "bun run --cwd api db:migrate:local",
+    "db:migrate:remote": "bun run --cwd api db:migrate:remote"
+  }
+}

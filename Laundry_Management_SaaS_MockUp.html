@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>eWash — Laundry Management SaaS: Spec, Data Model &amp; Mockup</title>
+<style>
+  :root{
+    --ink:#1a2332; --muted:#5b6b7f; --line:#e3e8ef; --bg:#f5f7fa; --card:#fff;
+    --brand:#0e7490; --brand-dark:#155e75; --brand-light:#ecfeff;
+    --accent:#f59e0b; --green:#059669; --red:#dc2626; --purple:#7c3aed;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif; color:var(--ink); background:var(--bg); line-height:1.55;}
+  .topbar{background:var(--brand-dark); color:#fff; padding:14px 28px; display:flex; align-items:center; gap:16px;}
+  .topbar h1{font-size:18px; font-weight:600;}
+  .topbar .logo{background:#fff; color:var(--brand-dark); border-radius:8px; width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px;}
+  .topbar .sub{opacity:.75; font-size:12.5px;}
+  .tabs{display:flex; gap:4px; background:#fff; border-bottom:1px solid var(--line); padding:0 28px; position:sticky; top:0; z-index:50;}
+  .tabs button{border:none; background:none; padding:14px 18px; font-size:14px; font-weight:600; color:var(--muted); cursor:pointer; border-bottom:3px solid transparent;}
+  .tabs button.active{color:var(--brand); border-bottom-color:var(--brand);}
+  .tabs button:hover{color:var(--brand-dark);}
+  .pane{display:none; max-width:1180px; margin:0 auto; padding:28px;}
+  .pane.active{display:block;}
+
+  /* ---- Spec typography ---- */
+  .spec h2{font-size:21px; margin:34px 0 10px; color:var(--brand-dark); border-bottom:2px solid var(--line); padding-bottom:6px;}
+  .spec h2:first-child{margin-top:0;}
+  .spec h3{font-size:16px; margin:22px 0 6px;}
+  .spec p{margin:8px 0; max-width:900px;}
+  .spec ul,.spec ol{margin:8px 0 8px 24px; max-width:880px;}
+  .spec li{margin:4px 0;}
+  .spec table{border-collapse:collapse; margin:12px 0; width:100%; max-width:950px; font-size:13.5px; background:#fff;}
+  .spec th,.spec td{border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top;}
+  .spec th{background:var(--brand-light); color:var(--brand-dark);}
+  .callout{background:var(--brand-light); border-left:4px solid var(--brand); padding:12px 16px; border-radius:0 8px 8px 0; margin:14px 0; max-width:900px;}
+  .pill{display:inline-block; padding:2px 10px; border-radius:999px; font-size:11.5px; font-weight:700; letter-spacing:.3px;}
+  .pill.p1{background:#dcfce7; color:#166534;} .pill.p2{background:#fef3c7; color:#92400e;} .pill.p3{background:#ede9fe; color:#5b21b6;}
+  code{background:#eef2f7; padding:1px 6px; border-radius:4px; font-size:12.5px;}
+
+  /* ---- Data model ---- */
+  .erd-wrap{background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; overflow:auto;}
+  .legend{display:flex; gap:18px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); margin:10px 2px;}
+  .legend span::before{content:"■ "; font-size:14px;}
+  .lg-tenant::before{color:#0e7490;} .lg-catalog::before{color:#7c3aed;} .lg-order::before{color:#059669;} .lg-money::before{color:#f59e0b;}
+
+  /* ---- Mockup app shell ---- */
+  .app{display:flex; background:#fff; border:1px solid var(--line); border-radius:14px; overflow:hidden; min-height:640px; box-shadow:0 4px 18px rgba(15,40,70,.07);}
+  .side{width:196px; background:var(--brand-dark); color:#cbd5e1; padding:18px 0; flex-shrink:0;}
+  .side .brand{color:#fff; font-weight:800; font-size:16px; padding:0 20px 16px; letter-spacing:.3px;}
+  .side .brand small{display:block; font-weight:400; font-size:10.5px; opacity:.6;}
+  .side a{display:flex; gap:10px; align-items:center; padding:11px 20px; color:#bfd9e2; text-decoration:none; font-size:13.5px; cursor:pointer;}
+  .side a.active,.side a:hover{background:rgba(255,255,255,.1); color:#fff; border-right:3px solid var(--accent);}
+  .main{flex:1; padding:22px 26px; background:var(--bg); overflow:auto;}
+  .screen{display:none;} .screen.active{display:block;}
+  .main h2{font-size:19px; margin-bottom:4px;}
+  .main .crumb{font-size:12px; color:var(--muted); margin-bottom:16px;}
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; margin-bottom:20px;}
+  .kpi{background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px 16px;}
+  .kpi .v{font-size:22px; font-weight:800; color:var(--brand-dark);}
+  .kpi .l{font-size:12px; color:var(--muted);}
+  .kpi .d{font-size:11px; color:var(--green); font-weight:600;}
+  .panel{background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:16px;}
+  .panel h3{font-size:14.5px; margin-bottom:10px; color:var(--brand-dark);}
+  .mock-table{width:100%; border-collapse:collapse; font-size:13px;}
+  .mock-table th{font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); text-align:left; padding:7px 8px; border-bottom:2px solid var(--line);}
+  .mock-table td{padding:8px; border-bottom:1px solid var(--line);}
+  .badge{padding:2px 9px; border-radius:999px; font-size:11px; font-weight:700;}
+  .b-recv{background:#e0f2fe; color:#075985;} .b-wash{background:#ede9fe; color:#5b21b6;}
+  .b-iron{background:#fef3c7; color:#92400e;} .b-ready{background:#dcfce7; color:#166534;}
+  .b-deliv{background:#e5e7eb; color:#374151;} .b-paid{background:#dcfce7; color:#166534;}
+  .b-due{background:#fee2e2; color:#991b1b;} .b-part{background:#fef3c7; color:#92400e;}
+  .btn{border:none; border-radius:8px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer;}
+  .btn-primary{background:var(--brand); color:#fff;} .btn-primary:hover{background:var(--brand-dark);}
+  .btn-ghost{background:#fff; color:var(--brand); border:1px solid var(--brand);}
+  .btn-sm{padding:4px 10px; font-size:11.5px; border-radius:6px;}
+  .btn-green{background:var(--green); color:#fff;}
+  input[type=text],input[type=number],input[type=tel],select{border:1px solid #cbd5e1; border-radius:8px; padding:8px 10px; font-size:13px; width:100%; background:#fff;}
+  label{font-size:11.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; display:block; margin-bottom:4px;}
+  .row{display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap;}
+  .row>div{flex:1; min-width:130px;}
+  .kanban{display:grid; grid-template-columns:repeat(5,1fr); gap:12px;}
+  .kcol{background:#eef2f7; border-radius:10px; padding:10px; min-height:300px;}
+  .kcol h4{font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin-bottom:8px; display:flex; justify-content:space-between;}
+  .kcard{background:#fff; border:1px solid var(--line); border-radius:8px; padding:10px; margin-bottom:8px; font-size:12.5px; box-shadow:0 1px 3px rgba(0,0,0,.05);}
+  .kcard .id{font-weight:800; color:var(--brand-dark);}
+  .kcard .meta{color:var(--muted); font-size:11.5px; margin:3px 0;}
+  .toast{position:fixed; bottom:24px; right:24px; background:var(--ink); color:#fff; padding:12px 18px; border-radius:10px; font-size:13.5px; box-shadow:0 6px 24px rgba(0,0,0,.25); opacity:0; transition:opacity .3s; pointer-events:none; z-index:99; max-width:360px;}
+  .toast.show{opacity:1;}
+  .lineitem{border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-bottom:8px; background:#fbfdff;}
+  .lineitem .li-head{display:flex; justify-content:space-between; font-size:13px; font-weight:700;}
+  .lineitem .li-sub{font-size:12px; color:var(--muted);}
+  .addon-chip{display:inline-flex; align-items:center; gap:5px; font-size:11.5px; background:var(--brand-light); color:var(--brand-dark); border:1px solid #a5d8e2; padding:2px 8px; border-radius:999px; margin:3px 4px 0 0;}
+  .totals{border-top:2px solid var(--line); margin-top:10px; padding-top:10px; font-size:13.5px;}
+  .totals .tr{display:flex; justify-content:space-between; padding:2px 0;}
+  .totals .grand{font-size:17px; font-weight:800; color:var(--brand-dark);}
+  .svc-list-item{padding:10px 12px; border:1px solid var(--line); border-radius:8px; margin-bottom:7px; cursor:pointer; background:#fff; font-size:13px;}
+  .svc-list-item:hover{border-color:var(--brand);}
+  .svc-list-item.sel{border-color:var(--brand); background:var(--brand-light);}
+  .svc-list-item .sp{float:right; color:var(--muted); font-size:12px;}
+  .split{display:grid; grid-template-columns:280px 1fr; gap:16px;}
+  .radio-cards{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px;}
+  .radio-cards div{border:1.5px solid var(--line); border-radius:8px; padding:9px; font-size:12px; text-align:center; cursor:pointer; background:#fff; font-weight:600; color:var(--muted);}
+  .radio-cards div.sel{border-color:var(--brand); color:var(--brand-dark); background:var(--brand-light);}
+  .preview-box{background:var(--ink); color:#e2e8f0; border-radius:10px; padding:14px 16px; font-size:13px;}
+  .preview-box .big{font-size:20px; font-weight:800; color:#67e8f9;}
+  .checks label{display:flex; align-items:center; gap:8px; font-size:13px; text-transform:none; letter-spacing:0; font-weight:500; color:var(--ink); margin:5px 0;}
+  .phone{width:290px; border:10px solid #1e293b; border-radius:28px; background:#fff; padding:14px; font-size:12.5px;}
+  .phone .sms{background:#e8f1f5; border-radius:0 12px 12px 12px; padding:10px 12px; margin-bottom:10px;}
+  .phone .mpesa{background:#0c7c3c; color:#fff; border-radius:10px; padding:12px; text-align:center;}
+  .phone .mpesa .amt{font-size:18px; font-weight:800;}
+  @media (max-width:900px){ .kanban{grid-template-columns:repeat(2,1fr);} .split{grid-template-columns:1fr;} .radio-cards{grid-template-columns:repeat(2,1fr);} }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ===== Design refresh — teal / Manrope / DM Sans ===== */
+:root{ --ink:#172226; --muted:#7c898e; --line:#e8eeee; --bg:#f5f8f7; --card:#fff;
+  --brand:#126d67; --brand-dark:#0c5550; --brand-light:#e4f4f1; --accent:#e8985f;
+  --green:#26826c; --red:#dc5f52; --purple:#6957a7; }
+body{font-family:'DM Sans','Segoe UI',system-ui,sans-serif;}
+h1,h2,h3,h4,.kpi .v{font-family:'Manrope','DM Sans',sans-serif; letter-spacing:-.02em;}
+.topbar{background:#0e2424;}
+.topbar .logo{background:#77d2c3; color:#0c4d49;}
+.app{border-radius:18px; box-shadow:0 10px 34px rgba(14,36,36,.10);}
+.side{width:224px; background:#0e2424; padding:22px 10px 14px; display:flex; flex-direction:column;}
+.side .brand{display:flex; align-items:center; gap:11px; padding:0 10px 22px; font:800 17px 'Manrope',sans-serif; color:#fff;}
+.side .brand .brand-mark{width:34px;height:34px;flex-shrink:0;display:grid;place-items:center;background:#77d2c3;border-radius:10px;font-size:17px;}
+.side .brand em{color:#7ed7c9;font-style:normal;}
+.side .brand small{display:block;font:500 9.5px 'DM Sans',sans-serif;color:#687e7b;margin-top:1px;}
+.side a{margin:2px 6px;border-radius:9px;padding:10px 12px;color:#aebcba;font-weight:500;position:relative;}
+.side a:hover{background:#173331;color:#fff;border-right:none;}
+.side a.active{background:#1e4642;color:#fff;font-weight:600;border-right:none;}
+.side a.active::before{content:"";position:absolute;left:-6px;top:10px;width:3px;height:22px;background:#6bd0c0;border-radius:0 5px 5px 0;}
+.sidefoot{margin:auto 6px 0;padding:11px 12px;background:#183230;border:1px solid #244440;border-radius:12px;display:flex;gap:9px;align-items:center;}
+.sidefoot .help-icon{width:28px;height:28px;flex-shrink:0;display:grid;place-items:center;border-radius:50%;color:#72cbbb;background:#244a46;font-weight:700;}
+.sidefoot strong{display:block;color:#e6edec;font-size:11px;}
+.sidefoot span{color:#79908d;font-size:9.5px;}
+.apptop{display:flex;align-items:center;gap:13px;background:#fff;border-bottom:1px solid var(--line);margin:-22px -26px 20px;padding:13px 24px;}
+.apptop .heading{margin-right:auto;}
+.apptop .heading p{color:#8b969a;font-size:10.5px;font-weight:500;margin-bottom:2px;}
+.apptop h1{font:700 17px 'Manrope',sans-serif;}
+.search{width:215px;height:37px;display:flex;align-items:center;gap:8px;background:#f6f8f8;border:1px solid #edf0f0;border-radius:9px;padding:0 10px;color:#91a09f;font-size:13px;}
+.search input{border:none;background:transparent;outline:0;width:100%;font-size:11.5px;padding:0;}
+.search kbd{padding:2px 6px;background:#fff;border:1px solid #e5e9e9;border-radius:5px;font:9px 'DM Sans',sans-serif;color:#8b9697;white-space:nowrap;}
+.icon-btn{position:relative;width:37px;height:37px;display:grid;place-items:center;border:1px solid var(--line);border-radius:9px;background:#fff;cursor:pointer;font-size:14px;}
+.icon-btn i{position:absolute;top:7px;right:8px;width:6px;height:6px;border:1.5px solid #fff;border-radius:50%;background:#ec6e61;}
+.profile{display:flex;align-items:center;gap:9px;}
+.profile>span{width:34px;height:34px;display:grid;place-items:center;background:#d58c68;color:#fff;border-radius:50%;font-size:10px;font-weight:700;}
+.profile strong{font-size:11px;display:block;}
+.profile small{color:#8a9699;font-size:9px;}
+.panel{border-radius:14px;box-shadow:0 2px 8px rgba(23,55,45,.04);}
+.kpi{border-radius:12px;box-shadow:0 2px 8px rgba(23,55,45,.04);}
+.kpi .v{font-size:21px;}
+.kpi.metric{display:flex;gap:12px;align-items:flex-start;}
+.micon{flex:0 0 35px;height:35px;display:grid;place-items:center;border-radius:9px;font-size:16px;}
+.micon.blue{background:#e9f3f8;} .micon.green{background:#e6f5ef;} .micon.violet{background:#eeeafb;} .micon.orange{background:#fbede6;}
+.spark{height:37px;margin-left:auto;align-self:flex-end;display:flex;align-items:flex-end;gap:2px;}
+.spark i{width:4px;border-radius:3px;background:#d7e9eb;}
+.spark i:nth-child(1){height:11px}.spark i:nth-child(2){height:17px}.spark i:nth-child(3){height:14px}.spark i:nth-child(4){height:25px}.spark i:nth-child(5){height:21px}.spark i:nth-child(6){height:31px}.spark i:nth-child(7){height:37px}
+.spark i:nth-last-child(-n+3){background:#72afc4;}
+.spark.green-spark i:nth-last-child(-n+4){background:#6bbca7;}
+.ring{--p:72;width:46px;height:46px;margin-left:auto;align-self:center;display:grid;place-items:center;border-radius:50%;background:conic-gradient(#7663b0 calc(var(--p)*1%),#eeeafa 0);position:relative;}
+.ring::before{content:"";position:absolute;width:36px;height:36px;background:#fff;border-radius:50%;}
+.ring span{z-index:1;color:#625593;font-size:8.5px;font-weight:700;}
+.stack{margin-left:auto;align-self:flex-end;display:flex;}
+.stack i{width:25px;height:25px;margin-left:-6px;display:grid;place-items:center;border:2px solid #fff;border-radius:50%;color:#fff;background:#77a7a0;font-style:normal;font-size:7.5px;font-weight:700;}
+.stack i:nth-child(2){background:#c38b6d;} .stack i:last-child{background:#edf1f0;color:#738180;}
+.btn{border-radius:9px;}
+.btn-primary{background:var(--brand);box-shadow:0 5px 12px rgba(18,109,103,.25);}
+.btn-primary:hover{background:var(--brand-dark);}
+.btn-green{background:var(--green);box-shadow:0 5px 12px rgba(38,130,108,.25);}
+.btn-ghost{color:var(--brand);border-color:#bcd8d4;}
+.badge{display:inline-flex;align-items:center;gap:5px;}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;}
+.mock-table th{font-size:10px;}
+.mock-table td{padding:10px 8px;}
+.mock-table tbody tr:hover{background:#f7faf9;}
+.av{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;color:#fff;font-size:9px;font-weight:700;font-style:normal;margin-right:8px;vertical-align:middle;}
+.av.purple{background:#8a7ab8}.av.mint{background:#5fb3a1}.av.amber{background:#c99a5f}.av.blue{background:#6d9ec0}
+.kcol{background:#eef4f2;border-radius:12px;}
+.kcard{border-radius:10px;box-shadow:0 1px 4px rgba(14,36,36,.06);}
+.lineitem{border-radius:10px;background:#f8fbfa;}
+.combo-list{position:absolute;top:100%;left:0;right:0;z-index:40;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 28px rgba(14,36,36,.14);max-height:220px;overflow:auto;margin-top:4px;}
+.combo-item{padding:8px 12px;font-size:12.5px;cursor:pointer;display:flex;align-items:center;}
+.combo-item:hover{background:#f0f7f5;}
+.combo-item small{color:var(--muted);margin-left:auto;padding-left:10px;}
+.combo-new{color:var(--brand);font-weight:700;border-top:1px solid var(--line);}
+.switch{position:relative;display:inline-block;width:34px;height:19px;flex-shrink:0;}
+.switch input{opacity:0;width:0;height:0;}
+.slider{position:absolute;inset:0;background:#d7dedd;border-radius:999px;transition:.18s;cursor:pointer;}
+.slider::before{content:"";position:absolute;width:15px;height:15px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.18s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.switch input:checked+.slider{background:var(--brand);}
+.switch input:checked+.slider::before{transform:translateX(15px);}
+.perm-row{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--line);}
+.perm-row b{font-size:13px;display:block;}
+.perm-row small{color:var(--muted);font-size:10.5px;}
+.ov-chip{font-size:9.5px;background:#fbede6;color:#ba7047;padding:2px 8px;border-radius:999px;font-weight:700;}
+.preview-box{background:#0e2424;}
+.preview-box .big{color:#7ed7c9;}
+
+/* ===== Exact dashboard components (FreshFold reference) ===== */
+.app svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.side .brand{font:800 19px 'Manrope',sans-serif;}
+.side .brand .brand-mark{color:#0c4d49;}
+.side .brand .brand-mark svg{width:22px;height:22px;stroke-width:2;}
+.side .nav-label{margin:2px 16px 8px;color:#687e7b;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;}
+.side .nav-label.space{margin-top:20px;}
+.side a{display:flex;align-items:center;gap:12px;height:42px;padding:0 12px;font-size:13.5px;}
+.side a svg{width:18px;height:18px;flex-shrink:0;}
+.side a b{margin-left:auto;min-width:23px;height:20px;padding:0 6px;display:grid;place-items:center;border-radius:10px;color:#8fe1d5;background:#285550;font-size:10px;font-weight:700;}
+.sidefoot{cursor:pointer;}
+.sidefoot .chev{width:15px;height:15px;color:#79908d;flex-shrink:0;}
+.apptop .search svg{width:16px;height:16px;flex-shrink:0;}
+.apptop .icon-btn svg{width:17px;height:17px;}
+.apptop .profile .chev{width:14px;height:14px;color:#879496;}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
+.section-head h2{margin:0 0 4px;font:700 19px 'Manrope',sans-serif;letter-spacing:-.025em;}
+.section-head p{margin:0;color:var(--muted);font-size:11.5px;}
+.head-actions{display:flex;gap:9px;}
+.branch-btn,.primary-btn{height:38px;padding:0 13px;border-radius:9px;display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;}
+.branch-btn{border:1px solid #dde4e3;background:#fff;color:#566467;}
+.branch-btn svg{width:15px;height:15px;}
+.branch-btn .chev{width:12px;height:12px;margin-left:3px;}
+.primary-btn{border:0;background:var(--brand);color:#fff;box-shadow:0 5px 12px rgba(18,109,103,.25);}
+.primary-btn:hover{background:var(--brand-dark);}
+.primary-btn svg{width:16px;height:16px;}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:15px;}
+.metric{min-height:112px;padding:17px;background:#fff;border:1px solid var(--line);border-radius:12px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 2px 8px rgba(23,55,45,.03);}
+.metric-icon{flex:0 0 35px;width:35px;height:35px;display:grid;place-items:center;border-radius:9px;}
+.metric-icon svg{width:18px;height:18px;}
+.metric-icon.blue{color:#3678a4;background:#e9f3f8;}
+.metric-icon.green{color:#26826c;background:#e6f5ef;}
+.metric-icon.violet{color:#6957a7;background:#eeeafb;}
+.metric-icon.orange{color:#ba7047;background:#fbede6;}
+.metric>div:nth-child(2){display:grid;grid-template-columns:auto auto;align-items:end;gap:4px 8px;}
+.metric span{grid-column:1/3;color:#7d8a8d;font-size:10.5px;font-weight:500;}
+.metric strong{font:700 21px 'Manrope',sans-serif;letter-spacing:-.04em;white-space:nowrap;}
+.metric small{color:#879496;font-size:9.5px;white-space:nowrap;}
+.metric small.up{color:#2a8b70;}
+.metric .spark{height:37px;margin:15px 0 0 auto;align-self:auto;}
+.spark.blue-spark i:nth-last-child(-n+3){background:#72afc4;}
+.progress-ring{--progress:72;width:47px;height:47px;margin:12px 0 0 auto;display:grid;place-items:center;border-radius:50%;background:conic-gradient(#7663b0 calc(var(--progress)*1%),#eeeafa 0);position:relative;}
+.progress-ring::before{content:"";position:absolute;width:37px;height:37px;background:#fff;border-radius:50%;}
+.progress-ring span{z-index:1;color:#625593;font-size:8px;font-weight:700;}
+.avatar-stack{margin:20px 0 0 auto;display:flex;}
+.avatar-stack i{width:25px;height:25px;margin-left:-6px;display:grid;place-items:center;border:2px solid #fff;border-radius:50%;color:#fff;background:#77a7a0;font-style:normal;font-size:7px;font-weight:700;}
+.avatar-stack i:nth-child(2){background:#c38b6d;}
+.avatar-stack i:last-child{background:#edf1f0;color:#738180;}
+.dashboard-grid{display:grid;grid-template-columns:1fr 300px;gap:14px;align-items:start;}
+.panel-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;}
+.panel-head h3{margin:0 0 2px;font:700 14.5px 'Manrope',sans-serif;color:var(--ink);}
+.panel-head span{color:var(--muted);font-size:10.5px;}
+.text-btn{border:none;background:none;color:var(--brand);font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;padding:0;}
+.ftabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:4px;}
+.ftabs button{border:none;background:none;padding:9px 12px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;font-family:inherit;display:flex;gap:6px;align-items:center;}
+.ftabs button span{background:#eef2f1;border-radius:8px;padding:1px 7px;font-size:10px;}
+.ftabs button.active{color:var(--ink);border-bottom-color:var(--brand);}
+.ftabs button.active span{background:var(--brand-light);color:var(--brand-dark);}
+.orders-panel table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.orders-panel th{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#8b969a;text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);font-weight:700;}
+.orders-panel td{padding:13px 8px;border-bottom:1px solid #f0f4f3;vertical-align:middle;}
+.orders-panel td strong{font-size:12.5px;}
+.orders-panel td small{display:block;color:var(--muted);font-size:10.5px;margin-top:2px;}
+.customer{display:flex;align-items:center;gap:9px;}
+.customer .av{margin:0;}
+.customer b{font-size:12.5px;display:block;}
+.customer small{color:var(--muted);font-size:10.5px;}
+.status{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font-size:10.5px;font-weight:700;}
+.status i{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.status.washing{background:#e3f1f9;color:#2f77a3;}
+.status.drying{background:#fdf1df;color:#b47a2b;}
+.status.finishing{background:#efeafa;color:#6a58a8;}
+.more{border:none;background:none;color:#98a5a4;cursor:pointer;font-size:13px;letter-spacing:1px;}
+.right-column{display:flex;flex-direction:column;gap:14px;}
+.machine-summary{display:flex;align-items:center;gap:16px;margin:6px 0 12px;}
+.donut{width:104px;height:104px;flex-shrink:0;border-radius:50%;display:grid;place-items:center;position:relative;background:conic-gradient(#2c7a6d 0 81%,#cfe6e0 81% 93%,#e8a087 93% 100%);}
+.donut::before{content:"";position:absolute;width:74px;height:74px;background:#fff;border-radius:50%;}
+.donut span{z-index:1;text-align:center;line-height:1.1;}
+.donut b{display:block;font:700 20px 'Manrope',sans-serif;}
+.donut small{color:var(--muted);font-size:9.5px;}
+.mlegend{flex:1;}
+.mlegend p{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:11.5px;color:#5c6a6d;}
+.mlegend b{margin-left:auto;color:var(--ink);}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;}
+.dot.running{background:#2c7a6d;}
+.dot.idle{background:#cfe6e0;}
+.dot.maintenance{background:#e8a087;}
+.machine-list>div{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #f0f4f3;font-size:12px;}
+.machine-list .mc{width:32px;height:32px;flex-shrink:0;border-radius:9px;border:1.5px solid #bcd8d4;display:grid;place-items:center;color:var(--brand);}
+.machine-list .mc.dryer{border-color:#ecd3b8;color:#ba7047;}
+.machine-list .mc i{width:11px;height:11px;border:2px solid currentColor;border-radius:50%;display:block;}
+.machine-list p{flex:1;margin:0;}
+.machine-list b{display:block;font-size:12px;}
+.machine-list small{color:var(--muted);font-size:10.5px;}
+.machine-list em{font-style:normal;font-size:10.5px;font-weight:700;color:var(--brand);background:var(--brand-light);padding:3px 8px;border-radius:999px;}
+.pickup{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #f0f4f3;font-size:12px;}
+.pickup:first-of-type{border-top:none;}
+.pickup time{font-weight:800;font-size:11.5px;width:46px;flex-shrink:0;font-family:'Manrope',sans-serif;}
+.pickup time small{font-size:8.5px;color:var(--muted);margin-left:1px;}
+.pickup>i{width:8px;height:8px;border-radius:50%;background:#54b09a;flex-shrink:0;}
+.pickup b{display:block;font-size:12px;}
+.pickup div small{color:var(--muted);font-size:10.5px;}
+.pickup>span{margin-left:auto;color:var(--muted);font-size:10.5px;white-space:nowrap;}
+.icon-small{width:26px;height:26px;display:grid;place-items:center;border:1px solid var(--line);border-radius:8px;background:#fff;color:#57676a;cursor:pointer;}
+.icon-small svg{width:13px;height:13px;}
+@media (max-width:1000px){.dashboard-grid{grid-template-columns:1fr;}.metrics{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">S</div>
+  <div>
+    <h1>eWash — Laundry Management SaaS</h1>
+    <div class="sub">Product Specification · Data Model · Clickable Mockup &nbsp;|&nbsp; v0.1 Draft · July 2026 · Kenya-first</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="active" onclick="showPane(event,'spec')">1 · Product Specification</button>
+  <button onclick="showPane(event,'erd')">2 · Data Model</button>
+  <button onclick="showPane(event,'mock')">3 · Clickable Mockup</button>
+</div>
+
+<!-- ============================ SPEC ============================ -->
+<div id="spec" class="pane active spec">
+
+  <h2>1. Executive Summary</h2>
+  <p><strong>eWash</strong> (working title) is a multi-tenant SaaS platform sold to laundry businesses in Kenya and East Africa. Each subscribing laundry (a <em>tenant</em>) gets a configurable service catalog, a pricing builder, an order-processing pipeline, M-Pesa &amp; cash payments, and customer notifications — without writing code or calling a developer when prices or services change.</p>
+  <p>The core product bet: <strong>laundries differ wildly in what they sell and how they price it, but not in how work flows through the shop.</strong> So the catalog and pricing engine are fully tenant-configurable, while the order lifecycle is a shared, opinionated workflow.</p>
+
+  <h2>2. Target Market &amp; Personas</h2>
+  <table>
+    <tr><th>Persona</th><th>Who they are</th><th>What they need</th></tr>
+    <tr><td><strong>Owner / Admin</strong></td><td>Laundry owner or manager. Signs up, pays the subscription.</td><td>Configure services &amp; prices, see revenue, control staff access, multi-branch view.</td></tr>
+    <tr><td><strong>Attendant</strong></td><td>Front-desk staff. Receives bags, weighs, itemizes, collects payment.</td><td>Fast order intake, automatic price calculation, tag printing, order status board.</td></tr>
+    <tr><td><strong>Operator</strong></td><td>Washer / ironer in the back room.</td><td>Simple queue: what's next, move items through stages.</td></tr>
+    <tr><td><strong>Rider</strong></td><td>Pickup/delivery person (optional, Phase 2).</td><td>Assigned pickups &amp; drop-offs, mark collected/delivered.</td></tr>
+    <tr><td><strong>End Customer</strong></td><td>The laundry's customer. Not a system user in MVP.</td><td>SMS/WhatsApp quote &amp; ready alerts, M-Pesa payment prompt, (later) tracking link.</td></tr>
+  </table>
+
+  <h2>3. Multi-Tenancy &amp; SaaS Model</h2>
+  <ul>
+    <li><strong>Tenant = one laundry business.</strong> All catalog, orders, customers, and staff are scoped to a tenant. Strict row-level isolation (<code>tenant_id</code> on every table).</li>
+    <li><strong>Branches.</strong> A tenant has ≥1 branch. Orders, staff, and cash registers belong to a branch; the catalog is tenant-wide with optional per-branch price overrides (Phase 2).</li>
+    <li><strong>Subscription plans</strong> (eWash's own revenue): e.g. Starter (1 branch, 2 staff), Growth (3 branches, unlimited staff, WhatsApp), Pro (API, per-branch pricing, loyalty). Billed monthly via M-Pesa or card.</li>
+    <li><strong>Tenant onboarding wizard:</strong> business name → branch → seed a template catalog (typical Kenyan laundry services pre-configured) → set rates → invite staff → go live in under 15 minutes. Template catalogs are the key to activation.</li>
+  </ul>
+
+  <h2>4. Service Catalog &amp; Pricing Builder <span class="pill p1">CORE</span></h2>
+  <p>The differentiator. A <strong>service</strong> is not a name with a price — it is a name with a <em>pricing strategy</em>, composed in an admin UI ("the builder").</p>
+
+  <h3>4.1 Structure</h3>
+  <ul>
+    <li><strong>Category</strong> — grouping for the UI and reports: Washing, Ironing, Dry Cleaning, Special Items, Household.</li>
+    <li><strong>Service</strong> — the sellable thing: "Wash &amp; Fold (per kg)", "Duvet Wash", "Iron per Item", "Suit Dry Clean".</li>
+    <li><strong>Pricing strategy</strong> — one of four models, each with its own configuration:</li>
+  </ul>
+  <table>
+    <tr><th>Model</th><th>Configuration</th><th>Example</th></tr>
+    <tr><td><code>PER_KG</code></td><td>Rate per kg, optional minimum charge, optional tier breaks</td><td>KES 150/kg, min KES 500; 10+ kg → KES 130/kg</td></tr>
+    <tr><td><code>PER_ITEM</code></td><td>Base price, optional <em>variants</em> by attribute</td><td>Duvet: Single 600 / Double 800 / King 1,000</td></tr>
+    <tr><td><code>FLAT</code></td><td>One price regardless of quantity</td><td>"Bag wash" KES 1,200</td></tr>
+    <tr><td><code>TIERED</code></td><td>Quantity/weight bands with band prices</td><td>1–5 kg: 800 flat; 6–10 kg: 1,400 flat</td></tr>
+  </table>
+  <ul>
+    <li><strong>Modifiers</strong> (stack on any strategy): minimum charge, express surcharge (% or fixed, e.g. +50% for same-day), branch override (Phase 2), customer-tier discount (Phase 2).</li>
+  </ul>
+
+  <h3>4.2 Add-ons / Riders <span class="pill p1">CORE</span></h3>
+  <p>An add-on is <strong>just another service that is allowed to attach to a parent order line</strong>. Ironing exists once as a service; configuration decides where it can attach and at what price:</p>
+  <ul>
+    <li><strong>Attachment rule:</strong> <em>Ironing → attachable to [Wash &amp; Fold, Duvet Wash]</em>.</li>
+    <li><strong>Bundled price override:</strong> standalone ironing is KES 70/kg, but 50/kg when riding on a wash line.</li>
+    <li><strong>Quantity inheritance:</strong> if parent and rider share a unit (kg↔kg), the rider inherits the parent's quantity by default; the attendant can override (e.g. iron only 10 of 25 items).</li>
+    <li>The same mechanism covers stain treatment, softener, folding, express handling — no special cases.</li>
+  </ul>
+
+  <h3>4.3 Pricing engine resolution order</h3>
+  <ol>
+    <li>Resolve service + variant → base strategy rate</li>
+    <li>Apply quantity/weight → raw line amount (tiers applied here)</li>
+    <li>Apply minimum charge (line level)</li>
+    <li>Price each attached rider the same way (using bundled override if set)</li>
+    <li>Apply order-level modifiers: express surcharge, discounts/promos</li>
+    <li><strong>Snapshot everything.</strong> The order stores the resolved unit prices; later catalog changes never alter existing orders.</li>
+  </ol>
+  <div class="callout"><strong>Rule that prevents 90% of disputes:</strong> prices are locked at <em>customer confirmation</em>, not at delivery. The order stores a full price snapshot with a breakdown that is sent to the customer.</div>
+
+  <h2>5. Order Lifecycle &amp; Workflow</h2>
+  <p>Key operational reality: <strong>for per-kg services the price is unknown at drop-off</strong> — it is discovered when the bag is weighed at the shop. The lifecycle is built around a quote → confirm step.</p>
+  <table>
+    <tr><th>Stage</th><th>Who</th><th>What happens</th></tr>
+    <tr><td>1. <strong>Intake</strong></td><td>Attendant (or customer pickup request)</td><td>Order created, customer identified (phone = ID), bag received, estimate optionally given. Pickup orders get a rider assignment.</td></tr>
+    <tr><td>2. <strong>Assessment</strong></td><td>Attendant</td><td>Weighing &amp; itemization: per-kg lines weighed, individual items counted with variants (duvet: double), riders attached. Pricing engine computes final total. Tags printed per item/bundle.</td></tr>
+    <tr><td>3. <strong>Confirmation</strong></td><td>System → Customer</td><td>SMS/WhatsApp with itemized quote + M-Pesa STK push (if pay-on-confirm policy). Customer approves; price snapshot locked. Walk-ins confirm on the spot.</td></tr>
+    <tr><td>4. <strong>Processing</strong></td><td>Operators</td><td>Pipeline stages: Sorting → Washing → Drying → Ironing → Packaging. Status tracked per order (MVP) with per-line stage flags where riders exist.</td></tr>
+    <tr><td>5. <strong>Ready</strong></td><td>System → Customer</td><td>"Your order is ready" notification; unpaid orders get a payment reminder + STK push.</td></tr>
+    <tr><td>6. <strong>Delivery / Collection</strong></td><td>Attendant or Rider</td><td>Handover verified against tags; collected-by recorded. Order → Closed.</td></tr>
+  </table>
+  <h3>Payment states (independent of order status)</h3>
+  <p><code>UNPAID → PARTIALLY_PAID → PAID</code>, plus <code>REFUNDED</code>. Methods: M-Pesa STK push (Daraja API), M-Pesa manual code entry, cash (registered against attendant + branch till), credit for corporate accounts (Phase 2). Partial payments are first-class — deposits at drop-off are common.</p>
+  <h3>Garment tagging &amp; traceability</h3>
+  <p>Every order gets a short human code (e.g. <code>WK-0247</code>); each item/bundle gets a printed tag (QR/barcode-ready). Lost-item claims are the #1 trust-killer for laundries; per-item traceability is a selling point of the software itself.</p>
+
+  <h2>6. Notifications</h2>
+  <table>
+    <tr><th>Trigger</th><th>Channel</th><th>Message intent</th></tr>
+    <tr><td>Quote ready (assessment done)</td><td>SMS / WhatsApp</td><td>Itemized price + confirm/pay prompt</td></tr>
+    <tr><td>Payment received</td><td>SMS</td><td>Receipt with balance if partial</td></tr>
+    <tr><td>Order ready</td><td>SMS / WhatsApp</td><td>Ready for pickup + hours; reminder after 48h</td></tr>
+    <tr><td>Out for delivery</td><td>SMS</td><td>Rider name + ETA</td></tr>
+  </table>
+  <p>Templates are tenant-editable with merge fields (<code>{customer}</code>, <code>{order_code}</code>, <code>{total}</code>, <code>{balance}</code>). SMS via local aggregator (e.g. Africa's Talking); WhatsApp Business API on the Growth plan.</p>
+
+  <h2>7. Roles &amp; Permissions</h2>
+  <table>
+    <tr><th>Capability</th><th>Owner/Admin</th><th>Attendant</th><th>Operator</th><th>Rider</th></tr>
+    <tr><td>Configure catalog &amp; prices</td><td>✔</td><td>—</td><td>—</td><td>—</td></tr>
+    <tr><td>Create orders, take payments</td><td>✔</td><td>✔</td><td>—</td><td>—</td></tr>
+    <tr><td>Apply manual discount</td><td>✔</td><td>limit-capped</td><td>—</td><td>—</td></tr>
+    <tr><td>Move orders through pipeline</td><td>✔</td><td>✔</td><td>✔</td><td>—</td></tr>
+    <tr><td>Mark picked-up / delivered</td><td>✔</td><td>✔</td><td>—</td><td>✔</td></tr>
+    <tr><td>Reports, refunds, void orders</td><td>✔</td><td>—</td><td>—</td><td>—</td></tr>
+  </table>
+  <p>Every price-affecting action (manual discount, void, refund, catalog change) is written to an immutable <strong>audit log</strong> — owners are trusting employees with cash, and the audit trail is a top-3 buying reason.</p>
+  <h3>7.1 Custom roles &amp; granular policies <span class="pill p1">CORE</span></h3>
+  <p>The table above ships as <strong>role templates</strong>. Underneath sits a granular <strong>policy catalog</strong>: <code>orders.create</code>, <code>orders.discount</code>, <code>orders.void</code>, <code>orders.advance</code>, <code>payments.receive</code>, <code>payments.refund</code>, <code>catalog.edit</code>, <code>expenses.create</code>, <code>finance.view</code>, <code>users.manage</code>, and so on. An admin can build custom roles from these policies, and additionally <strong>grant or revoke individual policies per user</strong> — a per-user override that beats the role template (an explicit deny always wins). Effective permission = override if present, else the role's policy. Overrides are visibly flagged in the UI so exceptions never hide, and every change is audit-logged. Rule of thumb: roles for the common case, overrides for exceptions ("Peter is an operator, but he may also create orders").</p>
+
+  <h2>8. Reporting &amp; Analytics</h2>
+  <ul>
+    <li><strong>Daily register:</strong> orders in/out, cash vs M-Pesa collected, per attendant — reconciles the till.</li>
+    <li><strong>Revenue by service/category:</strong> is money in per-kg volume or duvets? Informs pricing.</li>
+    <li><strong>Operational:</strong> average turnaround time, orders overdue in a stage, uncollected-ready orders (cash tied up on the shelf).</li>
+    <li><strong>Customers:</strong> repeat rate, top customers, lapsed customers (Phase 2 win-back SMS).</li>
+  </ul>
+
+  <h2>9. Basic Accounting &amp; Profit/Loss <span class="pill p1">CORE</span></h2>
+  <p>Deliberately simple: <strong>cash-basis income and expenses, not double-entry bookkeeping.</strong> The goal is that an owner can answer "did I make money this month?" without an accountant. Data exports as CSV for whoever files the taxes.</p>
+  <h3>9.1 Revenue (automatic)</h3>
+  <ul>
+    <li>Revenue is recognized when an order is <strong>closed</strong> (delivered / collected) — automatically, no data entry. An order sitting on the shelf is not income yet; profit is computed strictly from closed orders. Broken down by service category, branch, and payment method.</li>
+    <li>Payments are tracked separately for <strong>cash flow</strong>: a "billed vs collected" line exposes closed-but-unpaid orders (receivables to chase) so revenue and cash never get confused.</li>
+    <li><strong>Deductions are visible, not hidden:</strong> manual discounts, refunds, and zero-priced re-wash orders each appear as a line, so leakage is measurable.</li>
+  </ul>
+  <h3>9.2 Expenses (light manual entry)</h3>
+  <ul>
+    <li>An expense entry is: date, category, amount, branch, paid via (cash/M-Pesa), note, optional receipt photo, recorded-by.</li>
+    <li><strong>Default categories</strong> seeded per tenant: Detergents &amp; supplies, Water, Electricity, Rent, Salaries &amp; wages, Delivery/fuel, Equipment &amp; repairs, Other. Owner can add categories.</li>
+    <li><strong>Recurring expenses</strong> (rent, salaries): flag an entry as monthly and it auto-posts on its day with a confirmation nudge — this is what keeps the P&amp;L honest with near-zero effort.</li>
+    <li>Attendants may record petty expenses (capped); everything is in the audit log; only the owner sees the P&amp;L.</li>
+  </ul>
+  <h3>9.3 The P&amp;L statement</h3>
+  <p>One screen, per month/branch: <em>Gross revenue − discounts &amp; refunds = Net revenue; − expenses by category = <strong>Operating profit</strong></em>, with margin % and month-over-month comparison. That's the whole statement.</p>
+  <div class="callout"><strong>Explicit non-goals (v1):</strong> no double-entry ledger, no accruals or depreciation schedules, no VAT filing, no balance sheet. If a tenant outgrows this, CSV export feeds their accountant or a future QuickBooks-style integration — better than building bad accounting software inside a laundry product.</div>
+
+  <h2>10. Edge Cases &amp; Business Rules</h2>
+  <ul>
+    <li><strong>Mixed orders:</strong> per-kg wash + 2 duvets + ironing rider on the wash line only — the line-item model handles this natively.</li>
+    <li><strong>Re-wash / complaint:</strong> zero-priced redo order linked to the original; tracked so quality issues are measurable.</li>
+    <li><strong>Weight disputes:</strong> weight recorded at assessment and included in the confirmation message <em>before</em> processing starts.</li>
+    <li><strong>Rate changes:</strong> price snapshots make catalog edits safe; only new orders see new rates.</li>
+    <li><strong>Uncollected orders:</strong> configurable policy — reminder cadence, optional storage fee after N days (a per-day FLAT service, again the same engine).</li>
+    <li><strong>Offline tolerance:</strong> shops have unreliable connectivity; intake must queue locally (PWA with local cache) and sync.</li>
+  </ul>
+
+  <h2>11. Non-Functional Requirements</h2>
+  <ul>
+    <li>Tenant isolation enforced at the data layer; no cross-tenant reads ever.</li>
+    <li>Money stored in integer cents, KES default, currency field per tenant for regional expansion.</li>
+    <li>All status transitions and payments are append-only history, not overwrites.</li>
+    <li>Mobile-first UI — most attendants will use a phone or cheap tablet.</li>
+    <li>M-Pesa (Daraja) sandbox-first integration with idempotent callbacks.</li>
+  </ul>
+
+  <h2>12. Roadmap</h2>
+  <table>
+    <tr><th>Phase</th><th>Scope</th></tr>
+    <tr><td><span class="pill p1">MVP</span></td><td>Tenant onboarding + template catalog, pricing builder (4 strategies, riders, minimums, express), order intake/assessment/confirmation, pipeline board, M-Pesa STK + cash, SMS notifications, tags, daily register, audit log, basic P&amp;L (expense entry + monthly statement).</td></tr>
+    <tr><td><span class="pill p2">Phase 2</span></td><td>Pickup/delivery + rider app, WhatsApp, per-branch price overrides, corporate accounts &amp; credit, customer-tier discounts, win-back campaigns, storage fees.</td></tr>
+    <tr><td><span class="pill p3">Phase 3</span></td><td>Customer self-service portal/app, loyalty &amp; prepaid wallets, public API, multi-currency, franchise/HQ analytics.</td></tr>
+  </table>
+
+</div>
+
+<!-- ============================ DATA MODEL ============================ -->
+<div id="erd" class="pane spec">
+  <h2>Entity-Relationship Model</h2>
+  <p>Every table carries <code>tenant_id</code> (omitted below for brevity except where structural). Money is integer cents. Crow's-foot notation simplified to <em>1 → many</em> arrows.</p>
+  <div class="legend">
+    <span class="lg-tenant">Tenant &amp; identity</span>
+    <span class="lg-catalog">Service catalog &amp; pricing (the builder)</span>
+    <span class="lg-order">Orders &amp; fulfilment</span>
+    <span class="lg-money">Money, messaging &amp; audit</span>
+  </div>
+  <div class="erd-wrap"><svg id="erdsvg" width="1140" height="1100" viewBox="0 0 1140 1100" xmlns="http://www.w3.org/2000/svg"></svg></div>
+
+  <h2 style="margin-top:26px;">Key design decisions</h2>
+  <table>
+    <tr><th>Decision</th><th>Reasoning</th></tr>
+    <tr><td><code>services.pricing_model</code> enum + satellite tables (<code>pricing_tiers</code>, <code>service_variants</code>)</td><td>One service row regardless of strategy; only the relevant satellite table is populated. The builder UI writes these rows — adding a new strategy later means a new enum value + satellite, not a schema rewrite.</td></tr>
+    <tr><td><code>addon_rules</code> is a self-referencing join on <code>services</code></td><td>Ironing is defined once. Attachability and bundled price override live in the rule, not the service — the same service can be standalone and a rider simultaneously.</td></tr>
+    <tr><td>Price <strong>snapshots</strong> on <code>order_items</code> / <code>order_item_addons</code></td><td><code>unit_price_cents</code> and <code>line_total_cents</code> are copied at confirmation. Catalog edits never mutate history; disputes are resolvable from the order alone.</td></tr>
+    <tr><td><code>orders.payment_status</code> separate from <code>orders.status</code></td><td>Payment and fulfilment progress independently (deposits, pay-on-collection). Derived from <code>payments</code> rows, cached for querying.</td></tr>
+    <tr><td><code>order_status_history</code> append-only</td><td>Turnaround analytics and accountability (who moved it, when) come free; current status is a cached column on <code>orders</code>.</td></tr>
+    <tr><td><code>order_item_addons</code> references both the item and the addon service</td><td>A rider is priced per parent line, inherits qty where units match (<code>qty_inherited</code> flag), and snapshots its own price.</td></tr>
+    <tr><td><code>customers.phone</code> unique per tenant</td><td>Phone number is the natural customer ID in this market; powers SMS, M-Pesa matching, and repeat-customer lookup at intake.</td></tr>
+    <tr><td><code>audit_log</code> for price-affecting actions</td><td>Discounts, voids, refunds, catalog changes — owners buy the product partly for staff accountability.</td></tr>
+    <tr><td>P&amp;L revenue = <strong>closed orders</strong>; <code>payments</code> feed cash flow</td><td>Profit is computed from orders with status <code>closed</code> (delivered/collected) — never from orders still in the shop. Payments are reconciled against that as "billed vs collected", surfacing receivables. Expenses are one lightweight table with a recurring flag; a double-entry ledger can be added later without touching these tables.</td></tr>
+    <tr><td>RBAC: <code>roles</code> + <code>role_policies</code> + <code>user_policy_overrides</code></td><td>Roles are policy templates; per-user overrides (grant/deny, deny wins) handle exceptions without role explosion. Effective permission = override if present, else the role's policy. Every change is audit-logged.</td></tr>
+  </table>
+</div>
+
+<!-- ============================ MOCKUP ============================ -->
+<div id="mock" class="pane">
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Clickable prototype of the attendant/admin app. Try: <strong>New Order</strong> (add a per-kg wash, tick the ironing rider, watch the price build, send the quote) · <strong>Orders</strong> (advance cards through the pipeline) · <strong>Service Builder</strong> (change a rate and watch the preview).</p>
+  <div class="app">
+    <div class="side">
+      <div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="4.5"/><path d="M7 6h.01M10 6h.01"/></svg></span><span>Safi<em>Wash</em></span></div>
+      <div class="nav-label">Workspace</div>
+      <a class="active" data-s="scr-dash" onclick="showScreen(this)"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>Overview</a>
+      <a data-s="scr-new" onclick="showScreen(this)"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New Order</a>
+      <a data-s="scr-board" onclick="showScreen(this)"><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2Z"/><path d="M9 7h6M9 11h6"/></svg>Orders<b>18</b></a>
+      <a data-s="scr-cust" onclick="showScreen(this)"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M17.5 14.6c2 .8 3.5 2.9 3.5 5.4"/></svg>Customers</a>
+      <div class="nav-label space">Manage</div>
+      <a data-s="scr-builder" onclick="showScreen(this)"><svg viewBox="0 0 24 24"><path d="M4 8h8M18 8h2M4 16h2M12 16h8"/><circle cx="15" cy="8" r="2.5"/><circle cx="9" cy="16" r="2.5"/></svg>Service Builder</a>
+      <a data-s="scr-finance" onclick="showScreen(this)"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 6.5c0-1.9-2.2-3.5-5-3.5S7 4.6 7 6.5s2.2 3.5 5 3.5 5 1.6 5 3.5-2.2 3.5-5 3.5-5-1.6-5-3.5"/></svg>Finance / P&amp;L</a>
+      <a data-s="scr-users" onclick="showScreen(this)"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"/></svg>Users &amp; Roles</a>
+      <a data-s="scr-reports" onclick="showScreen(this)"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7"/><path d="M3 20h18"/></svg>Reports</a>
+      <div class="sidefoot"><div class="help-icon">?</div><div><strong>Need help?</strong><span>View support center</span></div><svg class="chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>
+    </div>
+    <div class="main">
+      <header class="apptop">
+        <div class="heading"><p>Thursday, 2 July</p><h1>Good morning, Maya <span>👋</span></h1></div>
+        <label class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input type="search" placeholder="Search orders…"><kbd>⌘ K</kbd></label>
+        <button class="icon-btn" onclick="toast('3 notifications: 2 orders due soon · 1 uncollected over 48h')"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><i></i></button>
+        <div class="profile"><span>MK</span><div><strong>Maya Kim</strong><small>Manager</small></div><svg class="chev" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></div>
+      </header>
+
+      <!-- DASHBOARD -->
+      <div class="screen active" id="scr-dash">
+        <div class="section-head">
+          <div><h2>Today&rsquo;s overview</h2><p>Here&rsquo;s what&rsquo;s happening at Westlands Branch.</p></div>
+          <div class="head-actions">
+            <button class="branch-btn"><svg viewBox="0 0 24 24"><path d="M4 21V7l8-4 8 4v14M9 21v-5h6v5M8 9h.01M12 9h.01M16 9h.01M8 12h.01M12 12h.01M16 12h.01"/></svg>Westlands Branch<svg class="chev" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></button>
+            <button class="primary-btn" onclick="navTo('scr-new')"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New order</button>
+          </div>
+        </div>
+        <div class="metrics">
+          <article class="metric">
+            <div class="metric-icon blue"><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2Z"/><path d="M9 7h6M9 11h6"/></svg></div>
+            <div><span>Today&rsquo;s orders</span><strong>48</strong><small class="up">&#8599; 12.5%</small></div>
+            <div class="spark blue-spark"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </article>
+          <article class="metric">
+            <div class="metric-icon green"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 6.5c0-1.9-2.2-3.5-5-3.5S7 4.6 7 6.5s2.2 3.5 5 3.5 5 1.6 5 3.5-2.2 3.5-5 3.5-5-1.6-5-3.5"/></svg></div>
+            <div><span>Today&rsquo;s revenue</span><strong>KSh 84.2k</strong><small class="up">&#8599; 8.2%</small></div>
+            <div class="spark green-spark"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </article>
+          <article class="metric">
+            <div class="metric-icon violet"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+            <div><span>In progress</span><strong>18</strong><small>5 due soon</small></div>
+            <div class="progress-ring" style="--progress:72"><span>72%</span></div>
+          </article>
+          <article class="metric">
+            <div class="metric-icon orange"><svg viewBox="0 0 24 24"><path d="m5 13 4 4L19 7"/><circle cx="12" cy="12" r="9"/></svg></div>
+            <div><span>Ready to collect</span><strong>12</strong><small>3 overdue</small></div>
+            <div class="avatar-stack"><i>AM</i><i>DK</i><i>+9</i></div>
+          </article>
+        </div>
+        <div class="dashboard-grid">
+          <section class="panel orders-panel">
+            <div class="panel-head">
+              <div><h3>Active orders</h3><span>18 orders currently in progress</span></div>
+              <button class="text-btn" onclick="navTo('scr-board')">View all <span>&rarr;</span></button>
+            </div>
+            <div class="ftabs" role="tablist">
+              <button class="active" data-filter="all" onclick="filterOrders(this)">All <span>18</span></button>
+              <button data-filter="washing" onclick="filterOrders(this)">Washing <span>7</span></button>
+              <button data-filter="drying" onclick="filterOrders(this)">Drying <span>5</span></button>
+              <button data-filter="finishing" onclick="filterOrders(this)">Finishing <span>6</span></button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Order</th><th>Customer</th><th>Service</th><th>Status</th><th>Due time</th><th></th></tr></thead>
+                <tbody>
+                  <tr data-status="washing">
+                    <td><strong>#LF-2048</strong><small>8 items &middot; 6.5 kg</small></td>
+                    <td><div class="customer"><i class="av purple">AN</i><span><b>Aisha Noor</b><small>+254 712 486 920</small></span></div></td>
+                    <td>Wash &amp; Fold</td>
+                    <td><span class="status washing"><i></i>Washing</span></td>
+                    <td><b>10:30 AM</b><small>in 45 mins</small></td>
+                    <td><button class="more" onclick="toast('Order actions: view · edit · print tag (mockup)')">&bull;&bull;&bull;</button></td>
+                  </tr>
+                  <tr data-status="drying">
+                    <td><strong>#LF-2047</strong><small>4 items &middot; 3.2 kg</small></td>
+                    <td><div class="customer"><i class="av mint">JM</i><span><b>James Mwangi</b><small>+254 721 038 554</small></span></div></td>
+                    <td>Dry Cleaning</td>
+                    <td><span class="status drying"><i></i>Drying</span></td>
+                    <td><b>11:15 AM</b><small>in 1h 30m</small></td>
+                    <td><button class="more" onclick="toast('Order actions: view · edit · print tag (mockup)')">&bull;&bull;&bull;</button></td>
+                  </tr>
+                  <tr data-status="finishing">
+                    <td><strong>#LF-2046</strong><small>12 items &middot; 9.8 kg</small></td>
+                    <td><div class="customer"><i class="av amber">CW</i><span><b>Clara Wanjiku</b><small>+254 733 682 011</small></span></div></td>
+                    <td>Wash &amp; Iron</td>
+                    <td><span class="status finishing"><i></i>Finishing</span></td>
+                    <td><b>11:45 AM</b><small>in 2 hours</small></td>
+                    <td><button class="more" onclick="toast('Order actions: view · edit · print tag (mockup)')">&bull;&bull;&bull;</button></td>
+                  </tr>
+                  <tr data-status="washing">
+                    <td><strong>#LF-2045</strong><small>6 items &middot; 5.0 kg</small></td>
+                    <td><div class="customer"><i class="av blue">DO</i><span><b>David Otieno</b><small>+254 705 462 380</small></span></div></td>
+                    <td>Express Wash</td>
+                    <td><span class="status washing"><i></i>Washing</span></td>
+                    <td><b>12:10 PM</b><small>in 2h 25m</small></td>
+                    <td><button class="more" onclick="toast('Order actions: view · edit · print tag (mockup)')">&bull;&bull;&bull;</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <aside class="right-column">
+            <section class="panel machine-panel">
+              <div class="panel-head">
+                <div><h3>Machine status</h3><span>16 total machines</span></div>
+                <button class="text-btn" onclick="toast('Machine management (Phase 2 mockup)')">Manage</button>
+              </div>
+              <div class="machine-summary">
+                <div class="donut"><span><b>13</b><small>Running</small></span></div>
+                <div class="mlegend">
+                  <p><i class="dot running"></i><span>Running</span><b>13</b></p>
+                  <p><i class="dot idle"></i><span>Available</span><b>2</b></p>
+                  <p><i class="dot maintenance"></i><span>Maintenance</span><b>1</b></p>
+                </div>
+              </div>
+              <div class="machine-list">
+                <div><span class="mc"><i></i></span><p><b>Washer 04</b><small>Order #LF-2048</small></p><em>18 min</em></div>
+                <div><span class="mc dryer"><i></i></span><p><b>Dryer 02</b><small>Order #LF-2047</small></p><em>32 min</em></div>
+              </div>
+            </section>
+            <section class="panel pickup-panel">
+              <div class="panel-head">
+                <div><h3>Upcoming pickups</h3><span>Next 3 hours</span></div>
+                <button class="icon-small" onclick="toast('Schedule a pickup (mockup)')"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+              </div>
+              <div class="pickup"><time>10:30<small>AM</small></time><i></i><div><b>Aisha Noor</b><small>2 bags &middot; Pickup</small></div><span>12 min</span></div>
+              <div class="pickup"><time>11:15<small>AM</small></time><i></i><div><b>Brian Kibet</b><small>1 bag &middot; Delivery</small></div><span>57 min</span></div>
+              <div class="pickup"><time>12:00<small>PM</small></time><i></i><div><b>Grace Njeri</b><small>3 bags &middot; Pickup</small></div><span>1h 42m</span></div>
+            </section>
+          </aside>
+        </div>
+      </div>
+
+      <!-- NEW ORDER -->
+      <div class="screen" id="scr-new">
+        <h2>New Order — Assessment</h2><div class="crumb">Intake → <b>Assessment</b> → Confirmation → Processing</div>
+        <div class="row">
+          <div style="flex:2;position:relative;"><label>Customer — search or add new</label><input type="text" id="custSearch" placeholder="Type a name or phone…" autocomplete="off" oninput="custFilter()" onfocus="custFilter()" onblur="custBlur()"><div class="combo-list" id="custList" style="display:none;"></div><input type="hidden" id="custName" value=""></div>
+          <div><label>Phone</label><input type="tel" id="custPhone" placeholder="07xx xxx xxx"></div>
+          <div style="max-width:120px;"><label>Express (+50%)</label><select id="express" onchange="renderOrder()"><option value="0">No</option><option value="1">Yes — same day</option></select></div>
+        </div>
+        <div class="panel">
+          <h3>Add service line</h3>
+          <div class="row">
+            <div><label>Service</label><select id="svcSel" onchange="onSvcChange()"></select></div>
+            <div id="variantWrap" style="display:none;"><label>Variant</label><select id="varSel"></select></div>
+            <div style="max-width:140px;"><label id="qtyLabel">Weight (kg)</label><input type="number" id="qtyInput" value="7" min="0.5" step="0.5"></div>
+          </div>
+          <div id="addonWrap" class="checks" style="margin-bottom:10px;"></div>
+          <button class="btn btn-primary" onclick="addLine()">＋ Add to order</button>
+        </div>
+        <div style="display:flex; gap:18px; flex-wrap:wrap;">
+          <div class="panel" style="flex:1; min-width:320px;">
+            <h3>Order lines</h3>
+            <div id="lines"><div style="color:var(--muted);font-size:13px;">No lines yet — add a service above.</div></div>
+            <div class="totals" id="totals"></div>
+            <div style="margin-top:12px; display:flex; gap:10px;">
+              <button class="btn btn-green" style="display:inline-flex;align-items:center;gap:7px;" onclick="sendQuote()"><svg viewBox="0 0 24 24" style="width:15px;height:15px;"><path d="m22 2-11 11M22 2 15 22l-4-9-9-4 20-7Z"/></svg>Send quote + M-Pesa STK</button>
+              <button class="btn btn-ghost" onclick="clearOrder()">Clear</button>
+            </div>
+          </div>
+          <div>
+            <div class="phone" id="phonePrev" style="display:none;">
+              <div style="font-size:10px;color:var(--muted);text-align:center;margin-bottom:8px;">CUSTOMER'S PHONE</div>
+              <div class="sms" id="smsBody"></div>
+              <div class="mpesa"><div style="font-size:11px;opacity:.85;">M-PESA — eWash Kileleshwa</div><div class="amt" id="stkAmt"></div><div style="font-size:11px;margin-top:4px;">Enter PIN to pay</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ORDERS BOARD -->
+      <div class="screen" id="scr-board">
+        <h2>Orders Pipeline</h2><div class="crumb">Tap ▶ to advance an order to the next stage. Customers are notified automatically at "Ready".</div>
+        <div class="kanban" id="kanban"></div>
+      </div>
+
+      <!-- SERVICE BUILDER -->
+      <div class="screen" id="scr-builder">
+        <h2>Service &amp; Pricing Builder</h2><div class="crumb">Admin only · Changes apply to new orders — existing orders keep their price snapshot</div>
+        <div class="split">
+          <div>
+            <div id="svcList"></div>
+            <button class="btn btn-ghost" style="width:100%;" onclick="toast('New service draft created (mockup)')">＋ New service</button>
+          </div>
+          <div class="panel">
+            <div class="row">
+              <div><label>Service name</label><input type="text" id="bName"></div>
+              <div style="max-width:170px;"><label>Category</label><select id="bCat"><option>Washing</option><option>Ironing</option><option>Dry Cleaning</option><option>Special Items</option><option>Household</option></select></div>
+            </div>
+            <label>Pricing model</label>
+            <div class="radio-cards" id="bModel">
+              <div data-m="PER_KG" onclick="pickModel(this)"><svg viewBox="0 0 24 24" style="width:15px;height:15px;vertical-align:-3px;"><path d="M9 6a3 3 0 1 1 6 0"/><path d="M5 6h14l2 14H3L5 6Z"/></svg> Per KG</div>
+              <div data-m="PER_ITEM" onclick="pickModel(this)"><svg viewBox="0 0 24 24" style="width:15px;height:15px;vertical-align:-3px;"><path d="M8 3 4 6l2 4 2-1v12h8V9l2 1 2-4-4-3a4 4 0 0 1-8 0Z"/></svg> Per Item</div>
+              <div data-m="FLAT" onclick="pickModel(this)"><svg viewBox="0 0 24 24" style="width:15px;height:15px;vertical-align:-3px;"><path d="M3 8l9-5 9 5v8l-9 5-9-5V8Z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg> Flat</div>
+              <div data-m="TIERED" onclick="pickModel(this)"><svg viewBox="0 0 24 24" style="width:15px;height:15px;vertical-align:-3px;"><path d="M4 20v-6M10 20V9M16 20V4M3 20h18"/></svg> Tiered</div>
+            </div>
+            <div class="row">
+              <div><label id="bRateLabel">Rate (KES/kg)</label><input type="number" id="bRate" oninput="builderPreview()"></div>
+              <div><label>Minimum charge (KES)</label><input type="number" id="bMin" oninput="builderPreview()"></div>
+              <div><label>Express surcharge %</label><input type="number" id="bExp" value="50" oninput="builderPreview()"></div>
+            </div>
+            <label>Can attach as a rider to</label>
+            <div class="checks" id="bAttach"></div>
+            <div class="row" style="margin-top:8px;">
+              <div><label>Bundled rate override (when riding)</label><input type="number" id="bOverride" oninput="builderPreview()" placeholder="blank = same as standalone"></div>
+              <div style="max-width:160px;"><label>Preview qty</label><input type="number" id="bPrevQty" value="7" oninput="builderPreview()"></div>
+            </div>
+            <div class="preview-box" id="bPreview"></div>
+            <div style="margin-top:12px;"><button class="btn btn-primary" onclick="toast('Saved ✔ — live for new orders. Existing orders keep their snapshots.')">Save service</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CUSTOMERS -->
+      <div class="screen" id="scr-cust">
+        <h2>Customers</h2><div class="crumb">Phone number is the customer ID — auto-created at first order</div>
+        <div class="panel"><table class="mock-table"><thead><tr><th>Name</th><th>Phone</th><th>Orders</th><th>Lifetime value</th><th>Last order</th></tr></thead><tbody>
+          <tr><td>Njeri K.</td><td>0722 111 222</td><td>23</td><td>KES 31,400</td><td>Today</td></tr>
+          <tr><td>David O.</td><td>0733 444 555</td><td>9</td><td>KES 14,850</td><td>Yesterday</td></tr>
+          <tr><td>Fatuma A.</td><td>0710 999 888</td><td>17</td><td>KES 22,120</td><td>Today</td></tr>
+          <tr><td>Brian M.</td><td>0701 222 333</td><td>2</td><td>KES 1,900</td><td>34 days ago <span class="badge b-due">lapsing</span></td></tr>
+        </tbody></table></div>
+      </div>
+
+      <!-- REPORTS -->
+      <div class="screen" id="scr-reports">
+        <h2>Reports</h2><div class="crumb">Owner/Admin only</div>
+        <div class="cards">
+          <div class="kpi"><div class="v">KES 412k</div><div class="l">Revenue · June</div><div class="d">▲ 11% MoM</div></div>
+          <div class="kpi"><div class="v">61%</div><div class="l">From per-kg washing</div><div class="d">Duvets 22% · Ironing riders 12%</div></div>
+          <div class="kpi"><div class="v">38%</div><div class="l">Orders add an ironing rider</div><div class="d">▲ attach rate after bundle price</div></div>
+          <div class="kpi"><div class="v">KES 9,200</div><div class="l">Manual discounts · June</div><div class="d">audit log: 14 entries, 2 staff</div></div>
+        </div>
+        <div class="panel"><h3>Daily register — today</h3><table class="mock-table"><thead><tr><th>Attendant</th><th>Orders</th><th>Cash</th><th>M-Pesa</th><th>Variance</th></tr></thead><tbody>
+          <tr><td>Amina</td><td>9</td><td>KES 1,850</td><td>KES 9,600</td><td style="color:var(--green)">0</td></tr>
+          <tr><td>Peter</td><td>5</td><td>KES 1,500</td><td>KES 5,500</td><td style="color:var(--green)">0</td></tr>
+        </tbody></table></div>
+      </div>
+
+      <!-- USERS & ROLES -->
+      <div class="screen" id="scr-users">
+        <h2>Users &amp; Roles</h2><div class="crumb">Admin only · Role templates + granular per-user overrides · every change is audit-logged</div>
+        <div class="split">
+          <div>
+            <div id="userList"></div>
+            <button class="btn btn-ghost" style="width:100%;" onclick="toast('Invite sent via SMS with a setup link (mockup)')">＋ Invite user</button>
+          </div>
+          <div class="panel">
+            <div class="row" style="align-items:flex-end;">
+              <div><label>User</label><div id="uName" style="font:700 15px 'Manrope',sans-serif;padding:6px 0;"></div></div>
+              <div style="max-width:200px;"><label>Role template</label><select id="uRole" onchange="roleChanged()"></select></div>
+            </div>
+            <label style="margin-top:6px;">Granular permissions — effective for this user</label>
+            <div id="permGrid"></div>
+            <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="toast('Saved ✔ — applies at next login · written to audit log')">Save permissions</button>
+              <span style="font-size:11px;color:var(--muted);">Toggling away from the role template creates a per-user override (flagged). Explicit deny beats the role.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FINANCE / P&L -->
+      <div class="screen" id="scr-finance">
+        <h2>Finance — Profit &amp; Loss</h2><div class="crumb">Owner only · Revenue recognized on <b>closed orders</b> (delivered/collected) · July 2026 · Kileleshwa Branch · <a href="#" onclick="toast('CSV exported for your accountant (mockup)');return false;">Export CSV</a></div>
+        <div class="cards" id="finKpis"></div>
+        <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
+          <div class="panel" style="flex:1.2; min-width:340px;">
+            <h3>P&amp;L statement — July 2026 (month to date)</h3>
+            <table class="mock-table" id="plTable"></table>
+          </div>
+          <div style="flex:1; min-width:300px;">
+            <div class="panel">
+              <h3>Record expense</h3>
+              <div class="row">
+                <div><label>Category</label><select id="exCat"></select></div>
+                <div style="max-width:130px;"><label>Amount (KES)</label><input type="number" id="exAmt" value="2500"></div>
+              </div>
+              <div class="row">
+                <div><label>Paid via</label><select id="exVia"><option>M-Pesa</option><option>Cash</option></select></div>
+                <div><label>Note</label><input type="text" id="exNote" placeholder="e.g. 20L detergent, Sarit"></div>
+              </div>
+              <div class="checks"><label><input type="checkbox" id="exRec"> Recurring monthly (auto-posts with a nudge)</label></div>
+              <button class="btn btn-primary" onclick="addExpense()">Save expense</button>
+            </div>
+            <div class="panel">
+              <h3>Recent expenses</h3>
+              <table class="mock-table" id="exList"></table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= MOCKUP APP ================= */
+const CATALOG = {
+  wash_kg:{name:'Wash & Fold (per kg)', model:'PER_KG', rate:150, min:500, unit:'kg', cat:'Washing'},
+  duvet:{name:'Duvet Wash', model:'PER_ITEM', rate:800, min:0, unit:'item', cat:'Household', variants:{'Single':600,'Double':800,'King':1000}},
+  iron:{name:'Ironing', model:'PER_KG', rate:70, min:0, unit:'kg', cat:'Ironing'},
+  stain:{name:'Stain Treatment', model:'PER_ITEM', rate:100, min:0, unit:'item', cat:'Washing'},
+  suit:{name:'Suit Dry Clean', model:'PER_ITEM', rate:500, min:0, unit:'item', cat:'Dry Cleaning'},
+  bag:{name:'Bag Wash (any weight)', model:'FLAT', rate:1200, min:0, unit:'flat', cat:'Washing'}
+};
+const ADDON_RULES = [
+  {parent:'wash_kg', addon:'iron',  override:50,   inherit:true},
+  {parent:'wash_kg', addon:'stain', override:null, inherit:false},
+  {parent:'duvet',   addon:'stain', override:null, inherit:true}
+];
+const fmt = n => 'KES ' + Math.round(n).toLocaleString('en-KE');
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),3200); }
+function showScreen(el){
+  document.querySelectorAll('.side a').forEach(a=>a.classList.remove('active')); el.classList.add('active');
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(el.dataset.s).classList.add('active');
+}
+
+/* ---- New Order ---- */
+let ORDER = [];
+function initNewOrder(){
+  const sel = document.getElementById('svcSel');
+  sel.innerHTML = Object.entries(CATALOG).map(([k,s])=>`<option value="${k}">${s.name} — ${s.model==='FLAT'?fmt(s.rate):fmt(s.rate)+'/'+s.unit}</option>`).join('');
+  onSvcChange(); renderOrder();
+}
+function onSvcChange(){
+  const k = document.getElementById('svcSel').value, s = CATALOG[k];
+  const vw = document.getElementById('variantWrap'), vs = document.getElementById('varSel');
+  if (s.variants){ vw.style.display='block'; vs.innerHTML = Object.entries(s.variants).map(([v,p])=>`<option value="${v}">${v} — ${fmt(p)}</option>`).join(''); }
+  else vw.style.display='none';
+  document.getElementById('qtyLabel').textContent = s.model==='PER_KG' ? 'Weight (kg)' : s.model==='FLAT' ? 'Bags' : 'Quantity';
+  const rules = ADDON_RULES.filter(r=>r.parent===k);
+  document.getElementById('addonWrap').innerHTML = rules.length
+    ? '<label style="margin-top:4px;">Riders / add-ons</label>' + rules.map(r=>{
+        const a = CATALOG[r.addon], eff = r.override ?? a.rate;
+        return `<label><input type="checkbox" value="${r.addon}" class="addonCk"> ${a.name} — ${fmt(eff)}/${a.unit}${r.override?` <span class="addon-chip">bundled, was ${fmt(a.rate)}</span>`:''}${r.inherit?' <span class="addon-chip">inherits qty</span>':''}</label>`;
+      }).join('') : '';
+}
+function priceService(s, qty, variant, rateOverride){
+  let rate = rateOverride ?? (s.variants && variant ? s.variants[variant] : s.rate);
+  let amt = s.model==='FLAT' ? rate*Math.max(1,qty) : rate*qty;
+  let minApplied = false;
+  if (s.min && amt < s.min){ amt = s.min; minApplied = true; }
+  return {amt, rate, minApplied};
+}
+function addLine(){
+  const k = document.getElementById('svcSel').value, s = CATALOG[k];
+  const qty = parseFloat(document.getElementById('qtyInput').value)||1;
+  const variant = s.variants ? document.getElementById('varSel').value : null;
+  const base = priceService(s, qty, variant);
+  const addons = [...document.querySelectorAll('.addonCk:checked')].map(ck=>{
+    const r = ADDON_RULES.find(x=>x.parent===k && x.addon===ck.value), a = CATALOG[r.addon];
+    const aq = r.inherit ? qty : 1;
+    const p = priceService(a, aq, null, r.override ?? undefined);
+    return {key:r.addon, name:a.name, qty:aq, unit:a.unit, rate:p.rate, amt:p.amt, inherited:r.inherit};
+  });
+  ORDER.push({key:k, name:s.name, variant, qty, unit:s.unit, rate:base.rate, amt:base.amt, minApplied:base.minApplied, addons});
+  renderOrder();
+}
+function renderOrder(){
+  const el = document.getElementById('lines');
+  if (!ORDER.length){ el.innerHTML = '<div style="color:var(--muted);font-size:13px;">No lines yet — add a service above.</div>'; document.getElementById('totals').innerHTML=''; return; }
+  el.innerHTML = ORDER.map((l,i)=>`
+    <div class="lineitem">
+      <div class="li-head"><span>${l.name}${l.variant?` · ${l.variant}`:''}</span><span>${fmt(l.amt)}</span></div>
+      <div class="li-sub">${l.qty} ${l.unit} × ${fmt(l.rate)}${l.minApplied?' — <b>minimum charge applied</b>':''} &nbsp; <a href="#" onclick="ORDER.splice(${i},1);renderOrder();return false;" style="color:var(--red);font-size:11px;">remove</a></div>
+      ${l.addons.map(a=>`<span class="addon-chip">↳ ${a.name} · ${a.qty} ${a.unit} × ${fmt(a.rate)} = ${fmt(a.amt)}${a.inherited?' (qty inherited)':''}</span>`).join('')}
+    </div>`).join('');
+  const sub = ORDER.reduce((t,l)=>t + l.amt + l.addons.reduce((x,a)=>x+a.amt,0), 0);
+  const exp = document.getElementById('express').value==='1' ? sub*0.5 : 0;
+  document.getElementById('totals').innerHTML = `
+    <div class="tr"><span>Subtotal</span><span>${fmt(sub)}</span></div>
+    ${exp?`<div class="tr"><span>Express surcharge (+50%)</span><span>${fmt(exp)}</span></div>`:''}
+    <div class="tr grand"><span>Total</span><span>${fmt(sub+exp)}</span></div>
+    <div style="font-size:11px;color:var(--muted);">Price snapshot locks at customer confirmation</div>`;
+}
+let orderSeq = 252;
+function sendQuote(){
+  if (!ORDER.length){ toast('Add at least one line first'); return; }
+  const sub = ORDER.reduce((t,l)=>t + l.amt + l.addons.reduce((x,a)=>x+a.amt,0), 0);
+  const total = document.getElementById('express').value==='1' ? sub*1.5 : sub;
+  const code = 'WK-0' + (orderSeq++);
+  const name = document.getElementById('custName').value || 'Customer';
+  const items = ORDER.map(l=>`${l.name}${l.variant?' ('+l.variant+')':''} ${l.qty}${l.unit==='kg'?'kg':'×'}: ${fmt(l.amt)}` + l.addons.map(a=>` +${a.name}: ${fmt(a.amt)}`).join('')).join('; ');
+  document.getElementById('smsBody').innerHTML = `<b>eWash:</b> Hello ${name.split(' ')[0]}, order <b>${code}</b> assessed: ${items}. Total <b>${fmt(total)}</b>. Reply YES or pay via the M-Pesa prompt to confirm. Karibu!`;
+  document.getElementById('stkAmt').textContent = fmt(total);
+  document.getElementById('phonePrev').style.display='block';
+  addKanbanCard(code, name, ORDER.length + ' line(s)', total);
+  toast(`Quote sent + STK push for ${fmt(total)} · ${code} created in "Received"`);
+}
+function clearOrder(){ ORDER=[]; renderOrder(); document.getElementById('phonePrev').style.display='none'; }
+
+/* ---- Customers (searchable combobox) ---- */
+let CUSTOMERS = [
+  {name:'Njeri Kamande', phone:'0722 111 222'},
+  {name:'David Otieno', phone:'0733 444 555'},
+  {name:'Fatuma Abdi', phone:'0710 999 888'},
+  {name:'Brian Mutua', phone:'0701 222 333'},
+  {name:'Grace Wambui', phone:'0708 555 121'},
+  {name:'Wanjiku Maina', phone:'0722 345 678'}
+];
+const initials = n => n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+function custFilter(){
+  const raw = document.getElementById('custSearch').value || '';
+  const q = raw.toLowerCase();
+  const list = document.getElementById('custList');
+  const hits = CUSTOMERS.filter(c => c.name.toLowerCase().includes(q) || c.phone.replace(/\s/g,'').includes(q.replace(/\s/g,'')));
+  list.innerHTML = hits.map(c=>`<div class="combo-item" onmousedown="pickCustIdx(${CUSTOMERS.indexOf(c)})"><i class="av mint">${initials(c.name)}</i>${c.name}<small>${c.phone}</small></div>`).join('')
+    + (raw.trim() ? `<div class="combo-item combo-new" onmousedown="newCust()">＋ Add “${raw.trim()}” as a new customer</div>` : '');
+  list.style.display = 'block';
+}
+function custBlur(){ setTimeout(()=>{ document.getElementById('custList').style.display='none'; }, 160); }
+function pickCustIdx(i){
+  const c = CUSTOMERS[i];
+  document.getElementById('custSearch').value = c.name;
+  document.getElementById('custName').value = c.name;
+  document.getElementById('custPhone').value = c.phone;
+  document.getElementById('custList').style.display='none';
+}
+function newCust(){
+  const name = document.getElementById('custSearch').value.trim();
+  if (!name) return;
+  const phone = document.getElementById('custPhone').value || '';
+  CUSTOMERS.push({name, phone: phone || '—'});
+  document.getElementById('custName').value = name;
+  document.getElementById('custList').style.display='none';
+  toast(`Customer “${name}” created ✔${phone?'':' — remember to add a phone number'}`);
+}
+
+/* ---- Kanban ---- */
+const STAGES = ['Received','Washing','Ironing','Ready','Delivered'];
+let CARDS = [
+  {code:'WK-0251', cust:'Njeri K.', desc:'Wash 6kg + Iron rider', total:1200, stage:1},
+  {code:'WK-0250', cust:'David O.', desc:'Duvet (King) ×2', total:2000, stage:3},
+  {code:'WK-0249', cust:'Fatuma A.', desc:'Wash 12kg, Stain ×3', total:1860, stage:2},
+  {code:'WK-0248', cust:'Brian M.', desc:'Suits ×2 dry clean', total:1000, stage:0},
+  {code:'WK-0247', cust:'Grace W.', desc:'Bag wash + express', total:1800, stage:4}
+];
+function addKanbanCard(code,cust,desc,total){ CARDS.unshift({code,cust,desc,total,stage:0}); renderKanban(); }
+function advance(code){
+  const c = CARDS.find(x=>x.code===code); if (c.stage < 4) c.stage++;
+  if (c.stage===3) toast(`SMS sent to ${c.cust}: "Order ${c.code} is ready for pickup" + payment reminder if balance due`);
+  if (c.stage===4){ toast(`${c.code} closed — ${fmt(c.total)} recognized as revenue in the P&L`); renderFinance(); }
+  renderKanban();
+}
+function renderKanban(){
+  const kb = document.getElementById('kanban');
+  kb.innerHTML = STAGES.map((st,i)=>{
+    const cards = CARDS.filter(c=>c.stage===i);
+    return `<div class="kcol"><h4>${st}<span>${cards.length}</span></h4>` + cards.map(c=>`
+      <div class="kcard"><div class="id">${c.code}</div><div class="meta">${c.cust}</div><div class="meta">${c.desc} · ${fmt(c.total)}</div>
+      ${i<4?`<button class="btn btn-primary btn-sm" onclick="advance('${c.code}')">▶ ${STAGES[i+1]}</button>`:'<span class="badge b-deliv">closed</span>'}</div>`).join('') + '</div>';
+  }).join('');
+}
+
+/* ---- Service Builder ---- */
+let selSvc = 'iron';
+function renderSvcList(){
+  document.getElementById('svcList').innerHTML = Object.entries(CATALOG).map(([k,s])=>
+    `<div class="svc-list-item ${k===selSvc?'sel':''}" onclick="selectSvc('${k}')">${s.name}<span class="sp">${s.model}</span></div>`).join('');
+}
+function selectSvc(k){
+  selSvc = k; const s = CATALOG[k]; renderSvcList();
+  document.getElementById('bName').value = s.name;
+  document.getElementById('bCat').value = s.cat;
+  document.querySelectorAll('#bModel div').forEach(d=>d.classList.toggle('sel', d.dataset.m===s.model));
+  document.getElementById('bRateLabel').textContent = s.model==='PER_KG'?'Rate (KES/kg)':s.model==='PER_ITEM'?'Base price (KES/item)':'Price (KES)';
+  document.getElementById('bRate').value = s.rate;
+  document.getElementById('bMin').value = s.min||'';
+  const rule = ADDON_RULES.find(r=>r.addon===k);
+  document.getElementById('bOverride').value = rule && rule.override ? rule.override : '';
+  document.getElementById('bAttach').innerHTML = Object.entries(CATALOG).filter(([pk])=>pk!==k).map(([pk,ps])=>{
+    const on = ADDON_RULES.some(r=>r.addon===k && r.parent===pk);
+    return `<label><input type="checkbox" ${on?'checked':''} onchange="builderPreview()"> ${ps.name}</label>`;
+  }).join('');
+  builderPreview();
+}
+function pickModel(el){ document.querySelectorAll('#bModel div').forEach(d=>d.classList.remove('sel')); el.classList.add('sel'); builderPreview(); }
+function builderPreview(){
+  const rate = parseFloat(document.getElementById('bRate').value)||0;
+  const min = parseFloat(document.getElementById('bMin').value)||0;
+  const exp = parseFloat(document.getElementById('bExp').value)||0;
+  const ov  = parseFloat(document.getElementById('bOverride').value)||null;
+  const qty = parseFloat(document.getElementById('bPrevQty').value)||1;
+  const model = document.querySelector('#bModel div.sel')?.dataset.m || 'PER_KG';
+  let base = model==='FLAT' ? rate : rate*qty;
+  const minHit = min && base<min; if (minHit) base = min;
+  const unit = model==='PER_KG'?'kg':model==='PER_ITEM'?'items':'order';
+  let html = `<div>Standalone · ${qty} ${unit}</div><div class="big">${fmt(base)}</div>`;
+  if (minHit) html += `<div style="color:#fbbf24;font-size:11.5px;">minimum charge applied</div>`;
+  if (ov) html += `<div style="margin-top:8px;">As a rider (bundled @ ${fmt(ov)}/${unit==='order'?'order':unit.replace('items','item')}): <b style="color:#67e8f9">${fmt(model==='FLAT'?ov:ov*qty)}</b></div>`;
+  if (exp) html += `<div style="margin-top:6px;font-size:12px;">With express +${exp}%: ${fmt(base*(1+exp/100))}</div>`;
+  document.getElementById('bPreview').innerHTML = html;
+}
+
+/* ---- Finance / P&L ---- */
+const EX_CATS = ['Detergents & supplies','Water','Electricity','Rent','Salaries & wages','Delivery/fuel','Equipment & repairs','Other'];
+const FIN = { priorClosed: 94600, discounts: 2150, refunds: 800 }; // priorClosed = closed orders earlier in the month
+const grossRev = () => FIN.priorClosed + CARDS.filter(c=>c.stage===4).reduce((t,c)=>t+c.total,0);
+let EXPENSES = [
+  {d:'01 Jul', cat:'Rent', amt:25000, via:'M-Pesa', note:'July rent', rec:true},
+  {d:'01 Jul', cat:'Salaries & wages', amt:28000, via:'M-Pesa', note:'2 staff', rec:true},
+  {d:'01 Jul', cat:'Detergents & supplies', amt:6400, via:'Cash', note:'Detergent + softener', rec:false},
+  {d:'02 Jul', cat:'Electricity', amt:4800, via:'M-Pesa', note:'Token top-up', rec:false},
+  {d:'02 Jul', cat:'Water', amt:3100, via:'M-Pesa', note:'', rec:false}
+];
+function finTotals(){
+  const exp = EXPENSES.reduce((t,e)=>t+e.amt,0);
+  const net = grossRev() - FIN.discounts - FIN.refunds;
+  return {exp, net, profit: net - exp};
+}
+function renderFinance(){
+  const {exp, net, profit} = finTotals();
+  const margin = net ? Math.round(profit/net*100) : 0;
+  document.getElementById('finKpis').innerHTML = `
+    <div class="kpi"><div class="v">${fmt(net)}</div><div class="l">Net revenue MTD · closed orders only</div><div class="d">${CARDS.filter(c=>c.stage===4).length} closed on the board · M-Pesa 81%</div></div>
+    <div class="kpi"><div class="v">${fmt(exp)}</div><div class="l">Expenses MTD</div><div class="d">${EXPENSES.length} entries · 2 recurring</div></div>
+    <div class="kpi"><div class="v" style="color:${profit>=0?'var(--green)':'var(--red)'}">${fmt(profit)}</div><div class="l">Operating profit MTD</div><div class="d">${margin}% margin</div></div>
+    <div class="kpi"><div class="v">${fmt(FIN.discounts + FIN.refunds)}</div><div class="l">Leakage (discounts + refunds)</div><div class="d" style="color:var(--red)">incl. 1 re-wash redo</div></div>`;
+  const byCat = {};
+  EXPENSES.forEach(e=>byCat[e.cat]=(byCat[e.cat]||0)+e.amt);
+  document.getElementById('plTable').innerHTML = `
+    <tr><td><b>Gross revenue</b> <span style="color:var(--muted);font-size:11px;">(closed orders — automatic)</span></td><td style="text-align:right">${fmt(grossRev())}</td></tr>
+    <tr><td style="padding-left:22px;">less Discounts</td><td style="text-align:right;color:var(--red)">(${fmt(FIN.discounts)})</td></tr>
+    <tr><td style="padding-left:22px;">less Refunds &amp; re-wash</td><td style="text-align:right;color:var(--red)">(${fmt(FIN.refunds)})</td></tr>
+    <tr style="border-top:2px solid var(--line)"><td><b>Net revenue</b></td><td style="text-align:right"><b>${fmt(finTotals().net)}</b></td></tr>
+    ${Object.entries(byCat).map(([c,a])=>`<tr><td style="padding-left:22px;">less ${c}</td><td style="text-align:right;color:var(--red)">(${fmt(a)})</td></tr>`).join('')}
+    <tr style="border-top:2px solid var(--ink)"><td><b>Operating profit</b></td><td style="text-align:right"><b style="color:${profit>=0?'var(--green)':'var(--red)'}">${fmt(profit)}</b></td></tr>`;
+  document.getElementById('exList').innerHTML = '<thead><tr><th>Date</th><th>Category</th><th>Amount</th><th>Via</th></tr></thead><tbody>' +
+    EXPENSES.slice().reverse().map(e=>`<tr><td>${e.d}</td><td>${e.cat}${e.rec?' <span class="badge b-recv">monthly</span>':''}<div style="font-size:11px;color:var(--muted)">${e.note||''}</div></td><td>${fmt(e.amt)}</td><td>${e.via}</td></tr>`).join('') + '</tbody>';
+}
+function addExpense(){
+  const amt = parseFloat(document.getElementById('exAmt').value)||0;
+  if (!amt){ toast('Enter an amount'); return; }
+  EXPENSES.push({d:'02 Jul', cat:document.getElementById('exCat').value, amt, via:document.getElementById('exVia').value, note:document.getElementById('exNote').value, rec:document.getElementById('exRec').checked});
+  renderFinance();
+  toast('Expense saved ✔ — P&L updated' + (document.getElementById('exRec').checked ? ' · will auto-post monthly' : ''));
+}
+document.getElementById('exCat').innerHTML = EX_CATS.map(c=>`<option>${c}</option>`).join('');
+
+/* ---- Dashboard helpers ---- */
+function navTo(id){ const a = document.querySelector(`.side a[data-s="${id}"]`); if (a) showScreen(a); }
+function filterOrders(btn){
+  document.querySelectorAll('.ftabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const f = btn.dataset.filter;
+  document.querySelectorAll('.orders-panel tbody tr').forEach(tr=>{
+    tr.style.display = (f==='all' || tr.dataset.status===f) ? '' : 'none';
+  });
+}
+
+/* ---- Users & Roles (RBAC) ---- */
+const POLICIES = [
+  ['orders.create','Create & assess orders'],
+  ['orders.discount','Apply manual discounts (capped)'],
+  ['orders.void','Void / cancel orders'],
+  ['orders.advance','Move orders through the pipeline'],
+  ['payments.receive','Take payments (cash / M-Pesa)'],
+  ['payments.refund','Issue refunds'],
+  ['catalog.edit','Edit services & pricing'],
+  ['expenses.create','Record expenses'],
+  ['finance.view','View P&L, reports & registers'],
+  ['users.manage','Manage users, roles & policies']
+];
+const ROLE_TPL = {
+  'Owner/Admin': POLICIES.map(p=>p[0]),
+  'Attendant': ['orders.create','orders.discount','orders.advance','payments.receive','expenses.create'],
+  'Operator': ['orders.advance'],
+  'Rider': ['orders.advance','payments.receive']
+};
+let USERS = [
+  {name:'Maya Kim', role:'Owner/Admin', overrides:{}},
+  {name:'Amina Yusuf', role:'Attendant', overrides:{'payments.refund':true}},
+  {name:'Peter Kamau', role:'Operator', overrides:{'orders.create':true}},
+  {name:'Juma Baraka', role:'Rider', overrides:{'payments.receive':false}}
+];
+let selUser = 1;
+const effPerm = (u,k) => k in u.overrides ? u.overrides[k] : ROLE_TPL[u.role].includes(k);
+function renderUsers(){
+  document.getElementById('userList').innerHTML = USERS.map((u,i)=>{
+    const nov = Object.keys(u.overrides).length;
+    return `<div class="svc-list-item ${i===selUser?'sel':''}" onclick="selectUser(${i})"><i class="av mint">${initials(u.name)}</i>${u.name}<span class="sp">${u.role}${nov?` · ${nov} override${nov>1?'s':''}`:''}</span></div>`;
+  }).join('');
+}
+function selectUser(i){
+  selUser = i; renderUsers();
+  const u = USERS[i];
+  document.getElementById('uName').textContent = u.name;
+  document.getElementById('uRole').value = u.role;
+  renderPerms();
+}
+function roleChanged(){
+  const u = USERS[selUser];
+  u.role = document.getElementById('uRole').value;
+  u.overrides = {};
+  renderPerms(); renderUsers();
+  toast(`Role template “${u.role}” applied — overrides cleared`);
+}
+function togglePerm(key, checked){
+  const u = USERS[selUser];
+  const tpl = ROLE_TPL[u.role].includes(key);
+  if (checked === tpl) delete u.overrides[key]; else u.overrides[key] = checked;
+  renderPerms(); renderUsers();
+}
+function renderPerms(){
+  const u = USERS[selUser];
+  document.getElementById('permGrid').innerHTML = POLICIES.map(([k,d])=>{
+    const on = effPerm(u,k), ov = k in u.overrides;
+    return `<div class="perm-row"><div style="flex:1"><b>${d}</b><small>${k} · role default: ${ROLE_TPL[u.role].includes(k)?'allow':'deny'}</small></div>${ov?`<span class="ov-chip">override · ${u.overrides[k]?'grant':'deny'}</span>`:''}<label class="switch"><input type="checkbox" ${on?'checked':''} onchange="togglePerm('${k}',this.checked)"><span class="slider"></span></label></div>`;
+  }).join('');
+}
+document.getElementById('uRole').innerHTML = Object.keys(ROLE_TPL).map(r=>`<option>${r}</option>`).join('');
+
+initNewOrder(); renderKanban(); selectSvc('iron'); renderFinance(); renderUsers(); selectUser(1);
+</script>
+
+<script>
+/* ================= ERD RENDERER ================= */
+const ERD_COLORS = {tenant:'#0e7490', catalog:'#7c3aed', order:'#059669', money:'#f59e0b'};
+const ENTITIES = [
+ {id:'tenants', x:30,  y:40,  c:'tenant', f:['id PK','name','plan','currency','status']},
+ {id:'branches', x:240, y:40,  c:'tenant', f:['id PK','tenant_id FK','name','location']},
+ {id:'users', x:450, y:40,  c:'tenant', f:['id PK','tenant_id FK','branch_id FK','name · phone','role_id FK']},
+ {id:'customers', x:660, y:40,  c:'tenant', f:['id PK','tenant_id FK','name','phone UQ/tenant','notes']},
+ {id:'service_categories', x:30,  y:250, c:'catalog', f:['id PK','tenant_id FK','name','sort_order']},
+ {id:'services', x:30,  y:400, c:'catalog', f:['id PK','category_id FK','name','pricing_model enum','base_rate_cents','min_charge_cents','express_pct','unit (kg/item/flat)','active']},
+ {id:'service_variants', x:270, y:250, c:'catalog', f:['id PK','service_id FK','attribute (size…)','label','price_cents']},
+ {id:'pricing_tiers', x:270, y:420, c:'catalog', f:['id PK','service_id FK','min_qty · max_qty','rate_cents','band_price_cents']},
+ {id:'addon_rules', x:270, y:580, c:'catalog', f:['id PK','parent_service_id FK','addon_service_id FK','override_rate_cents','inherit_qty bool']},
+ {id:'orders', x:640, y:230, c:'order', f:['id PK','branch_id FK','customer_id FK','code (WK-0247)','status enum','payment_status enum','express bool','subtotal · discount','total_cents','confirmed_at','created_by FK']},
+ {id:'order_items', x:640, y:490, c:'order', f:['id PK','order_id FK','service_id FK','variant_id FK?','qty · weight_kg','unit_price_cents ★snap','line_total_cents ★snap']},
+ {id:'order_item_addons', x:900, y:490, c:'order', f:['id PK','order_item_id FK','addon_service_id FK','qty · qty_inherited','unit_price_cents ★snap','total_cents ★snap']},
+ {id:'item_tags', x:640, y:690, c:'order', f:['id PK','order_item_id FK','tag_code (QR)','status']},
+ {id:'order_status_history', x:900, y:230, c:'order', f:['id PK','order_id FK','from → to status','user_id FK','at']},
+ {id:'payments', x:30,  y:790, c:'money', f:['id PK','order_id FK','method (mpesa/cash)','amount_cents','mpesa_ref','status','received_by FK','at']},
+ {id:'notifications', x:270, y:790, c:'money', f:['id PK','order_id FK','channel (sms/wa)','template_key','status · sent_at']},
+ {id:'audit_log', x:510, y:790, c:'money', f:['id PK','tenant_id FK','user_id FK','action · entity','payload (before/after)','at']},
+ {id:'expense_categories', x:750, y:790, c:'money', f:['id PK','tenant_id FK','name','is_default']},
+ {id:'expenses', x:945, y:790, c:'money', f:['id PK','branch_id FK','category_id FK','amount_cents','paid_via (cash/mpesa)','expense_date','recurring bool','note · receipt_url','recorded_by FK']},
+ {id:'roles', x:30, y:985, c:'tenant', f:['id PK','tenant_id FK','name','is_system bool']},
+ {id:'role_policies', x:240, y:985, c:'tenant', f:['id PK','role_id FK','policy_key','allow bool']},
+ {id:'user_policy_overrides', x:450, y:985, c:'tenant', f:['id PK','user_id FK','policy_key','effect (grant/deny)']},
+];
+const LINKS = [
+ ['tenants','branches'],['tenants','users'],['tenants','customers'],['tenants','service_categories'],
+ ['service_categories','services'],['services','service_variants'],['services','pricing_tiers'],
+ ['services','addon_rules'],['branches','orders'],['customers','orders'],
+ ['orders','order_items'],['services','order_items'],['order_items','order_item_addons'],
+ ['order_items','item_tags'],['orders','order_status_history'],['orders','payments'],
+ ['orders','notifications'],['users','audit_log'],
+ ['expense_categories','expenses'],['branches','expenses'],
+ ['roles','role_policies'],['roles','users'],['users','user_policy_overrides']
+];
+(function renderERD(){
+  const svg = document.getElementById('erdsvg');
+  const W = 195, HH = 24, RH = 16;
+  const box = {};
+  ENTITIES.forEach(e=>{ box[e.id] = {x:e.x, y:e.y, w:W, h:HH + e.f.length*RH + 6}; });
+  let defs = '<defs><marker id="arr" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#94a3b8"/></marker></defs>';
+  let lines = '';
+  LINKS.forEach(([a,b])=>{
+    const A = box[a], B = box[b];
+    const ax = A.x + A.w/2, ay = A.y + A.h/2, bx = B.x + B.w/2, by = B.y + B.h/2;
+    let x1,y1,x2,y2;
+    if (Math.abs(bx-ax) > Math.abs(by-ay)) {
+      x1 = bx>ax ? A.x+A.w : A.x;  y1 = ay;
+      x2 = bx>ax ? B.x : B.x+B.w;  y2 = by;
+    } else {
+      x1 = ax; y1 = by>ay ? A.y+A.h : A.y;
+      x2 = bx; y2 = by>ay ? B.y : B.y+B.h;
+    }
+    const mx=(x1+x2)/2, my=(y1+y2)/2;
+    lines += `<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" fill="none" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#arr)"/>`;
+  });
+  let boxes = '';
+  ENTITIES.forEach(e=>{
+    const b = box[e.id], col = ERD_COLORS[e.c];
+    boxes += `<g><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="8" fill="#fff" stroke="${col}" stroke-width="1.6"/>`;
+    boxes += `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${HH}" rx="8" fill="${col}"/>`;
+    boxes += `<rect x="${b.x}" y="${b.y+HH-8}" width="${b.w}" height="8" fill="${col}"/>`;
+    boxes += `<text x="${b.x+10}" y="${b.y+16.5}" font-size="12.5" font-weight="700" fill="#fff" font-family="Segoe UI,sans-serif">${e.id}</text>`;
+    e.f.forEach((f,i)=>{
+      const bold = f.includes('PK')||f.includes('★');
+      boxes += `<text x="${b.x+10}" y="${b.y+HH+14+i*RH}" font-size="10.5" fill="${bold?'#1a2332':'#5b6b7f'}" font-weight="${bold?'700':'400'}" font-family="Segoe UI,sans-serif">${f}</text>`;
+    });
+    boxes += '</g>';
+  });
+  svg.innerHTML = defs + lines + boxes;
+})();
+</script>
+
+<div class="toast" id="toast"></div>
+<script>
+function showPane(e,id){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  e.currentTarget.classList.add('active');
+}
+</script>
+</body>
+</html>

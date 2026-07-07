@@ -1,0 +1,21 @@
+{
+  "name": "ewash-api",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply ewash --local",
+    "db:migrate:remote": "wrangler d1 migrations apply ewash --remote"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.44.0",
+    "hono": "^4.6.0"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.0",
+    "wrangler": "^4.0.0"
+  }
+}
