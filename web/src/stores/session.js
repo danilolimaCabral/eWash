@@ -38,10 +38,10 @@ export const useSession = defineStore('session', {
       this.unlock();
       await this.loadMe();
     },
+    // Registration no longer signs in — the account goes live via the emailed
+    // activation link (see /activate). Returns { message, activation_url? (dev) }.
     async register(payload) {
-      this.setTokens(await api.post('/auth/register', payload));
-      this.unlock();
-      await this.loadMe();
+      return api.post('/auth/register', payload);
     },
     // Idle lock: shown after inactivity; cleared only by a server-verified
     // password check or a full logout.

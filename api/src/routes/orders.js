@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { eq, and, desc, inArray, sql } from 'drizzle-orm';
+import { eq, and, desc, inArray, like, or, sql } from 'drizzle-orm';
 import {
   tenants, branches, customers, orders, orderItems, orderItemAddons,
   itemTags, orderStatusHistory, payments,
@@ -253,8 +253,7 @@ orderRoutes.post('/orders', requirePolicy('orders.create'), async (c) => {
   await recomputePaymentStatus(db, orderId);
 
   // quote notification (assessment done → itemized quote, spec §6)
-  const settings = JSON.parse(tenant.settings || '{}');
-  const message = renderTemplate(settings, 'quote_ready', {
+  const message = renderTemplate(tenant, 'quote_ready', {
     customer: customer.name.split(' ')[0],
     order_code: code,
     items: describeOrderItems(priced.lines, tenant.currency),
@@ -280,12 +279,24 @@ orderRoutes.get('/orders', async (c) => {
   const status = c.req.query('status');
   const q = (c.req.query('q') || '').toLowerCase();
   const limit = Math.min(parseInt(c.req.query('limit') || '200', 10), 500);
+  // opt-in server-side pagination: with `offset` the response becomes
+  // { rows, total, limit, offset } and q filters in SQL (correct totals);
+  // without it the legacy plain-array shape is preserved for existing callers
+  const paginated = c.req.query('offset') != null;
+  const offset = Math.max(0, parseInt(c.req.query('offset') || '0', 10) || 0);
 
   const conds = [eq(orders.tenantId, tenantId)];
   const scoped = scopedBranchId(c);
   if (scoped) conds.push(eq(orders.branchId, scoped));
   if (status === 'open') conds.push(inArray(orders.status, ['received', 'washing', 'ironing', 'ready']));
   else if (status) conds.push(eq(orders.status, status));
+  if (paginated && q) {
+    conds.push(or(
+      like(orders.code, `%${q}%`),
+      like(customers.name, `%${q}%`),
+      like(customers.phone, `%${q}%`),
+    ));
+  }
 
   const rows = await db
     .select({
@@ -305,8 +316,17 @@ orderRoutes.get('/orders', async (c) => {
     .from(orders)
     .innerJoin(customers, eq(customers.id, orders.customerId))
     .where(and(...conds))
-    .orderBy(desc(orders.createdAt))
-    .limit(limit);
+    // delivered = pickup/delivery history → most recently closed first
+    .orderBy(status === 'delivered' ? desc(orders.closedAt) : desc(orders.createdAt))
+    .limit(limit)
+    .offset(paginated ? offset : 0);
+
+  if (paginated) {
+    const [{ count }] = await db.select({ count: sql`count(*)` }).from(orders)
+      .innerJoin(customers, eq(customers.id, orders.customerId))
+      .where(and(...conds));
+    return c.json({ rows, total: Number(count || 0), limit, offset });
+  }
 
   const filtered = q
     ? rows.filter((r) =>
@@ -364,7 +384,9 @@ orderRoutes.post('/orders/:id/advance', requirePolicy('orders.advance'), async (
         bad(`Order must be fully paid before collection. Balance due: ${fmtMoney(detail.balanceCents, tenant.currency)}`);
       }
       const [credit] = await db.select({
-        outstanding: sql`coalesce(sum(${orders.totalCents} - coalesce((select sum(p.amount_cents) from payments p where p.order_id = ${orders.id} and p.status = 'completed'), 0)), 0)`,
+        // ${orders}.id (qualified) — a bare ${orders.id} renders as `"id"` in
+        // this single-table select and would bind to payments.id instead
+        outstanding: sql`coalesce(sum(${orders.totalCents} - coalesce((select sum(p.amount_cents) from payments p where p.order_id = ${orders}.id and p.status = 'completed'), 0)), 0)`,
       }).from(orders).where(and(
         eq(orders.tenantId, tenant.id),
         eq(orders.customerId, detail.customer.id),
@@ -395,7 +417,6 @@ orderRoutes.post('/orders/:id/advance', requirePolicy('orders.advance'), async (
     id: uid(), orderId: detail.id, fromStatus: detail.status, toStatus: to, userId: user.id,
   });
 
-  const settings = JSON.parse(tenant.settings || '{}');
   if (to === 'ready') {
     const balanceNote = detail.balanceCents > 0
       ? `Balance due: ${fmtMoney(detail.balanceCents, tenant.currency)}. `
@@ -403,7 +424,7 @@ orderRoutes.post('/orders/:id/advance', requirePolicy('orders.advance'), async (
     await sendNotification(db, c.env, {
       tenantId: tenant.id, orderId: detail.id, templateKey: 'order_ready',
       toPhone: detail.customer.phone,
-      message: renderTemplate(settings, 'order_ready', {
+      message: renderTemplate(tenant, 'order_ready', {
         customer: detail.customer.name.split(' ')[0],
         order_code: detail.code,
         balance_note: balanceNote,
@@ -414,7 +435,7 @@ orderRoutes.post('/orders/:id/advance', requirePolicy('orders.advance'), async (
     await sendNotification(db, c.env, {
       tenantId: tenant.id, orderId: detail.id, templateKey: 'order_delivered',
       toPhone: detail.customer.phone,
-      message: renderTemplate(settings, 'order_delivered', {
+      message: renderTemplate(tenant, 'order_delivered', {
         customer: detail.customer.name.split(' ')[0],
         order_code: detail.code,
       }),

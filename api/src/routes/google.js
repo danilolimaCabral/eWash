@@ -12,7 +12,7 @@ import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { eq } from 'drizzle-orm';
 import { getDb } from '../db/index.js';
 import { tenants, branches, users } from '../db/schema.js';
-import { signJwt, verifyJwt } from '../auth.js';
+import { signJwt, verifyJwt, GOOGLE_ONLY_PASSWORD } from '../auth.js';
 import { seedTenant } from '../seed.js';
 import { uid, bad, audit, ApiError, SUPPORT_EMAIL } from '../util.js';
 import { enforceRateLimit, clientIp } from '../ratelimit.js';
@@ -20,9 +20,6 @@ import { cleanStr, LIMITS } from '../security.js';
 import { issueSession } from '../session.js';
 
 export const googleRoutes = new Hono();
-
-// Google-only accounts get this sentinel — verifyPassword can never match it.
-export const GOOGLE_ONLY_PASSWORD = 'google-only';
 
 const COOKIE = 'ewash_gauth';
 
@@ -140,6 +137,13 @@ googleRoutes.get('/google/callback', async (c) => {
   }
 
   if (user) {
+    if (user.status === 'pending') {
+      // Google has verified this email — that's the same proof the emailed
+      // activation link would give, so flip the account live
+      await db.update(users).set({ status: 'active' }).where(eq(users.id, user.id));
+      await audit(db, user.tenantId, user.id, 'user.activate', 'users', user.id, { email, via: 'google' });
+      user = { ...user, status: 'active' };
+    }
     if (user.status !== 'active') {
       return spaRedirect(c, `gerror=${encodeURIComponent('This account has been deactivated')}`);
     }

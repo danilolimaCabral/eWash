@@ -5,6 +5,7 @@ import { usePlatformSession } from './stores/platformSession.js';
 const routes = [
   { path: '/login', name: 'login', component: () => import('./views/LoginView.vue'), meta: { public: true } },
   { path: '/reset-password', name: 'reset-password', component: () => import('./views/ResetPasswordView.vue'), meta: { public: true } },
+  { path: '/activate', name: 'activate', component: () => import('./views/ActivateAccountView.vue'), meta: { public: true } },
   { path: '/platform/login', name: 'platform-login', component: () => import('./views/PlatformLoginView.vue'), meta: { public: true, platform: true } },
   {
     path: '/platform',
@@ -14,6 +15,7 @@ const routes = [
       { path: '', name: 'platform-dashboard', component: () => import('./views/PlatformDashboardView.vue'), meta: { platform: true, title: 'Overview' } },
       { path: 'tenants', name: 'platform-tenants', component: () => import('./views/PlatformTenantsView.vue'), meta: { platform: true, title: 'Tenants' } },
       { path: 'revenue', name: 'platform-revenue', component: () => import('./views/PlatformRevenueView.vue'), meta: { platform: true, title: 'Tenant revenue' } },
+      { path: 'accounting', name: 'platform-accounting', component: () => import('./views/PlatformAccountingView.vue'), meta: { platform: true, title: 'Accounting' } },
       { path: 'billing', name: 'platform-billing', component: () => import('./views/PlatformBillingView.vue'), meta: { platform: true, title: 'Billing' } },
       { path: 'invoices/:id', name: 'platform-invoice', component: () => import('./views/PlatformInvoiceView.vue'), meta: { platform: true, title: 'Invoice' } },
       { path: 'audit', name: 'platform-audit', component: () => import('./views/PlatformAuditView.vue'), meta: { platform: true, title: 'Audit log' } },

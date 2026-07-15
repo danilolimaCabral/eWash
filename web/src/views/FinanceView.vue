@@ -1,15 +1,18 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { api } from '../api.js';
 import { useSession } from '../stores/session.js';
 import { useToast } from '../stores/toast.js';
-import { money, monthNow, monthLabel, dateOnly, recentMonths } from '../utils/format.js';
+import { money, monthNow, monthLabel, dateOnly, dateTime, recentMonths } from '../utils/format.js';
 import KpiCard from '../components/KpiCard.vue';
 import Panel from '../components/Panel.vue';
 import DataTable from '../components/DataTable.vue';
 import FormField from '../components/FormField.vue';
 import StatusBadge from '../components/StatusBadge.vue';
 import Skeleton from '../components/Skeleton.vue';
+import Modal from '../components/Modal.vue';
+import Pagination from '../components/Pagination.vue';
+import EmptyState from '../components/EmptyState.vue';
 import OrderDetailModal from '../components/OrderDetailModal.vue';
 import ConfirmDialog from '../components/ConfirmDialog.vue';
 
@@ -48,6 +51,39 @@ async function load() {
   } catch (e) { toast.error(e.message); }
 }
 onMounted(load);
+
+// System billing: our own eWash subscription invoices (read-only, loaded
+// lazily when the tab is first opened)
+const billing = ref(null); // { rows, total, limit, offset }
+const billingStatus = ref('');
+const billingOffset = ref(0);
+const BILLING_LIMIT = 10;
+const billingDetail = ref(null); // { invoice, items, payments }
+const invBalance = (inv) => (inv.status === 'void' ? 0 : inv.totalCents - inv.paidCents);
+
+async function loadBilling(nextOffset = 0) {
+  billingOffset.value = nextOffset;
+  try {
+    const params = new URLSearchParams({ limit: BILLING_LIMIT, offset: nextOffset });
+    if (billingStatus.value) params.set('status', billingStatus.value);
+    billing.value = await api.get(`/billing/invoices?${params}`);
+  } catch (e) { toast.error(e.message); }
+}
+async function openInvoice(row) {
+  try { billingDetail.value = await api.get(`/billing/invoices/${row.id}`); }
+  catch (e) { toast.error(e.message); }
+}
+watch(activeTab, () => { if (activeTab.value === 'billing' && !billing.value) loadBilling(0); });
+
+const billingColumns = [
+  { key: 'number', label: 'Invoice' },
+  { key: 'period', label: 'Billing period' },
+  { key: 'status', label: 'Status' },
+  { key: 'total', label: 'Total', align: 'right' },
+  { key: 'paid', label: 'Paid', align: 'right' },
+  { key: 'balance', label: 'Balance', align: 'right' },
+  { key: 'dueAt', label: 'Due' },
+];
 
 const months = computed(() => recentMonths(12));
 
@@ -175,7 +211,7 @@ const creditColumns = [
     </div>
 
     <div class="finance-tabs">
-      <button v-for="tab in [{ key: 'overview', label: 'Overview' }, { key: 'expenses', label: 'Expenses' }, { key: 'credit', label: 'Customer credit' }, { key: 'providers', label: 'Service providers' }]"
+      <button v-for="tab in [{ key: 'overview', label: 'Overview' }, { key: 'expenses', label: 'Expenses' }, { key: 'credit', label: 'Customer credit' }, { key: 'providers', label: 'Service providers' }, { key: 'billing', label: 'System billing' }]"
         :key="tab.key" :class="{ active: activeTab === tab.key }" @click="activeTab = tab.key">{{ tab.label }}</button>
     </div>
 
@@ -294,6 +330,76 @@ const creditColumns = [
         <button v-for="p in providers" :key="p.id" class="provider-row" @click="editProvider(p)"><span><b>{{ p.name }}</b><small>{{ p.serviceType }} · {{ p.phone || p.email || 'No contact' }}</small></span><span>{{ p.active ? 'Active' : 'Inactive' }}</span></button>
       </Panel>
     </div>
+
+    <Panel v-if="activeTab === 'billing'" title="System billing"
+      subtitle="Your eWash subscription invoices — what's been billed to the business, paid so far, and anything still owing. Paid invoices post into Expenses automatically.">
+      <template #actions>
+        <select v-model="billingStatus" @change="loadBilling(0)">
+          <option value="">All invoices</option>
+          <option value="issued">Issued</option>
+          <option value="partially_paid">Partially paid</option>
+          <option value="paid">Paid</option>
+          <option value="overdue">Overdue</option>
+          <option value="void">Void</option>
+        </select>
+      </template>
+      <Skeleton v-if="!billing" variant="table" :count="4" />
+      <template v-else>
+        <template v-if="billing.rows.length">
+          <DataTable :columns="billingColumns" :rows="billing.rows" clickable @row-click="openInvoice">
+            <template #cell-number="{ row }">
+              <b class="inv">{{ row.number }}</b>
+              <small class="muted block">issued {{ dateOnly(row.issuedAt || row.createdAt) }}</small>
+            </template>
+            <template #cell-period="{ row }">
+              <template v-if="row.periodStart">{{ dateOnly(row.periodStart) }} → {{ dateOnly(row.periodEnd) }}</template>
+              <span v-else class="muted">—</span>
+            </template>
+            <template #cell-status="{ row }"><StatusBadge :status="row.status" kind="generic" /></template>
+            <template #cell-total="{ row }"><b class="mono">{{ money(row.totalCents, row.currency) }}</b></template>
+            <template #cell-paid="{ row }"><span class="mono text-green">{{ money(row.paidCents, row.currency) }}</span></template>
+            <template #cell-balance="{ row }">
+              <b class="mono" :class="invBalance(row) > 0 ? 'text-red' : 'text-green'">{{ money(invBalance(row), row.currency) }}</b>
+            </template>
+            <template #cell-dueAt="{ row }">{{ dateOnly(row.dueAt) }}</template>
+          </DataTable>
+          <Pagination :total="billing.total" :limit="BILLING_LIMIT" :offset="billingOffset" @change="loadBilling" />
+        </template>
+        <EmptyState v-else icon="receipt" title="No invoices yet"
+          :hint="billingStatus ? 'Nothing matches this status filter.' : 'Invoices from your eWash subscription will appear here once issued.'" />
+      </template>
+    </Panel>
+
+    <Modal v-if="billingDetail" :title="`Invoice ${billingDetail.invoice.number}`" wide @close="billingDetail = null">
+      <template #header-extra><StatusBadge :status="billingDetail.invoice.status" kind="generic" /></template>
+      <div class="inv-meta">
+        <div><span>Billing period</span><b v-if="billingDetail.invoice.periodStart">{{ dateOnly(billingDetail.invoice.periodStart) }} → {{ dateOnly(billingDetail.invoice.periodEnd) }}</b><b v-else>—</b></div>
+        <div><span>Issued</span><b>{{ dateOnly(billingDetail.invoice.issuedAt || billingDetail.invoice.createdAt) }}</b></div>
+        <div><span>Due</span><b>{{ dateOnly(billingDetail.invoice.dueAt) || '—' }}</b></div>
+      </div>
+      <div v-for="item in billingDetail.items" :key="item.id" class="inv-lineitem">
+        <div class="inv-li-head"><span>{{ item.description }}</span><span>{{ money(item.lineTotalCents, billingDetail.invoice.currency) }}</span></div>
+        <div class="inv-li-sub">{{ item.quantity }} × {{ money(item.unitAmountCents, billingDetail.invoice.currency) }}</div>
+      </div>
+      <div class="inv-totals">
+        <div class="tr"><span>Subtotal</span><span>{{ money(billingDetail.invoice.subtotalCents, billingDetail.invoice.currency) }}</span></div>
+        <div v-if="billingDetail.invoice.taxCents" class="tr"><span>Tax</span><span>{{ money(billingDetail.invoice.taxCents, billingDetail.invoice.currency) }}</span></div>
+        <div class="tr grand"><span>Total</span><span>{{ money(billingDetail.invoice.totalCents, billingDetail.invoice.currency) }}</span></div>
+        <div class="tr"><span class="muted">Paid</span><span class="text-green">{{ money(billingDetail.invoice.paidCents, billingDetail.invoice.currency) }}</span></div>
+        <div class="tr"><span class="muted">Balance due</span>
+          <b :class="invBalance(billingDetail.invoice) > 0 ? 'text-red' : 'text-green'">{{ money(invBalance(billingDetail.invoice), billingDetail.invoice.currency) }}</b>
+        </div>
+      </div>
+      <h4 class="inv-pay-head">Payments</h4>
+      <div v-if="!billingDetail.payments.length" class="muted small">No payments recorded yet. Pay via M-Pesa or bank — the eWash team records it against this invoice.</div>
+      <div v-for="p in billingDetail.payments" :key="p.id" class="inv-mini-row">
+        <span>{{ p.method.replace('_', ' ') }} · <b>{{ money(p.amountCents, billingDetail.invoice.currency) }}</b>
+          <small v-if="p.reference" class="muted"> {{ p.reference }}</small></span>
+        <small class="muted">{{ dateTime(p.paidAt) }}</small>
+      </div>
+      <p v-if="billingDetail.invoice.notes" class="muted small inv-notes">{{ billingDetail.invoice.notes }}</p>
+    </Modal>
+
     <OrderDetailModal v-if="openOrderId" :order-id="openOrderId" @close="openOrderId = null" @changed="load" />
 
     <ConfirmDialog v-if="voidingExpense" danger :busy="busy"
@@ -321,5 +427,20 @@ const creditColumns = [
 .rec-check { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 4px 0 12px; }
 .rec-check input { width: auto; }
 .block { display: block; }
+.inv { letter-spacing: 0.04em; color: var(--brand-dark); }
+.inv-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.inv-meta > div { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.inv-meta span { display: block; color: var(--muted); font-size: 10px; margin-bottom: 3px; }
+.inv-meta b { font-size: 12.5px; }
+.inv-lineitem { padding: 9px 0; border-bottom: 1px solid #f0f4f3; }
+.inv-li-head { display: flex; justify-content: space-between; font-weight: 600; font-size: 13px; }
+.inv-li-sub { color: var(--muted); font-size: 11px; margin-top: 2px; }
+.inv-totals { margin: 12px 0; }
+.inv-totals .tr { display: flex; justify-content: space-between; padding: 3px 0; font-size: 12.5px; }
+.inv-totals .tr.grand { font-weight: 800; font-size: 14.5px; border-top: 1px solid var(--line); margin-top: 5px; padding-top: 7px; }
+.inv-pay-head { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin: 12px 0 8px; }
+.inv-mini-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f0f4f3; font-size: 12px; flex-wrap: wrap; }
+.inv-notes { margin-top: 12px; }
 @media (max-width: 980px) { .fin-cols, .provider-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .inv-meta { grid-template-columns: 1fr; } }
 </style>

@@ -2,11 +2,13 @@ import { Hono } from 'hono';
 import { eq, and, inArray, sql } from 'drizzle-orm';
 import { users, roles, rolePolicies, userPolicyOverrides, branches, orders } from '../db/schema.js';
 import { requirePolicy } from '../middleware.js';
-import { uid, bad, notFound, audit, forbidden } from '../util.js';
-import { hashPassword } from '../auth.js';
+import { uid, bad, notFound, audit, forbidden, ApiError } from '../util.js';
+import { INVITED_PASSWORD } from '../auth.js';
+import { issueStaffInvite, appOrigin } from '../passwordReset.js';
+import { enforceRateLimit, clientIp } from '../ratelimit.js';
 import { POLICY_KEYS, effectivePolicies } from '../policies.js';
 import { presenceQuery, presenceMap } from '../session.js';
-import { cleanStr, checkPassword, validEmail, LIMITS } from '../security.js';
+import { cleanStr, validEmail, LIMITS } from '../security.js';
 import { cacheDelete, authCacheKey } from '../cache.js';
 import { isTenantWide, scopedBranchId } from '../branchAccess.js';
 
@@ -44,15 +46,17 @@ userRoutes.post('/roles', requirePolicy('users.manage'), async (c) => {
 userRoutes.get('/users', requirePolicy('users.manage'), async (c) => {
   const db = c.get('db');
   const tenantId = c.get('tenant').id;
-  // one D1 round trip: overrides/policies join through tenant-scoped users/roles
-  const [userRows, overrides, policyRows, presence] = await db.batch([
+  // one D1 round trip: overrides/policies join through tenant-scoped users/roles.
+  // Role names come from their own query — D1 batch rows are keyed by column
+  // name, so joining users.name with roles.name would silently collide.
+  const [userRows, roleRows, overrides, policyRows, presence] = await db.batch([
     db.select({
       id: users.id, name: users.name, email: users.email, phone: users.phone,
       status: users.status, branchId: users.branchId, roleId: users.roleId, accessScope: users.accessScope,
-      roleName: roles.name,
+      passwordHash: users.passwordHash,
     }).from(users)
-      .innerJoin(roles, eq(roles.id, users.roleId))
       .where(and(eq(users.tenantId, tenantId), ...(isTenantWide(c) ? [] : [eq(users.branchId, c.get('user').branchId)]))),
+    db.select({ id: roles.id, name: roles.name }).from(roles).where(eq(roles.tenantId, tenantId)),
     db.select({
       userId: userPolicyOverrides.userId,
       policyKey: userPolicyOverrides.policyKey,
@@ -68,14 +72,17 @@ userRoutes.get('/users', requirePolicy('users.manage'), async (c) => {
       .innerJoin(roles, eq(roles.id, rolePolicies.roleId))
       .where(eq(roles.tenantId, tenantId)),
     presenceQuery(db, tenantId),
-  ]).then(([u, o, p, pres]) => [u, o, p, presenceMap(pres)]);
+  ]).then(([u, r, o, p, pres]) => [u, r, o, p, presenceMap(pres)]);
 
-  return c.json(userRows.map((u) => {
+  const roleNames = new Map(roleRows.map((r) => [r.id, r.name]));
+  return c.json(userRows.map(({ passwordHash, ...u }) => {
     const rolePolicyKeys = policyRows.filter((p) => p.roleId === u.roleId && p.allow).map((p) => p.policyKey);
     const userOverrides = overrides.filter((o) => o.userId === u.id);
     const seen = presence.get(u.id);
     return {
       ...u,
+      roleName: roleNames.get(u.roleId) || '',
+      invited: passwordHash === INVITED_PASSWORD, // hasn't accepted the invite yet
       rolePolicies: rolePolicyKeys,
       overrides: Object.fromEntries(userOverrides.map((o) => [o.policyKey, o.effect])),
       effectivePolicies: effectivePolicies(rolePolicyKeys, userOverrides),
@@ -85,12 +92,26 @@ userRoutes.get('/users', requirePolicy('users.manage'), async (c) => {
   }));
 });
 
-// Invite a staff member. In production this sends an SMS setup link; here the
-// admin sets the initial password directly.
+// Invite a staff member: the invitee gets an emailed link where they set
+// their own password — the admin never knows or chooses it.
+async function sendInvite(c, targetUser) {
+  const db = c.get('db');
+  const tenant = c.get('tenant');
+  // authed + policy-checked, but still cap outbound invite email per tenant
+  await enforceRateLimit(db, `invite:tenant:${tenant.id}`, 30, 3600,
+    'Too many invitations this hour — please try again later');
+  const { sent, inviteUrl } = await issueStaffInvite(db, c.env, {
+    user: targetUser, business: tenant.name, inviter: c.get('user').name,
+  }, appOrigin(c), clientIp(c));
+  if (!sent && c.env.ENVIRONMENT === 'production') {
+    throw new ApiError(500, 'The invitation could not be emailed — please try again shortly.');
+  }
+  return inviteUrl;
+}
+
 userRoutes.post('/users', requirePolicy('users.manage'), async (c) => {
   const b = await c.req.json();
-  for (const f of ['name', 'email', 'role_id', 'password']) if (!b[f]?.trim?.()) bad(`Missing field: ${f}`);
-  checkPassword(b.password);
+  for (const f of ['name', 'email', 'role_id']) if (!b[f]?.trim?.()) bad(`Missing field: ${f}`);
   b.name = cleanStr(b.name, LIMITS.name, 'Name');
   b.phone = cleanStr(b.phone, LIMITS.phone, 'Phone');
   const db = c.get('db');
@@ -113,11 +134,39 @@ userRoutes.post('/users', requirePolicy('users.manage'), async (c) => {
   const row = {
     id: uid(), tenantId: tenant.id, branchId, roleId: role.id, accessScope,
     name: b.name.trim(), phone: b.phone || null, email,
-    passwordHash: await hashPassword(b.password),
+    passwordHash: INVITED_PASSWORD, // set by the invitee when they accept
+    status: 'pending',
   };
   await db.insert(users).values(row);
+  const inviteUrl = await sendInvite(c, row);
   await audit(db, tenant.id, c.get('user').id, 'user.invite', 'users', row.id, { name: row.name, role: role.name });
-  return c.json({ id: row.id }, 201);
+  return c.json({
+    id: row.id,
+    message: `Invitation sent to ${email} — they'll choose their own password.`,
+    ...(c.env.ENVIRONMENT !== 'production' ? { invite_url: inviteUrl } : {}),
+  }, 201);
+});
+
+// Re-send (or revive a revoked) invitation for a user who hasn't accepted yet.
+userRoutes.post('/users/:id/resend-invite', requirePolicy('users.manage'), async (c) => {
+  const db = c.get('db');
+  const tenant = c.get('tenant');
+  const [target] = await db.select().from(users)
+    .where(and(eq(users.tenantId, tenant.id), eq(users.id, c.req.param('id'))));
+  if (!target) notFound('User not found');
+  if (!isTenantWide(c) && target.branchId !== c.get('user').branchId) notFound('User not found');
+  if (target.passwordHash !== INVITED_PASSWORD || target.status === 'active') {
+    bad('This user has already accepted their invitation');
+  }
+  if (target.status !== 'pending') {
+    await db.update(users).set({ status: 'pending' }).where(eq(users.id, target.id));
+  }
+  const inviteUrl = await sendInvite(c, target);
+  await audit(db, tenant.id, c.get('user').id, 'user.invite_resend', 'users', target.id, { name: target.name });
+  return c.json({
+    message: `Invitation re-sent to ${target.email}.`,
+    ...(c.env.ENVIRONMENT !== 'production' ? { invite_url: inviteUrl } : {}),
+  });
 });
 
 // Update role and/or per-user policy overrides. Override semantics: sending
@@ -160,6 +209,9 @@ userRoutes.patch('/users/:id', requirePolicy('users.manage'), async (c) => {
 
   if (b.status && ['active', 'disabled'].includes(b.status)) {
     if (target.id === actor.id && b.status === 'disabled') bad('You cannot deactivate yourself');
+    if (b.status === 'active' && target.passwordHash === INVITED_PASSWORD) {
+      bad('This user has not accepted their invitation yet — resend the invite instead');
+    }
     await db.update(users).set({ status: b.status }).where(eq(users.id, target.id));
     changes.status = b.status;
   }
