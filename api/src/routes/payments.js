@@ -11,11 +11,10 @@ export const paymentRoutes = new Hono();
 
 async function notifyReceipt(c, db, tenant, detail, amountCents) {
   const fresh = await loadOrderDetail(db, tenant.id, detail.id);
-  const settings = JSON.parse(tenant.settings || '{}');
   await sendNotification(db, c.env, {
     tenantId: tenant.id, orderId: detail.id, templateKey: 'payment_received',
     toPhone: detail.customer.phone,
-    message: renderTemplate(settings, 'payment_received', {
+    message: renderTemplate(tenant, 'payment_received', {
       amount: fmtMoney(amountCents, tenant.currency),
       order_code: detail.code,
       balance: fmtMoney(fresh.balanceCents, tenant.currency),
@@ -81,11 +80,10 @@ async function settleStkPayment(db, env, payment, { success, mpesaRef }) {
     const { tenants } = await import('../db/schema.js');
     const [tenant] = await db.select().from(tenants).where(eq(tenants.id, payment.tenantId));
     const detail = await loadOrderDetail(db, payment.tenantId, payment.orderId);
-    const settings = JSON.parse(tenant.settings || '{}');
     await sendNotification(db, env, {
       tenantId: tenant.id, orderId: payment.orderId, templateKey: 'payment_received',
       toPhone: detail.customer.phone,
-      message: renderTemplate(settings, 'payment_received', {
+      message: renderTemplate(tenant, 'payment_received', {
         amount: fmtMoney(payment.amountCents, tenant.currency),
         order_code: detail.code,
         balance: fmtMoney(detail.balanceCents, tenant.currency),

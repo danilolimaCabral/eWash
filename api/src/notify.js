@@ -5,30 +5,88 @@
 import { uid, now, fmtMoney } from './util.js';
 import { notifications } from './db/schema.js';
 
+// Customer messages are branded with the tenant's own business name via the
+// {business} merge field — never with the eWash platform name.
 export const DEFAULT_TEMPLATES = {
   quote_ready:
-    'eWash: Hello {customer}, order {order_code} assessed: {items}. Total {total}. Reply YES to confirm — pay by M-Pesa or cash when you pick up. Karibu!',
+    '{business}: Hello {customer}, order {order_code} assessed: {items}. Total {total}. Reply YES to confirm — pay by M-Pesa or cash when you pick up. Karibu!',
   payment_received:
-    'eWash: Payment of {amount} received for order {order_code}. Balance: {balance}. Asante!',
+    '{business}: Payment of {amount} received for order {order_code}. Balance: {balance}. Asante!',
   order_ready:
-    'eWash: Hello {customer}, your order {order_code} is ready for pickup. {balance_note}Karibu!',
+    '{business}: Hello {customer}, your order {order_code} is ready for pickup. {balance_note}Karibu!',
   order_delivered:
-    'eWash: Order {order_code} delivered/collected. Thank you for choosing us, {customer}!',
+    '{business}: Order {order_code} delivered/collected. Thank you for choosing us, {customer}!',
   payment_reminder:
-    'eWash: Friendly reminder — order {order_code} is ready and has a balance of {balance}. Pay via M-Pesa to collect. Asante!',
+    '{business}: Friendly reminder — order {order_code} is ready and has a balance of {balance}. Pay via M-Pesa to collect. Asante!',
 };
 
-export function renderTemplate(tenantSettings, key, fields) {
-  const templates = { ...DEFAULT_TEMPLATES, ...(tenantSettings?.templates || {}) };
+export function renderTemplate(tenant, key, fields) {
+  const settings = JSON.parse(tenant.settings || '{}');
+  const templates = { ...DEFAULT_TEMPLATES, ...(settings?.templates || {}) };
   let msg = templates[key] || DEFAULT_TEMPLATES[key] || '';
-  for (const [k, v] of Object.entries(fields)) msg = msg.replaceAll(`{${k}}`, String(v));
+  for (const [k, v] of Object.entries({ business: tenant.name, ...fields })) {
+    msg = msg.replaceAll(`{${k}}`, String(v));
+  }
   return msg;
 }
 
-// Provider stub: in development every message "sends" instantly and is fully
-// inspectable via GET /api/notifications.
-async function dispatch(_env, _channel, _phone, _message) {
-  return { ok: true };
+// Normalize any Kenyan phone input to 254XXXXXXXXX (no + sign):
+//   0724814117 → 254724814117 · 724814117 → 254724814117 ·
+//   +254724… → 254724… · 01124814117 → 2541124814117
+export function normalizeKenyaPhone(phone) {
+  let digits = String(phone || '').replace(/\D/g, '');
+  if (digits.startsWith('254')) return digits;
+  digits = digits.replace(/^0+/, '');
+  return `254${digits}`;
+}
+
+// SMS delivery via TextSMS Kenya (same gateway/config as the store project):
+// POST { apikey, partnerID, shortcode, mobile, message } — credentials live in
+// the body, no auth header. Docs: https://sms.textsms.co.ke/api/services/sendsms/
+// Unconfigured (no SMS_API_KEY/SMS_PARTNER_ID — local dev) → simulate success
+// so the notification feed stays inspectable. Never throws: a failed SMS must
+// not break the order or payment action that triggered it.
+async function dispatch(env, _channel, phone, message) {
+  if (!env.SMS_API_KEY || !env.SMS_PARTNER_ID) {
+    console.warn('SMS not configured — message recorded as sent (simulated)');
+    return { ok: true };
+  }
+  try {
+    const url = (env.SMS_BASE_URL || 'https://sms.textsms.co.ke/api/services/sendsms/').replace(/\/?$/, '/');
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        apikey: env.SMS_API_KEY,
+        partnerID: env.SMS_PARTNER_ID,
+        message,
+        shortcode: env.SMS_SHORTCODE,
+        mobile: normalizeKenyaPhone(phone),
+      }),
+    });
+    if (!response.ok) {
+      console.error(`TextSMS HTTP error [${response.status}]:`, await response.text().catch(() => ''));
+      return { ok: false };
+    }
+    // TextSMS wraps results in a `responses` array — and their API has a typo:
+    // "respose-code" (missing n). The code may arrive as number or string.
+    const result = await response.json().catch(() => ({}));
+    const first = result.responses?.[0];
+    if (!first) {
+      console.warn('TextSMS response had no responses array:', JSON.stringify(result));
+      return { ok: true }; // HTTP OK with unknown shape — assume delivered, same as the store
+    }
+    const code = String(first['respose-code']);
+    const description = String(first['response-description'] || '').toLowerCase();
+    if (code === '200' || description.includes('success')) {
+      return { ok: true, providerId: first.messageid };
+    }
+    console.error(`TextSMS rejected SMS: code=${code}, description=${first['response-description']}`);
+    return { ok: false };
+  } catch (error) {
+    console.error('TextSMS send failed:', error.message);
+    return { ok: false };
+  }
 }
 
 export async function sendNotification(db, env, { tenantId, orderId = null, channel = 'sms', templateKey, toPhone, message }) {

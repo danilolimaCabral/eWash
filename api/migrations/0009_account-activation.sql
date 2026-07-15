@@ -1,0 +1,1 @@
+ALTER TABLE `password_reset_tokens` ADD `purpose` text DEFAULT 'password_reset' NOT NULL;

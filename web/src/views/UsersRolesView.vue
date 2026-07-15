@@ -20,7 +20,7 @@ const branches = ref([]);
 const selectedId = ref(null);
 const busy = ref(false);
 const inviteOpen = ref(false);
-const inviteForm = ref({ name: '', email: '', phone: '', role_id: '', password: '', branch_id: '', access_scope: 'branch' });
+const inviteForm = ref({ name: '', email: '', phone: '', role_id: '', branch_id: '', access_scope: 'branch' });
 const branchesOpen = ref(false);
 const branchForm = ref({ id: '', name: '', location: '', active: true });
 
@@ -96,8 +96,11 @@ async function save() {
 
 async function toggleActive(u) {
   try {
-    await api.patch(`/users/${u.id}`, { status: u.status === 'active' ? 'disabled' : 'active' });
-    toast.success(u.status === 'active' ? `${u.name} deactivated` : `${u.name} reactivated`);
+    // active and pending both disable; only a disabled account reactivates
+    await api.patch(`/users/${u.id}`, { status: u.status === 'disabled' ? 'active' : 'disabled' });
+    toast.success(u.status === 'active' ? `${u.name} deactivated`
+      : u.status === 'pending' ? `Invitation for ${u.name} revoked`
+      : `${u.name} reactivated`);
     await load();
   } catch (e) { toast.error(e.message); }
 }
@@ -105,13 +108,21 @@ async function toggleActive(u) {
 async function invite() {
   busy.value = true;
   try {
-    await api.post('/users', inviteForm.value);
-    toast.success(`${inviteForm.value.name} invited — they can sign in with the password you set`);
+    const result = await api.post('/users', inviteForm.value);
+    toast.success(result.message);
     inviteOpen.value = false;
-    inviteForm.value = { name: '', email: '', phone: '', role_id: roles.value[0]?.id || '', password: '', branch_id: branches.value[0]?.id || '', access_scope: 'branch' };
+    inviteForm.value = { name: '', email: '', phone: '', role_id: roles.value[0]?.id || '', branch_id: branches.value[0]?.id || '', access_scope: 'branch' };
     await load();
   } catch (e) { toast.error(e.message); }
   finally { busy.value = false; }
+}
+
+async function resendInvite(u) {
+  try {
+    const result = await api.post(`/users/${u.id}/resend-invite`);
+    toast.success(result.message);
+    await load();
+  } catch (e) { toast.error(e.message); }
 }
 function editBranch(branch = null) {
   branchForm.value = branch ? { ...branch, active: !!branch.active } : { id: '', name: '', location: '', active: true };
@@ -158,7 +169,8 @@ async function saveBranch() {
             </span>
             <span class="staff-copy">
               <b>{{ u.name }}</b>
-              <small v-if="u.status !== 'active'" class="text-red">Deactivated</small>
+              <small v-if="u.status === 'pending'" class="text-accent">Invited — awaiting acceptance</small>
+              <small v-else-if="u.status !== 'active'" class="text-red">Deactivated</small>
               <small v-else :class="u.online ? 'text-green' : 'muted'">
                 {{ u.online ? 'Online now' : u.lastSeenAt ? `Seen ${timeAgo(u.lastSeenAt)}` : 'Never signed in' }}
               </small>
@@ -181,16 +193,21 @@ async function saveBranch() {
             <div>
               <div class="identity-line">
                 <h3>{{ selected.name }}</h3>
-                <span class="status-chip" :class="{ disabled: selected.status !== 'active' }">
-                  {{ selected.status === 'active' ? 'Active' : 'Deactivated' }}
+                <span class="status-chip" :class="{ disabled: selected.status === 'disabled', invited: selected.status === 'pending' }">
+                  {{ selected.status === 'active' ? 'Active' : selected.status === 'pending' ? 'Invited' : 'Deactivated' }}
                 </span>
               </div>
               <p>{{ selected.email }}<template v-if="selected.phone"> · {{ selected.phone }}</template></p>
             </div>
           </div>
-          <button v-if="selected.id !== session.user?.id" class="btn btn-ghost btn-sm" @click="toggleActive(selected)">
-            {{ selected.status === 'active' ? 'Deactivate' : 'Reactivate' }}
-          </button>
+          <div v-if="selected.id !== session.user?.id" class="user-actions">
+            <button v-if="selected.invited && selected.status !== 'active'" class="btn btn-ghost btn-sm" @click="resendInvite(selected)">
+              Resend invite
+            </button>
+            <button v-if="!selected.invited || selected.status !== 'disabled'" class="btn btn-ghost btn-sm" @click="toggleActive(selected)">
+              {{ selected.status === 'active' ? 'Deactivate' : selected.status === 'pending' ? 'Revoke invite' : 'Reactivate' }}
+            </button>
+          </div>
         </div>
 
         <div class="role-strip">
@@ -255,14 +272,10 @@ async function saveBranch() {
         <FormField label="Email"><input v-model="inviteForm.email" type="email" /></FormField>
         <FormField label="Phone"><input v-model="inviteForm.phone" type="tel" /></FormField>
       </div>
-      <div class="row">
-        <FormField label="Initial password" hint="They should change it after first sign-in.">
-          <input v-model="inviteForm.password" type="text" placeholder="min 8 characters" />
-        </FormField>
-      </div>
+      <p class="muted small invite-note">They'll receive an email invitation and choose their own password when they accept.</p>
       <template #footer>
         <button class="btn btn-ghost" @click="inviteOpen = false">Cancel</button>
-        <button class="btn btn-primary" :disabled="busy" @click="invite">Send invite</button>
+        <button class="btn btn-primary" :disabled="busy" @click="invite">Send invitation</button>
       </template>
     </Modal>
 
@@ -320,6 +333,9 @@ async function saveBranch() {
 .identity-line { display: flex; align-items: center; gap: 7px; }
 .status-chip { padding: 2px 7px; border-radius: 999px; background: #e6f5ef; color: var(--green); font-size: 9px; font-weight: 700; }
 .status-chip.disabled { background: #fdf0ee; color: var(--red); }
+.status-chip.invited { background: #fdf3ea; color: var(--accent); }
+.user-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.invite-note { margin-top: 2px; }
 .role-strip {
   display: grid; grid-template-columns: repeat(3, minmax(150px, 1fr)) auto auto; align-items: end;
   gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line);

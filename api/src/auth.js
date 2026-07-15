@@ -1,5 +1,12 @@
 // Password hashing (PBKDF2-SHA256) and JWT (HS256) on WebCrypto — no dependencies.
 
+// Sentinel password hashes for accounts with no usable password — verifyPassword
+// can never match them. Google-only accounts authenticate via Google; invited
+// staff set their password when they accept the emailed invitation.
+export const GOOGLE_ONLY_PASSWORD = 'google-only';
+export const INVITED_PASSWORD = 'invited-pending';
+export const hasUsablePassword = (hash) => ![GOOGLE_ONLY_PASSWORD, INVITED_PASSWORD].includes(hash);
+
 const te = new TextEncoder();
 
 const b64url = (buf) =>

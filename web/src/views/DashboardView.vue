@@ -144,6 +144,7 @@ const columns = [
 
 <style scoped>
 .dash-grid { display: grid; grid-template-columns: 1fr 320px; gap: 14px; align-items: start; }
+.dash-grid > * { min-width: 0; } /* grid items must shrink below content width on small screens */
 .text-btn { border: none; background: none; color: var(--brand); font-size: 11.5px; font-weight: 700; cursor: pointer; font-family: inherit; padding: 0; }
 .ftabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 4px; overflow-x: auto; scrollbar-width: none; }
 .ftabs::-webkit-scrollbar { display: none; }

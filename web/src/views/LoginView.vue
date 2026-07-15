@@ -12,7 +12,7 @@ const session = useSession();
 const router = useRouter();
 const toast = useToast();
 
-const mode = ref('login'); // login | register | forgot | google-complete
+const mode = ref('login'); // login | register | forgot | google-complete | check-email
 const busy = ref(false);
 const error = ref('');
 const form = ref({
@@ -21,6 +21,8 @@ const form = ref({
 });
 const gticket = ref('');
 const googleBusy = ref(false);
+const sentTo = ref('');
+const devActivationUrl = ref(''); // only ever present outside production
 
 async function submit() {
   error.value = '';
@@ -46,8 +48,12 @@ async function submit() {
       await session.loadMe();
       toast.success('Karibu! Your laundry is set up with a template catalog — adjust prices in the Service Builder.');
     } else {
-      await session.register({ ...form.value });
-      toast.success('Karibu! Your laundry is set up with a template catalog — adjust prices in the Service Builder.');
+      // registration does not sign in — the account activates via email
+      const result = await session.register({ ...form.value });
+      sentTo.value = form.value.email;
+      devActivationUrl.value = result.activation_url || '';
+      mode.value = 'check-email';
+      return;
     }
     router.push({ name: 'dashboard' });
   } catch (e) {
@@ -101,11 +107,11 @@ onMounted(async () => {
         <div><b>e<em>Wash</em></b><small>Laundry Management SaaS</small></div>
       </div>
 
-      <div v-if="mode !== 'google-complete' && mode !== 'forgot'" class="mode-tabs">
+      <div v-if="mode === 'login' || mode === 'register'" class="mode-tabs">
         <button :class="{ active: mode === 'login' }" @click="mode = 'login'">Sign in</button>
         <button :class="{ active: mode === 'register' }" @click="mode = 'register'">Start your laundry</button>
       </div>
-      <div v-else class="gc-head">
+      <div v-else-if="mode !== 'check-email'" class="gc-head">
         <template v-if="mode === 'forgot'">
           <b>Forgot your password?</b>
           <p class="muted small">Enter your account email and we’ll send a secure 30-minute reset link.</p>
@@ -116,7 +122,25 @@ onMounted(async () => {
         </template>
       </div>
 
-      <form @submit.prevent="submit">
+      <!-- Google is the default way in; email & password is the fallback -->
+      <template v-if="mode === 'login' || mode === 'register'">
+        <button class="btn google-btn" type="button" :disabled="busy || googleBusy" @click="googleStart">
+          <span v-if="googleBusy" class="btn-spin dark" aria-hidden="true" />
+          <svg v-else width="17" height="17" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
+          {{ googleBusy ? 'Redirecting to Google…' : mode === 'login' ? 'Continue with Google' : 'Sign up with Google' }}
+        </button>
+        <div class="divider"><span>or continue with email</span></div>
+      </template>
+
+      <div v-if="mode === 'check-email'" class="check-email">
+        <span class="mail-badge"><AppIcon name="mail" :size="26" /></span>
+        <b>Check your email</b>
+        <p class="muted small">We've sent an activation link to <b>{{ sentTo }}</b>. Open it to finish setup — it expires in 24 hours.</p>
+        <a v-if="devActivationUrl" class="btn btn-primary dev-activate" :href="devActivationUrl">Open activation link (dev)</a>
+        <button type="button" class="back-link" @click="mode = 'login'; error = ''">Back to sign in</button>
+      </div>
+
+      <form v-else @submit.prevent="submit">
         <template v-if="mode === 'register' || mode === 'google-complete'">
           <div class="row">
             <FormField label="Business name"><input v-model="form.business_name" type="text" placeholder="e.g. Kileleshwa Laundry" required /></FormField>
@@ -156,14 +180,6 @@ onMounted(async () => {
         </p>
       </form>
 
-      <template v-if="mode !== 'google-complete' && mode !== 'forgot'">
-        <div class="divider"><span>or</span></div>
-        <button class="btn google-btn" type="button" :disabled="busy || googleBusy" @click="googleStart">
-          <span v-if="googleBusy" class="btn-spin dark" aria-hidden="true" />
-          <svg v-else width="17" height="17" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
-          {{ googleBusy ? 'Redirecting to Google…' : mode === 'login' ? 'Continue with Google' : 'Sign up with Google' }}
-        </button>
-      </template>
       <p class="support">
         Need help? <a :href="`mailto:${SUPPORT_EMAIL}`">{{ SUPPORT_EMAIL }}</a>
       </p>
@@ -198,12 +214,21 @@ onMounted(async () => {
 .support a { color: var(--brand); font-weight: 600; text-decoration: none; }
 .gc-head { margin-bottom: 16px; }
 .gc-head b { font: 700 15px var(--font-ui); display: block; margin-bottom: 3px; }
-.divider { display: flex; align-items: center; gap: 10px; margin: 16px 0 12px; color: var(--muted); font-size: 11px; }
+.divider { display: flex; align-items: center; gap: 10px; margin: 14px 0 14px; color: var(--muted); font-size: 11px; }
 .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 .google-btn {
-  width: 100%; justify-content: center; padding: 10px; font-size: 13.5px;
-  background: #fff; color: var(--ink); border: 1px solid #cbd5d3;
+  width: 100%; justify-content: center; padding: 11px; font-size: 14px; font-weight: 700;
+  background: #fff; color: var(--ink); border: 1.5px solid #bcd8d4;
+  box-shadow: 0 3px 10px rgba(18,109,103,0.10);
 }
-.google-btn:hover:not(:disabled) { background: #f6f9f8; }
+.google-btn:hover:not(:disabled) { background: var(--brand-light); border-color: var(--brand); }
+.check-email { text-align: center; padding: 8px 4px 2px; }
+.check-email .mail-badge {
+  width: 48px; height: 48px; margin: 0 auto 10px; display: grid; place-items: center;
+  border-radius: 14px; background: var(--brand-light); color: var(--brand);
+}
+.check-email > b { display: block; font: 700 15px var(--font-ui); margin-bottom: 4px; }
+.check-email p { margin: 0 auto; max-width: 320px; }
+.dev-activate { margin-top: 14px; text-decoration: none; }
 .forgot-link, .back-link { display: block; margin: 10px auto 0; border: 0; background: none; color: var(--brand); font: 600 11.5px var(--font-ui); cursor: pointer; }
 </style>

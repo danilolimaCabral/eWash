@@ -71,6 +71,8 @@ app.get('/api/health', (c) => {
       APP_URL: present(c.env.APP_URL),
       PLATFORM_ADMIN_EMAIL: present(c.env.PLATFORM_ADMIN_EMAIL),
       PLATFORM_ADMIN_PASSWORD: present(c.env.PLATFORM_ADMIN_PASSWORD),
+      SMS_API_KEY: present(c.env.SMS_API_KEY),
+      SMS_PARTNER_ID: present(c.env.SMS_PARTNER_ID),
     };
   }
   return c.json(body);

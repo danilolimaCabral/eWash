@@ -1,8 +1,11 @@
 import { Hono } from 'hono';
-import { eq, and, desc, sql, isNull, like } from 'drizzle-orm';
-import { expenses, expenseCategories, serviceProviders, orders, payments, branches, customers } from '../db/schema.js';
+import { eq, and, desc, sql, isNull, like, ne } from 'drizzle-orm';
+import {
+  expenses, expenseCategories, serviceProviders, orders, payments, branches, customers,
+  billingInvoices, billingInvoiceItems, billingPayments,
+} from '../db/schema.js';
 import { requirePolicy } from '../middleware.js';
-import { uid, bad, today, monthOf, audit } from '../util.js';
+import { uid, bad, notFound, today, monthOf, audit } from '../util.js';
 import { checkMoney, cleanStr, validMonth, validDate, LIMITS } from '../security.js';
 import { assertBranchAccess, scopedBranchId } from '../branchAccess.js';
 
@@ -162,6 +165,55 @@ financeRoutes.put('/service-providers/:id', requirePolicy('finance.manage'), asy
   await db.update(serviceProviders).set(patch).where(eq(serviceProviders.id, existing.id));
   await audit(db, tenantId, c.get('user').id, 'provider.update', 'service_providers', existing.id, { before: existing, after: patch });
   return c.json({ ok: true });
+});
+
+// The business's own eWash subscription invoices (created by the platform).
+// Read-only for tenants; drafts stay platform-internal until issued.
+financeRoutes.get('/billing/invoices', requirePolicy('finance.view'), async (c) => {
+  const db = c.get('db');
+  const tenant = c.get('tenant');
+  const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '10', 10) || 10, 1), 100);
+  const offset = Math.max(0, parseInt(c.req.query('offset') || '0', 10) || 0);
+  const status = c.req.query('status');
+  const conds = [eq(billingInvoices.tenantId, tenant.id), ne(billingInvoices.status, 'draft')];
+  if (status && ['issued', 'partially_paid', 'paid', 'overdue', 'void'].includes(status)) {
+    conds.push(eq(billingInvoices.status, status));
+  }
+  const [rows, [{ count }]] = await Promise.all([
+    db.select({
+      id: billingInvoices.id, number: billingInvoices.number, status: billingInvoices.status,
+      currency: billingInvoices.currency, periodStart: billingInvoices.periodStart,
+      periodEnd: billingInvoices.periodEnd, issuedAt: billingInvoices.issuedAt,
+      dueAt: billingInvoices.dueAt, createdAt: billingInvoices.createdAt,
+      totalCents: billingInvoices.totalCents,
+      paidCents: sql`coalesce((select sum(p.amount_cents) from billing_payments p where p.invoice_id = ${billingInvoices}.id and p.status = 'completed'), 0)`,
+    }).from(billingInvoices).where(and(...conds))
+      .orderBy(desc(billingInvoices.createdAt)).limit(limit).offset(offset),
+    db.select({ count: sql`count(*)` }).from(billingInvoices).where(and(...conds)),
+  ]);
+  return c.json({ rows, total: Number(count || 0), limit, offset });
+});
+
+financeRoutes.get('/billing/invoices/:id', requirePolicy('finance.view'), async (c) => {
+  const db = c.get('db');
+  const tenant = c.get('tenant');
+  const [invoice] = await db.select().from(billingInvoices).where(and(
+    eq(billingInvoices.id, c.req.param('id')),
+    eq(billingInvoices.tenantId, tenant.id),
+    ne(billingInvoices.status, 'draft'),
+  ));
+  if (!invoice) notFound('Invoice not found');
+  const [items, paymentRows] = await Promise.all([
+    db.select().from(billingInvoiceItems).where(eq(billingInvoiceItems.invoiceId, invoice.id)),
+    db.select({
+      id: billingPayments.id, amountCents: billingPayments.amountCents,
+      method: billingPayments.method, reference: billingPayments.reference, paidAt: billingPayments.paidAt,
+    }).from(billingPayments)
+      .where(and(eq(billingPayments.invoiceId, invoice.id), eq(billingPayments.status, 'completed')))
+      .orderBy(desc(billingPayments.paidAt)),
+  ]);
+  const paidCents = paymentRows.reduce((sum, p) => sum + p.amountCents, 0);
+  return c.json({ invoice: { ...invoice, paidCents }, items, payments: paymentRows });
 });
 
 financeRoutes.get('/credit-ledger', requirePolicy('finance.view'), async (c) => {

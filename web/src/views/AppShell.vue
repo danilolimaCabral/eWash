@@ -7,11 +7,13 @@ import { useIdleLock } from '../composables/useIdleLock.js';
 import AppIcon from '../components/AppIcon.vue';
 import Avatar from '../components/Avatar.vue';
 import LockScreen from '../components/LockScreen.vue';
+import SupportModal from '../components/SupportModal.vue';
 
 const session = useSession();
 const route = useRoute();
 const router = useRouter();
 const drawerOpen = ref(false);
+const supportOpen = ref(false);
 useIdleLock(); // auto-lock after inactivity — unlock requires the password
 
 const NAV = [
@@ -81,10 +83,11 @@ onMounted(async () => {
           <AppIcon :name="item.icon" :size="17" />{{ item.label }}
         </router-link>
       </template>
-      <a class="sidefoot help" :href="`mailto:${SUPPORT_EMAIL}`">
+      <div class="sidefoot help" role="button" tabindex="0"
+        @click="supportOpen = true; drawerOpen = false" @keydown.enter="supportOpen = true; drawerOpen = false">
         <div class="help-icon"><AppIcon name="help" :size="14" /></div>
         <div><strong>Need help?</strong><span>{{ SUPPORT_EMAIL }}</span></div>
-      </a>
+      </div>
       <div class="sidefoot" @click="logout">
         <div class="help-icon"><AppIcon name="logout" :size="14" /></div>
         <div><strong>Sign out</strong><span>{{ session.user?.email }}</span></div>
@@ -123,6 +126,7 @@ onMounted(async () => {
     </div>
   </div>
   <div v-else class="boot">Loading eWash…</div>
+  <SupportModal v-if="supportOpen" @close="supportOpen = false" />
   <LockScreen v-if="session.isAuthed && session.locked" />
 </template>
 

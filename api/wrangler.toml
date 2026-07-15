@@ -16,13 +16,16 @@ database_name = "ewash"
 database_id = "03efc56b-600c-4a97-bbd9-3d05810e0bbe"
 migrations_dir = "migrations"
 
-# Secrets (JWT_SECRET, MPESA_CALLBACK_SECRET) are NOT set here: locally they
-# come from api/.dev.vars (gitignored); in production `bun run deploy`
-# auto-creates them as worker secrets. ENVIRONMENT defaults to production for
-# deploys; api/.dev.vars overrides it to development for local runs.
+# Secrets (JWT_SECRET, MPESA_CALLBACK_SECRET, SMS_API_KEY, SMS_PARTNER_ID,
+# SMS_SHORTCODE) are NOT set here: locally they come from api/.dev.vars
+# (gitignored); in production `bun run deploy` auto-creates them as worker
+# secrets (or `wrangler secret put <KEY>`). ENVIRONMENT defaults to production
+# for deploys; api/.dev.vars overrides it to development for local runs.
 [vars]
 ENVIRONMENT = "production"
 APP_URL = "https://ewash.qesuite.com"
+# TextSMS Kenya gateway (SMS goes out only when the SMS_* secrets are set)
+SMS_BASE_URL = "https://sms.textsms.co.ke/api/services/sendsms/"
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = "465"
 SMTP_USERNAME = "notificationsqesuite@gmail.com"

@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import DataTable from '../components/DataTable.vue';
 import FormField from '../components/FormField.vue';
 import Modal from '../components/Modal.vue';
@@ -24,7 +24,7 @@ const detail = ref(null);
 const detailTab = ref('overview');
 const plans = ref([]);
 const action = ref({ open: false, status: 'suspended', reason: '' });
-const subscription = ref({ plan_id: '', status: 'active', custom_price: '' });
+const subscription = ref({ plan_id: '', status: 'active', term_months: 1, custom_price: '' });
 const memberData = ref({ rows: [], total: 0, roles: [], branches: [] });
 const memberOffset = ref(0);
 const memberLimit = 10;
@@ -66,6 +66,7 @@ async function openTenant(row) {
   subscription.value = {
     plan_id: current?.planId || plans.value.find((p) => p.code === detail.value.tenant.plan)?.id || '',
     status: current?.status || 'active',
+    term_months: current?.termMonths || 1,
     custom_price: current?.customPriceCents == null ? '' : current.customPriceCents / 100,
   };
   billingEmail.value = detail.value.tenant.billingEmail || '';
@@ -171,10 +172,18 @@ async function saveSubscription() {
   await platformApi.put(`/tenants/${selected.value.id}/subscription`, {
     plan_id: subscription.value.plan_id,
     status: subscription.value.status,
+    term_months: subscription.value.term_months,
     custom_price_cents: subscription.value.custom_price === '' ? null : Math.round(Number(subscription.value.custom_price) * 100),
   });
   await openTenant(selected.value);
   await load(offset.value);
+}
+// terms configured for the currently chosen plan (label: "3 months — KES 3,500/mo")
+const planTerms = computed(() => plans.value.find((p) => p.id === subscription.value.plan_id)?.prices || []);
+function onPlanChange() {
+  if (!planTerms.value.some((t) => t.termMonths === subscription.value.term_months)) {
+    subscription.value.term_months = planTerms.value[0]?.termMonths || 1;
+  }
 }
 onMounted(async () => {
   [plans.value] = await Promise.all([platformApi.get('/plans'), load()]);
@@ -229,9 +238,14 @@ onMounted(async () => {
       <Pagination :total="branchData.total" :limit="10" :offset="branchOffset" @change="loadBranches" />
     </div>
     <div v-else-if="detailTab === 'subscription'" class="subscription-form">
-      <FormField label="Plan"><select v-model="subscription.plan_id"><option v-for="plan in plans" :key="plan.id" :value="plan.id">{{ plan.name }}</option></select></FormField>
+      <FormField label="Plan"><select v-model="subscription.plan_id" @change="onPlanChange"><option v-for="plan in plans" :key="plan.id" :value="plan.id">{{ plan.name }}</option></select></FormField>
+      <FormField label="Billing term" hint="Longer commitments get the lower per-month rate">
+        <select v-model.number="subscription.term_months">
+          <option v-for="t in planTerms" :key="t.termMonths" :value="t.termMonths">{{ t.termMonths }} {{ t.termMonths === 1 ? 'month' : 'months' }} — {{ money(t.priceCents, 'KES') }}/mo</option>
+        </select>
+      </FormField>
       <FormField label="Subscription status"><select v-model="subscription.status"><option>trial</option><option>active</option><option>past_due</option><option>suspended</option><option>cancelled</option></select></FormField>
-      <FormField label="Custom monthly price (KES)" hint="Leave blank to use the plan price"><input v-model="subscription.custom_price" type="number" min="0" step="1" /></FormField>
+      <FormField label="Custom price per month (KES)" hint="Leave blank to use the plan's term rate"><input v-model="subscription.custom_price" type="number" min="0" step="1" /></FormField>
       <button class="btn btn-primary" @click="saveSubscription">Save subscription</button>
     </div>
     <DataTable v-else-if="detailTab === 'invoices'" :columns="[{key:'number',label:'Invoice'},{key:'status',label:'Status'},{key:'totalCents',label:'Total',align:'right'},{key:'dueAt',label:'Due'}]" :rows="detail.invoices">

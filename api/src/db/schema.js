@@ -296,6 +296,8 @@ export const passwordResetTokens = sqliteTable('password_reset_tokens', {
   id: id(),
   userId: text('user_id').notNull().references(() => users.id),
   tokenHash: text('token_hash').notNull().unique(),
+  // one-time emailed tokens share this table; purpose keeps them unswappable
+  purpose: text('purpose', { enum: ['password_reset', 'activation', 'invite'] }).notNull().default('password_reset'),
   expiresAt: text('expires_at').notNull(),
   usedAt: text('used_at'),
   requestedIp: text('requested_ip'),
@@ -385,12 +387,24 @@ export const plans = sqliteTable('plans', {
   createdAt: createdAt(),
 });
 
+// Per-term monthly rates: the price/month a tenant pays when committing to
+// termMonths upfront (longer terms cheaper). Edits only affect invoices
+// generated after the change — issued invoices are snapshots.
+export const planPrices = sqliteTable('plan_prices', {
+  id: id(),
+  planId: text('plan_id').notNull().references(() => plans.id),
+  termMonths: integer('term_months').notNull(),
+  priceCents: integer('price_cents').notNull(),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex('uq_plan_price_term').on(t.planId, t.termMonths)]);
+
 export const tenantSubscriptions = sqliteTable('tenant_subscriptions', {
   id: id(),
   tenantId: text('tenant_id').notNull().references(() => tenants.id),
   planId: text('plan_id').notNull().references(() => plans.id),
   status: text('status', { enum: ['trial', 'active', 'past_due', 'suspended', 'cancelled'] }).notNull().default('trial'),
-  customPriceCents: integer('custom_price_cents'),
+  termMonths: integer('term_months').notNull().default(1),
+  customPriceCents: integer('custom_price_cents'), // per-month override
   startedAt: text('started_at').notNull().default(sql`(datetime('now'))`),
   currentPeriodStart: text('current_period_start'),
   currentPeriodEnd: text('current_period_end'),

@@ -1,15 +1,15 @@
 import { Hono } from 'hono';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, inArray, ne } from 'drizzle-orm';
 import { getDb } from '../db/index.js';
 import { tenants, branches, users, roles, rolePolicies, userPolicyOverrides, passwordResetTokens, sessions } from '../db/schema.js';
-import { hashPassword, verifyPassword } from '../auth.js';
+import { hashPassword, verifyPassword, hasUsablePassword } from '../auth.js';
 import { seedTenant } from '../seed.js';
 import { uid, now, bad, audit, ApiError, SUPPORT_EMAIL } from '../util.js';
 import { effectivePolicies, POLICIES } from '../policies.js';
 import { enforceRateLimit, clientIp } from '../ratelimit.js';
 import { cleanStr, checkPassword, LIMITS } from '../security.js';
 import { issueSession, refreshSession, revokeSession } from '../session.js';
-import { issuePasswordReset, passwordResetTokenHash } from '../passwordReset.js';
+import { issuePasswordReset, issueAccountActivation, passwordResetTokenHash, appOrigin } from '../passwordReset.js';
 
 export const authRoutes = new Hono();
 const genericResetMessage = 'If an account exists for that email, a password reset link has been sent.';
@@ -65,7 +65,7 @@ authRoutes.post('/register', async (c) => {
   const { roleIds } = await seedTenant(db, tenantId);
 
   const userId = uid();
-  await db.insert(users).values({
+  const user = {
     id: userId,
     tenantId,
     branchId,
@@ -75,9 +75,93 @@ authRoutes.post('/register', async (c) => {
     phone: b.phone || null,
     email,
     passwordHash: await hashPassword(b.password),
-  });
+    status: 'pending', // goes live only via the emailed activation link
+  };
+  await db.insert(users).values(user);
 
-  return c.json(await sessionResponse(db, c.env, c, { id: userId, tenantId }), 201);
+  const { sent, activationUrl } = await issueAccountActivation(db, c.env, user, appOrigin(c), clientIp(c));
+  if (!sent && c.env.ENVIRONMENT === 'production') {
+    throw new ApiError(500, 'We could not send your activation email — try signing in shortly to get a fresh link.');
+  }
+  return c.json({
+    message: `Almost there! We've emailed an activation link to ${email} — open it to finish setup.`,
+    // no inbox in local/dev: surface the link so the flow stays testable
+    ...(c.env.ENVIRONMENT !== 'production' ? { activation_url: activationUrl } : {}),
+  }, 201);
+});
+
+// Activation-link tokens: owner self-signup ('activation' — email is the
+// proof, password already set) and staff invites ('invite' — the invitee
+// chooses their password on acceptance).
+const ACTIVATE_PURPOSES = ['activation', 'invite'];
+
+async function findActivationToken(db, token) {
+  if (typeof token !== 'string' || token.length < 32) bad('Invalid or expired activation link');
+  const [row] = await db.select().from(passwordResetTokens).where(and(
+    eq(passwordResetTokens.tokenHash, await passwordResetTokenHash(token)),
+    inArray(passwordResetTokens.purpose, ACTIVATE_PURPOSES),
+    isNull(passwordResetTokens.usedAt),
+  ));
+  if (!row || row.expiresAt < now()) bad('Invalid or expired activation link');
+  const [user] = await db.select().from(users).where(eq(users.id, row.userId));
+  if (!user) bad('Invalid or expired activation link');
+  if (user.status === 'active') bad('This account is already active — sign in instead');
+  if (user.status !== 'pending') throw new ApiError(403, 'This account has been deactivated');
+  return { row, user };
+}
+
+// Pre-flight for the /activate page: tells the SPA whether this link signs
+// straight in or needs the invitee to set a password. Never consumes the token.
+authRoutes.post('/activate/inspect', async (c) => {
+  const db = getDb(c.env);
+  await enforceRateLimit(db, `activate:ip:${clientIp(c)}`, 20 * rlMult(c), 900,
+    'Too many activation attempts — please try again later');
+  const { token } = await c.req.json();
+  const { row, user } = await findActivationToken(db, token);
+  const [tenant] = await db.select({ name: tenants.name }).from(tenants).where(eq(tenants.id, user.tenantId));
+  return c.json({
+    mode: row.purpose === 'invite' ? 'set_password' : 'activate',
+    name: user.name,
+    email: user.email,
+    business: tenant?.name || 'eWash',
+  });
+});
+
+// Redeem an activation link: proves email ownership, flips the account live
+// and signs the user straight in. Invite links additionally set the password.
+authRoutes.post('/activate', async (c) => {
+  const db = getDb(c.env);
+  await enforceRateLimit(db, `activate:ip:${clientIp(c)}`, 10 * rlMult(c), 900,
+    'Too many activation attempts — please try again later');
+  const { token, password } = await c.req.json();
+  const { row, user } = await findActivationToken(db, token);
+  const isInvite = row.purpose === 'invite';
+  if (isInvite) checkPassword(password); // invitee chooses their password now
+
+  const consumed = await db.update(passwordResetTokens).set({ usedAt: now() })
+    .where(and(eq(passwordResetTokens.id, row.id), isNull(passwordResetTokens.usedAt)))
+    .returning({ id: passwordResetTokens.id });
+  if (!consumed.length) bad('Invalid or expired activation link');
+
+  await db.update(users).set({
+    status: 'active',
+    ...(isInvite ? { passwordHash: await hashPassword(password) } : {}),
+  }).where(eq(users.id, user.id));
+  // a redeemed account leaves no other live activation links behind
+  await db.update(passwordResetTokens).set({ usedAt: now() }).where(and(
+    eq(passwordResetTokens.userId, user.id),
+    inArray(passwordResetTokens.purpose, ACTIVATE_PURPOSES),
+    isNull(passwordResetTokens.usedAt),
+    ne(passwordResetTokens.id, row.id),
+  ));
+  await audit(db, user.tenantId, user.id, 'user.activate', 'users', user.id,
+    { email: user.email, via: isInvite ? 'invite' : 'email' });
+
+  const [tenant] = await db.select({ status: tenants.status }).from(tenants).where(eq(tenants.id, user.tenantId));
+  if (!tenant || tenant.status !== 'active') {
+    throw new ApiError(403, `This business account is disabled. Contact support at ${SUPPORT_EMAIL}`);
+  }
+  return c.json(await sessionResponse(db, c.env, c, user));
 });
 
 authRoutes.post('/login', async (c) => {
@@ -95,6 +179,14 @@ authRoutes.post('/login', async (c) => {
   const [user] = await db.select().from(users).where(eq(users.email, normEmail));
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
     throw new ApiError(401, 'Invalid email or password');
+  }
+  if (user.status === 'pending') {
+    // correct password proven — safe to re-send the activation link (capped
+    // so a signup can't be used to mail-bomb its own inbox)
+    await enforceRateLimit(db, `activation:email:${normEmail}`, 3 * rlMult(c), 3600,
+      'Account not activated — check your email for the activation link');
+    await issueAccountActivation(db, c.env, user, appOrigin(c), clientIp(c));
+    throw new ApiError(403, 'Account not activated — we’ve sent you a fresh activation link, check your email');
   }
   if (user.status !== 'active') throw new ApiError(403, 'This account has been deactivated');
   // tenant-level kill switch: a disabled business cannot sign in at all
@@ -116,7 +208,7 @@ authRoutes.post('/forgot-password', async (c) => {
   const [user] = await db.select().from(users).where(eq(users.email, email));
   if (!user || user.status !== 'active') return c.json({ message: genericResetMessage });
 
-  await issuePasswordReset(db, c.env, user, clientIp(c));
+  await issuePasswordReset(db, c.env, user, appOrigin(c), clientIp(c));
   return c.json({ message: genericResetMessage });
 });
 
@@ -127,8 +219,11 @@ authRoutes.post('/reset-password', async (c) => {
   const { token, password } = await c.req.json();
   if (typeof token !== 'string' || token.length < 32) bad('Invalid or expired reset link');
   checkPassword(password);
-  const [reset] = await db.select().from(passwordResetTokens)
-    .where(and(eq(passwordResetTokens.tokenHash, await passwordResetTokenHash(token)), isNull(passwordResetTokens.usedAt)));
+  const [reset] = await db.select().from(passwordResetTokens).where(and(
+    eq(passwordResetTokens.tokenHash, await passwordResetTokenHash(token)),
+    eq(passwordResetTokens.purpose, 'password_reset'),
+    isNull(passwordResetTokens.usedAt),
+  ));
   if (!reset || reset.expiresAt < now()) bad('Invalid or expired reset link');
   const consumed = await db.update(passwordResetTokens).set({ usedAt: now() })
     .where(and(eq(passwordResetTokens.id, reset.id), isNull(passwordResetTokens.usedAt)))
@@ -202,8 +297,9 @@ export async function meHandler(c) {
     user: {
       id: user.id, name: user.name, email: user.email, phone: user.phone, branchId: user.branchId,
       accessScope: user.accessScope,
-      // google-only accounts have no usable password (lock screen adapts)
-      hasPassword: user.passwordHash !== 'google-only',
+      // google-only / not-yet-accepted-invite accounts have no usable password
+      // (lock screen adapts)
+      hasPassword: hasUsablePassword(user.passwordHash),
       googleLinked: !!user.googleSub,
     },
     role: { id: role.id, name: role.name },
