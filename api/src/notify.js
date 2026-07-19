@@ -9,7 +9,7 @@ import { notifications } from './db/schema.js';
 // {business} merge field — never with the eWash platform name.
 export const DEFAULT_TEMPLATES = {
   quote_ready:
-    '{business}: Hello {customer}, order {order_code} assessed: {items}. Total {total}. Reply YES to confirm — pay by M-Pesa or cash when you pick up. Karibu!',
+    '{business}: Hello {customer}, order {order_code} assessed: {items}. Total {total}. Pay by M-Pesa or cash when you pick up. Karibu!',
   payment_received:
     '{business}: Payment of {amount} received for order {order_code}. Balance: {balance}. Asante!',
   order_ready:

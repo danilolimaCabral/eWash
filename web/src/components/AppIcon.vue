@@ -26,6 +26,7 @@ const PATHS = {
   check: 'M5 13l4 4L19 7',
   checkCircle: 'M5 13l4 4L19 7M12 12m-9 0a9 9 0 1 0 18 0 9 9 0 1 0-18 0',
   clock: 'M12 12m-9 0a9 9 0 1 0 18 0 9 9 0 1 0-18 0M12 7v5l3 2',
+  calendar: 'M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1ZM4 9.5h16M8 3v4M16 3v4',
   x: 'M6 6l12 12M18 6L6 18',
   scale: 'M9 6a3 3 0 1 1 6 0M5 6h14l2 14H3L5 6Z',
   shirt: 'M8 3 4 6l2 4 2-1v12h8V9l2 1 2-4-4-3a4 4 0 0 1-8 0Z',

@@ -39,6 +39,13 @@ customerRoutes.get('/customers', async (c) => {
   const filtered = q
     ? rows.filter((r) => r.name.toLowerCase().includes(q) || normalizePhone(r.phone).includes(normalizePhone(q)))
     : rows;
+  // standard opt-in pagination ({ rows, total, limit, offset }); the q filter
+  // needs JS phone normalization, so the page is sliced after filtering
+  if (c.req.query('offset') != null) {
+    const limit = Math.min(parseInt(c.req.query('limit') || '20', 10) || 20, 100);
+    const offset = Math.max(0, parseInt(c.req.query('offset') || '0', 10) || 0);
+    return c.json({ rows: filtered.slice(offset, offset + limit), total: filtered.length, limit, offset });
+  }
   return c.json(filtered);
 });
 

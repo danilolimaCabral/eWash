@@ -34,6 +34,7 @@ const blank = () => ({
   attach: {}, // parentServiceId -> { on, override (KES or ''), inherit }
 });
 const form = ref(blank());
+const riderOpen = ref(false); // add-on section starts collapsed unless the service has riders
 
 const catalogStore = useCatalog();
 async function load(keepSelection = true) {
@@ -77,6 +78,7 @@ function fillForm(id) {
     })),
     attach,
   };
+  riderOpen.value = Object.values(attach).some((a) => a.on);
 }
 
 function startNew() {
@@ -84,13 +86,16 @@ function startNew() {
   form.value = blank();
   form.value.category_id = catalog.value.categories[0]?.id || '';
   for (const p of catalog.value.services) form.value.attach[p.id] = { on: false, override: '', inherit: true };
+  riderOpen.value = false;
 }
 
 const rateLabel = computed(() =>
-  form.value.pricing_model === 'PER_KG' ? `Rate (${session.currency}/kg)`
-  : form.value.pricing_model === 'PER_ITEM' ? `Base price (${session.currency}/item)`
-  : form.value.pricing_model === 'TIERED' ? `Fallback rate (${session.currency})`
+  form.value.pricing_model === 'PER_KG' ? `Price per kg (${session.currency})`
+  : form.value.pricing_model === 'PER_ITEM' ? `Price per item (${session.currency})`
+  : form.value.pricing_model === 'TIERED' ? `Default price (${session.currency})`
   : `Price (${session.currency})`);
+const rateHint = computed(() =>
+  form.value.pricing_model === 'TIERED' ? 'Used when the quantity falls outside every range below' : '');
 
 // live preview mirrors the server pricing engine
 const preview = computed(() => {
@@ -208,88 +213,123 @@ async function addCategory() {
       </div>
 
       <Panel :title="selectedId ? 'Edit service' : 'New service'">
-        <div class="row">
-          <FormField label="Service name"><input v-model="form.name" type="text" /></FormField>
-          <FormField label="Category">
-            <select v-model="form.category_id">
-              <option v-for="c in catalog.categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-            </select>
-          </FormField>
-          <div style="max-width: 120px; align-self: flex-end;">
-            <button class="btn btn-ghost btn-sm" @click="catModal = { open: true, name: '', error: '' }">＋ Category</button>
+        <section class="sect first">
+          <div class="sect-head">
+            <h4><span class="sect-num">1</span> Basics</h4>
+            <button class="btn btn-ghost btn-sm push-right" @click="catModal = { open: true, name: '', error: '' }">
+              <AppIcon name="plus" :size="12" /> Category
+            </button>
           </div>
-        </div>
-
-        <label class="field-label">Pricing model</label>
-        <div class="radio-cards">
-          <div
-            v-for="m in MODELS" :key="m.key"
-            :class="{ sel: form.pricing_model === m.key }"
-            @click="form.pricing_model = m.key"
-          ><AppIcon :name="m.icon" :size="15" /> {{ m.label }}<span v-if="form.pricing_model === m.key" class="model-check"><AppIcon name="check" :size="11" /></span></div>
-        </div>
-
-        <div class="row">
-          <FormField :label="rateLabel"><input v-model.number="form.base_rate" type="number" min="0" /></FormField>
-          <FormField :label="`Minimum charge (${session.currency})`"><input v-model.number="form.min_charge" type="number" min="0" /></FormField>
-          <FormField label="Express surcharge %"><input v-model.number="form.express_pct" type="number" min="0" /></FormField>
-        </div>
-
-        <template v-if="form.pricing_model === 'PER_ITEM'">
-          <label class="field-label">Variants (e.g. duvet sizes) — leave empty to use base price</label>
-          <div v-for="(v, i) in form.variants" :key="i" class="row tight">
-            <FormField label="Label"><input v-model="v.label" type="text" placeholder="e.g. King" /></FormField>
-            <FormField :label="`Price (${session.currency})`"><input v-model.number="v.price" type="number" min="0" /></FormField>
-            <div class="rm"><button class="btn btn-danger btn-sm" @click="form.variants.splice(i, 1)">✕</button></div>
+          <div class="row">
+            <FormField label="Service name" style="flex: 2;">
+              <input v-model="form.name" type="text" placeholder="e.g. Wash &amp; Fold (per kg)" />
+            </FormField>
+            <FormField label="Category">
+              <select v-model="form.category_id">
+                <option v-for="c in catalog.categories" :key="c.id" :value="c.id">{{ c.name }}</option>
+              </select>
+            </FormField>
           </div>
-          <button class="btn btn-ghost btn-sm" @click="form.variants.push({ label: '', price: 0 })">＋ Add variant</button>
-        </template>
+        </section>
 
-        <template v-if="form.pricing_model === 'PER_KG' || form.pricing_model === 'TIERED'">
-          <label class="field-label" style="margin-top: 12px;">
-            {{ form.pricing_model === 'PER_KG' ? 'Volume rate breaks (optional): from qty → new rate/kg' : 'Bands: qty range → band price (flat) or rate' }}
-          </label>
-          <div v-for="(t, i) in form.tiers" :key="i" class="row tight">
-            <FormField label="From qty"><input v-model.number="t.min_qty" type="number" min="0" step="0.5" /></FormField>
-            <FormField label="To qty (blank = ∞)"><input v-model="t.max_qty" type="number" min="0" step="0.5" /></FormField>
-            <FormField v-if="form.pricing_model === 'PER_KG'" :label="`Rate (${session.currency}/kg)`"><input v-model="t.rate" type="number" min="0" /></FormField>
-            <template v-else>
-              <FormField :label="`Band price (${session.currency})`"><input v-model="t.band_price" type="number" min="0" /></FormField>
-            </template>
-            <div class="rm"><button class="btn btn-danger btn-sm" @click="form.tiers.splice(i, 1)">✕</button></div>
+        <section class="sect">
+          <div class="sect-head"><h4><span class="sect-num">2</span> Pricing</h4></div>
+          <label class="field-label">How is this service charged?</label>
+          <div class="radio-cards">
+            <div
+              v-for="m in MODELS" :key="m.key"
+              :class="{ sel: form.pricing_model === m.key }"
+              @click="form.pricing_model = m.key"
+            ><AppIcon :name="m.icon" :size="15" /> {{ m.label }}<span v-if="form.pricing_model === m.key" class="model-check"><AppIcon name="check" :size="11" /></span></div>
           </div>
-          <button class="btn btn-ghost btn-sm" @click="form.tiers.push({ min_qty: 0, max_qty: '', rate: '', band_price: '' })">＋ Add {{ form.pricing_model === 'PER_KG' ? 'rate break' : 'band' }}</button>
-        </template>
 
-        <div class="rider-heading">
-          <label class="field-label">Can attach as a rider to</label>
-          <span>{{ riderParentCount }} selected</span>
-        </div>
-        <div v-for="p in attachParents" :key="p.id" class="attach-row">
-          <label class="attach-check">
-            <input v-model="form.attach[p.id].on" type="checkbox" /> {{ p.name }}
-          </label>
-          <template v-if="form.attach[p.id].on">
-            <input v-model="form.attach[p.id].override" type="number" min="0"
-              class="ov-input" :placeholder="`bundled rate (blank = standalone)`" />
-            <label class="attach-check small">
-              <input v-model="form.attach[p.id].inherit" type="checkbox" /> inherits qty
-            </label>
+          <div class="row">
+            <FormField :label="rateLabel" :hint="rateHint"><input v-model.number="form.base_rate" type="number" min="0" /></FormField>
+            <FormField :label="`Minimum charge (${session.currency})`" hint="The least a customer pays"><input v-model.number="form.min_charge" type="number" min="0" /></FormField>
+            <FormField label="Express extra charge (%)" hint="Added for same-day / rush orders"><input v-model.number="form.express_pct" type="number" min="0" /></FormField>
+          </div>
+
+          <template v-if="form.pricing_model === 'PER_ITEM'">
+            <div class="sub-head">
+              <span>Sizes &amp; options</span>
+              <small>optional — e.g. duvet sizes; leave empty to charge the price per item above</small>
+            </div>
+            <div v-if="form.variants.length" class="grid-rows cols-2">
+              <div class="gr-h">Name</div>
+              <div class="gr-h">Price ({{ session.currency }})</div>
+              <div class="gr-h" />
+              <template v-for="(v, i) in form.variants" :key="i">
+                <input v-model="v.label" type="text" placeholder="e.g. King size" :aria-label="`Option ${i + 1} name`" />
+                <input v-model.number="v.price" type="number" min="0" :aria-label="`Option ${i + 1} price`" />
+                <button class="row-rm" aria-label="Remove option" @click="form.variants.splice(i, 1)"><AppIcon name="x" :size="12" /></button>
+              </template>
+            </div>
+            <button class="btn btn-ghost btn-sm" @click="form.variants.push({ label: '', price: 0 })"><AppIcon name="plus" :size="12" /> Add size / option</button>
           </template>
-        </div>
 
-        <div class="row" style="margin-top: 12px;">
-          <FormField label="Preview qty"><input v-model.number="previewQty" type="number" min="0.5" step="0.5" /></FormField>
-          <div style="flex: 2;">
-            <div class="preview-box">
-              <div>Standalone · {{ preview.qty }} {{ preview.unit }}</div>
+          <template v-if="form.pricing_model === 'PER_KG' || form.pricing_model === 'TIERED'">
+            <div class="sub-head">
+              <span>{{ form.pricing_model === 'PER_KG' ? 'Cheaper rate for bigger loads' : 'Price by quantity range' }}</span>
+              <small>{{ form.pricing_model === 'PER_KG' ? 'optional — from a certain quantity, a lower price per kg applies' : 'each range gets one fixed price' }}</small>
+            </div>
+            <div v-if="form.tiers.length" class="grid-rows cols-3">
+              <div class="gr-h">From qty</div>
+              <div class="gr-h">Up to qty (blank = no limit)</div>
+              <div class="gr-h">{{ form.pricing_model === 'PER_KG' ? `New price per kg (${session.currency})` : `Fixed price (${session.currency})` }}</div>
+              <div class="gr-h" />
+              <template v-for="(t, i) in form.tiers" :key="i">
+                <input v-model.number="t.min_qty" type="number" min="0" step="0.5" aria-label="From quantity" />
+                <input v-model="t.max_qty" type="number" min="0" step="0.5" aria-label="Up to quantity" />
+                <input v-if="form.pricing_model === 'PER_KG'" v-model="t.rate" type="number" min="0" aria-label="New price per kg" />
+                <input v-else v-model="t.band_price" type="number" min="0" aria-label="Fixed price for this range" />
+                <button class="row-rm" aria-label="Remove range" @click="form.tiers.splice(i, 1)"><AppIcon name="x" :size="12" /></button>
+              </template>
+            </div>
+            <button class="btn btn-ghost btn-sm" @click="form.tiers.push({ min_qty: 0, max_qty: '', rate: '', band_price: '' })"><AppIcon name="plus" :size="12" /> Add {{ form.pricing_model === 'PER_KG' ? 'quantity discount' : 'quantity range' }}</button>
+          </template>
+        </section>
+
+        <details class="sect sect-details" :open="riderOpen" @toggle="riderOpen = $event.target.open">
+          <summary class="sect-head">
+            <h4><span class="sect-num">3</span> Attach as an additional service</h4>
+            <span class="count-chip">{{ riderParentCount }} selected</span>
+            <span class="caret" aria-hidden="true" />
+          </summary>
+          <p class="sect-hint">
+            Let customers add this service on top of another one — e.g. Ironing added to Wash &amp; Fold.
+            You can give it a cheaper price when it's added this way.
+          </p>
+          <div v-for="p in attachParents" :key="p.id" class="attach-row">
+            <ToggleSwitch v-model="form.attach[p.id].on" />
+            <span class="attach-name" @click="form.attach[p.id].on = !form.attach[p.id].on">{{ p.name }}</span>
+            <template v-if="form.attach[p.id].on">
+              <input v-model="form.attach[p.id].override" type="number" min="0"
+                class="ov-input" placeholder="price when added (blank = normal price)" />
+              <label class="attach-check small">
+                <input v-model="form.attach[p.id].inherit" type="checkbox" /> use same quantity as the main service
+              </label>
+            </template>
+          </div>
+        </details>
+
+        <section class="sect">
+          <div class="sect-head"><h4><span class="sect-num">4</span> Price preview</h4></div>
+          <div class="preview-box pv">
+            <div class="pv-qty">
+              <label class="pv-cap" for="pv-qty">Try a quantity</label>
+              <input id="pv-qty" v-model.number="previewQty" type="number" min="0.5" step="0.5" />
+            </div>
+            <div class="pv-main">
+              <div class="pv-cap">On its own · {{ preview.qty }} {{ preview.unit }}</div>
               <div class="big">{{ money(preview.amount * 100, session.currency) }}</div>
               <div v-if="preview.minHit" class="warn">minimum charge applied</div>
-              <div v-if="preview.bundled != null" style="margin-top: 6px;">As a rider (bundled): <b class="teal">{{ money(preview.bundled * 100, session.currency) }}</b></div>
-              <div v-if="form.express_pct" class="small" style="margin-top: 6px;">With express +{{ form.express_pct }}%: {{ money(preview.express * 100, session.currency) }}</div>
+            </div>
+            <div class="pv-extra">
+              <div v-if="preview.bundled != null">Added to another service: <b class="teal">{{ money(preview.bundled * 100, session.currency) }}</b></div>
+              <div v-if="form.express_pct">With express (+{{ form.express_pct }}%): <b class="teal">{{ money(preview.express * 100, session.currency) }}</b></div>
             </div>
           </div>
-        </div>
+        </section>
 
         <div class="actions">
           <button class="btn btn-primary" :disabled="busy" @click="save">Save service</button>
@@ -318,17 +358,70 @@ async function addCategory() {
 </template>
 
 <style scoped>
-.row.tight { margin-bottom: 6px; align-items: flex-end; }
-.rm { flex: 0 0 auto; min-width: 0 !important; align-self: flex-end; }
-.attach-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; flex-wrap: wrap; }
-.rider-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 14px; }
-.rider-heading .field-label { margin: 0; }
-.rider-heading span { color: var(--brand); background: var(--brand-light); border-radius: 999px; padding: 2px 8px; font-size: 9.5px; font-weight: 700; }
+/* numbered sections */
+.sect { border-top: 1px dashed var(--line); padding-top: 14px; margin-top: 16px; }
+.sect.first { border-top: 0; padding-top: 0; margin-top: 0; }
+.sect-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.sect-head h4 {
+  margin: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--muted); display: flex; align-items: center; gap: 8px;
+}
+.sect-num {
+  width: 18px; height: 18px; border-radius: 50%; background: var(--brand-light);
+  color: var(--brand-dark); font-size: 10.5px; font-weight: 800; display: grid; place-items: center;
+}
+.push-right { margin-left: auto; }
+.sect-hint { color: var(--muted); font-size: 11.5px; margin: 0 0 8px; }
+
+/* collapsible add-on section */
+.sect-details > summary { cursor: pointer; list-style: none; margin-bottom: 0; }
+.sect-details[open] > summary { margin-bottom: 8px; }
+.sect-details > summary::-webkit-details-marker { display: none; }
+.count-chip { color: var(--brand); background: var(--brand-light); border-radius: 999px; padding: 2px 8px; font-size: 9.5px; font-weight: 700; }
+.caret {
+  margin-left: auto; width: 8px; height: 8px; flex-shrink: 0;
+  border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg); transition: transform 0.15s; margin-top: -4px;
+}
+.sect-details[open] .caret { transform: rotate(-135deg); margin-top: 4px; }
+
+/* sub-lists inside Pricing (sizes, quantity ranges) */
+.sub-head { display: flex; align-items: baseline; gap: 8px; margin: 12px 0 6px; font-size: 12.5px; font-weight: 700; flex-wrap: wrap; }
+.sub-head small { color: var(--muted); font-weight: 400; font-size: 11px; }
+.grid-rows { display: grid; gap: 6px 8px; align-items: center; margin-bottom: 8px; }
+.grid-rows.cols-2 { grid-template-columns: 2fr 1fr 30px; }
+.grid-rows.cols-3 { grid-template-columns: 1fr 1fr 1fr 30px; }
+.gr-h { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.row-rm {
+  width: 30px; height: 30px; border: 1px solid #f2c4bf; color: var(--red); background: #fff;
+  border-radius: 7px; cursor: pointer; display: grid; place-items: center;
+}
+.row-rm:hover { background: #fdf1f0; }
+
+/* pricing model selected check */
 .model-check { margin-left: auto; width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; background: var(--brand); color: #fff; }
-.attach-check { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+
+/* attach rows */
+.attach-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; flex-wrap: wrap; }
+.attach-row:hover { background: #f6faf9; }
+.attach-name { font-size: 13px; cursor: pointer; }
+.attach-check { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
 .attach-check input { width: auto; }
-.ov-input { max-width: 210px; }
+.ov-input { max-width: 250px; margin-left: auto; }
+
+/* price preview */
+.pv { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.pv-qty { flex: 0 0 110px; }
+.pv-qty input { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.25); color: #e2e8f0; }
+.pv-cap { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9fb8b3; margin-bottom: 3px; }
+.pv-main { flex: 1; min-width: 150px; }
+.pv-extra { font-size: 12.5px; display: flex; flex-direction: column; gap: 4px; text-align: right; }
 .warn { color: #fbbf24; font-size: 11.5px; }
 .teal { color: #7ed7c9; }
-.actions { display: flex; gap: 10px; margin-top: 14px; }
+.actions { display: flex; gap: 10px; margin-top: 16px; }
+
+@media (max-width: 640px) {
+  .pv-extra { text-align: left; }
+  .ov-input { margin-left: 0; max-width: 100%; }
+}
 </style>

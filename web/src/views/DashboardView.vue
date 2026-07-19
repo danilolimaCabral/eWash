@@ -14,6 +14,8 @@ import AppIcon from '../components/AppIcon.vue';
 import EmptyState from '../components/EmptyState.vue';
 import Skeleton from '../components/Skeleton.vue';
 import OrderDetailModal from '../components/OrderDetailModal.vue';
+import Modal from '../components/Modal.vue';
+import Pagination from '../components/Pagination.vue';
 
 const session = useSession();
 const router = useRouter();
@@ -21,39 +23,62 @@ const toast = useToast();
 // each panel has its own endpoint + loading state so skeletons appear
 // independently and one slow query never blanks the whole screen
 const kpis = ref(null);
-const activeOrders = ref(null);
-const notifs = ref(null);
+const ordersPage = ref(null); // { rows, total, limit, offset, counts }
+const notifs = ref(null); // the 5 most recent, for the side panel
 const filter = ref('all');
 const openOrderId = ref(null);
+const ORDERS_LIMIT = 10;
 
 const fetchPanel = (target, path) =>
   api.get(path).then((r) => { target.value = r; }).catch((e) => toast.error(e.message));
 
+async function loadOrders(nextOffset = 0) {
+  try {
+    const params = new URLSearchParams({ limit: ORDERS_LIMIT, offset: nextOffset });
+    if (filter.value !== 'all') params.set('status', filter.value);
+    ordersPage.value = await api.get(`/dashboard/active-orders?${params}`);
+  } catch (e) { toast.error(e.message); }
+}
+
 function load() {
   return Promise.all([
     fetchPanel(kpis, '/dashboard/kpis'),
-    fetchPanel(activeOrders, '/dashboard/active-orders'),
+    loadOrders(ordersPage.value?.offset ?? 0),
     fetchPanel(notifs, '/dashboard/notifications'),
   ]);
 }
 onMounted(load);
 
+function setFilter(key) {
+  filter.value = key;
+  loadOrders(0);
+}
+
 const filters = computed(() => {
-  const orders = activeOrders.value || [];
-  const count = (s) => orders.filter((o) => o.status === s).length;
+  const counts = ordersPage.value?.counts || {};
+  const n = (s) => counts[s] || 0;
   return [
-    { key: 'all', label: 'All', n: orders.length },
-    { key: 'received', label: 'Received', n: count('received') },
-    { key: 'washing', label: 'Washing', n: count('washing') },
-    { key: 'ironing', label: 'Ironing', n: count('ironing') },
-    { key: 'ready', label: 'Ready', n: count('ready') },
+    { key: 'all', label: 'All', n: n('received') + n('washing') + n('ironing') + n('ready') + n('delivered') },
+    { key: 'received', label: 'Received', n: n('received') },
+    { key: 'washing', label: 'Washing', n: n('washing') },
+    { key: 'ironing', label: 'Ironing', n: n('ironing') },
+    { key: 'ready', label: 'Ready', n: n('ready') },
+    { key: 'delivered', label: 'Done', n: n('delivered') },
   ];
 });
 
-const visibleOrders = computed(() => {
-  const orders = activeOrders.value || [];
-  return filter.value === 'all' ? orders : orders.filter((o) => o.status === filter.value);
-});
+// full notification history, loaded lazily when "View all" is opened
+const notifAllOpen = ref(false);
+const notifPage = ref(null); // { rows, total, limit, offset }
+const NOTIF_LIMIT = 10;
+async function loadAllNotifs(nextOffset = 0) {
+  try { notifPage.value = await api.get(`/dashboard/notifications?limit=${NOTIF_LIMIT}&offset=${nextOffset}`); }
+  catch (e) { toast.error(e.message); }
+}
+function openAllNotifs() {
+  notifAllOpen.value = true;
+  if (!notifPage.value) loadAllNotifs(0);
+}
 
 const columns = [
   { key: 'code', label: 'Order' },
@@ -97,18 +122,17 @@ const columns = [
     </div>
 
     <div class="dash-grid">
-      <Panel flush title="Active orders" :subtitle="`${activeOrders?.length ?? '…'} orders currently in the shop`">
+      <Panel flush title="Orders" :subtitle="`${ordersPage?.total ?? '…'} orders — active and completed`">
         <template #actions>
           <button class="text-btn" @click="router.push({ name: 'orders' })">View pipeline →</button>
         </template>
         <div class="ftabs">
-          <button v-for="f in filters" :key="f.key" :class="{ active: filter === f.key }" @click="filter = f.key">
+          <button v-for="f in filters" :key="f.key" :class="{ active: filter === f.key }" @click="setFilter(f.key)">
             {{ f.label }} <span>{{ f.n }}</span>
           </button>
         </div>
-        <Skeleton v-if="!activeOrders" variant="table" :count="4" />
-        <DataTable v-else :columns="columns" :rows="visibleOrders" clickable empty-text="No active orders — enjoy the calm."
-          @row-click="(r) => openOrderId = r.id">
+        <DataTable :columns="columns" :page="ordersPage" clickable compact
+          empty-text="No orders here yet." @page="loadOrders" @row-click="(r) => openOrderId = r.id">
           <template #cell-code="{ row }">
             <strong>{{ row.code }}</strong>
             <small class="muted block">{{ row.itemCount }} item{{ row.itemCount === 1 ? '' : 's' }}<template v-if="row.kgTotal"> · {{ row.kgTotal }} kg</template></small>
@@ -125,7 +149,10 @@ const columns = [
         </DataTable>
       </Panel>
 
-      <Panel title="Recent notifications" subtitle="SMS sent to customers">
+      <Panel title="Recent notifications" subtitle="The last 5 SMS sent to customers">
+        <template #actions>
+          <button class="text-btn" @click="openAllNotifs">View all →</button>
+        </template>
         <Skeleton v-if="!notifs" variant="list" :count="3" />
         <div v-else-if="notifs.length" class="notif-list">
           <div v-for="n in notifs" :key="n.id" class="notif">
@@ -137,6 +164,23 @@ const columns = [
         <EmptyState v-else icon="bell" title="No notifications yet" hint="Quotes and ready-alerts appear here as they are sent." />
       </Panel>
     </div>
+
+    <Modal v-if="notifAllOpen" title="All notifications" wide @close="notifAllOpen = false">
+      <Skeleton v-if="!notifPage" variant="list" :count="5" />
+      <template v-else>
+        <div v-if="notifPage.rows.length" class="notif-list">
+          <div v-for="n in notifPage.rows" :key="n.id" class="notif all-row">
+            <div class="all-head">
+              <StatusBadge :status="n.status" kind="generic" :label="n.templateKey.replaceAll('_', ' ')" />
+              <small class="muted">{{ n.toPhone }} · {{ timeAgo(n.sentAt) }}</small>
+            </div>
+            <p>{{ n.message }}</p>
+          </div>
+        </div>
+        <EmptyState v-else icon="bell" title="No notifications yet" hint="Quotes and ready-alerts appear here as they are sent." />
+        <Pagination :total="notifPage.total" :limit="NOTIF_LIMIT" :offset="notifPage.offset" @change="loadAllNotifs" />
+      </template>
+    </Modal>
 
     <OrderDetailModal v-if="openOrderId" :order-id="openOrderId" @close="openOrderId = null" @changed="load" />
   </div>
@@ -160,6 +204,9 @@ const columns = [
 .block { display: block; }
 .notif-list { display: flex; flex-direction: column; gap: 12px; }
 .notif p { font-size: 11.5px; margin: 5px 0 2px; color: #45535a; }
+.all-row { border-bottom: 1px solid #f0f4f3; padding-bottom: 10px; }
+.all-row:last-child { border-bottom: 0; }
+.all-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 @media (max-width: 1100px) { .dash-grid { grid-template-columns: 1fr; } }
 @media (max-width: 640px) {
   .ftabs { padding: 0 14px; }

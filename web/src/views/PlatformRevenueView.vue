@@ -2,7 +2,6 @@
 import { onMounted, ref } from 'vue';
 import DataTable from '../components/DataTable.vue';
 import KpiCard from '../components/KpiCard.vue';
-import Pagination from '../components/Pagination.vue';
 import Panel from '../components/Panel.vue';
 import StatusBadge from '../components/StatusBadge.vue';
 import { platformApi } from '../platformApi.js';
@@ -59,14 +58,13 @@ onMounted(() => load());
           <option v-for="m in months" :key="m" :value="m">{{ monthLabel(m) }}</option>
         </select>
       </template>
-      <DataTable :columns="columns" :rows="data.rows" empty-text="No tenant revenue recorded for this period yet.">
+      <DataTable :columns="columns" :page="{ rows: data.rows, total, limit, offset }" empty-text="No tenant revenue recorded for this period yet." @page="load">
         <template #cell-rank="{ row }">{{ offset + data.rows.indexOf(row) + 1 }}</template>
         <template #cell-name="{ row }"><b>{{ row.name }}</b></template>
         <template #cell-grossCents="{ row }"><b>{{ money(row.grossCents) }}</b></template>
         <template #cell-collectedCents="{ row }">{{ money(row.collectedCents) }}</template>
         <template #cell-status="{ row }"><StatusBadge :status="row.status" kind="generic" /></template>
       </DataTable>
-      <Pagination :total="total" :limit="limit" :offset="offset" @change="load" />
     </Panel>
     <p class="muted foot">Revenue is recognised on closed (delivered) orders; collected is completed payments. Amounts shown in KES.</p>
   </template>

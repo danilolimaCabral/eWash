@@ -6,8 +6,8 @@ import DataTable from '../components/DataTable.vue';
 import EmptyState from '../components/EmptyState.vue';
 import KpiCard from '../components/KpiCard.vue';
 import Modal from '../components/Modal.vue';
-import Pagination from '../components/Pagination.vue';
 import Panel from '../components/Panel.vue';
+import DatePicker from '../components/DatePicker.vue';
 import StatusBadge from '../components/StatusBadge.vue';
 import { platformApi } from '../platformApi.js';
 import { dateOnly, money, monthLabel, recentMonths } from '../utils/format.js';
@@ -93,12 +93,12 @@ onMounted(() => load());
         <select v-if="scope === 'month'" v-model="month" class="filter" @change="load(0)">
           <option v-for="m in months" :key="m" :value="m">{{ monthLabel(m) }}</option>
         </select>
-        <input v-if="scope === 'day'" v-model="day" type="date" class="filter" @change="load(0)" />
+        <DatePicker v-if="scope === 'day'" v-model="day" class="filter-dp" @change="load(0)" />
       </template>
       <EmptyState v-if="!data.breakdown.rows.length" icon="finance" title="No billing activity"
         :hint="`No invoices were issued and no payments were received in ${scopeLabel}.`" />
       <template v-else>
-        <DataTable :columns="columns" :rows="data.breakdown.rows">
+        <DataTable :columns="columns" :page="{ rows: data.breakdown.rows, total: data.breakdown.total, limit, offset }" @page="load">
           <template #cell-period="{ row }"><b>{{ drillLabel(row.period) }}</b></template>
           <template #cell-invoicedCents="{ row }">{{ money(row.invoicedCents) }}</template>
           <template #cell-collectedCents="{ row }"><b class="collected">{{ money(row.collectedCents) }}</b></template>
@@ -106,13 +106,12 @@ onMounted(() => load());
             <button class="btn btn-ghost btn-sm" @click="openDrill(row.period)">View invoices</button>
           </template>
         </DataTable>
-        <Pagination :total="data.breakdown.total" :limit="limit" :offset="offset" @change="load" />
       </template>
     </Panel>
 
     <Modal v-if="drill" :title="`Invoices · ${drillLabel(drill.period)}`" wide @close="drill = null">
       <p class="muted small drill-hint">Every invoice involved in this period's income — issued in it, or paid (in part or full) during it.</p>
-      <DataTable :columns="drillColumns" :rows="drill.rows">
+      <DataTable :columns="drillColumns" :page="{ rows: drill.rows, total: drill.total, limit: drillLimit, offset: drill.offset }" @page="(o) => openDrill(drill.period, o)">
         <template #cell-number="{ row }">
           <router-link class="invoice-link" :to="{ name: 'platform-invoice', params: { id: row.id } }">{{ row.number }}</router-link>
           <small>{{ dateOnly(row.issuedAt || row.createdAt) }}</small>
@@ -122,7 +121,6 @@ onMounted(() => load());
         <template #cell-paidCents="{ row }"><b class="collected">{{ money(row.paidCents, row.currency) }}</b></template>
         <template #cell-dueAt="{ row }">{{ dateOnly(row.dueAt) }}</template>
       </DataTable>
-      <Pagination :total="drill.total" :limit="drillLimit" :offset="drill.offset" @change="(o) => openDrill(drill.period, o)" />
     </Modal>
     <p class="muted small note">Income is recognised on completed payments (paid date); invoice counts follow their issue date. Draft and void invoices never count as income.</p>
   </template>
@@ -131,6 +129,7 @@ onMounted(() => load());
 <style scoped>
 .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
 .filter { height: 34px; border: 1px solid var(--line); border-radius: 8px; padding: 0 8px; background: #fff; font: inherit; }
+.filter-dp { width: 155px; }
 .collected { color: var(--brand-dark); }
 .note { margin-top: 10px; }
 .drill-hint { margin-bottom: 10px; }

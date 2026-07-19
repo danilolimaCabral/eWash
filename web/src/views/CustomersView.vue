@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { api } from '../api.js';
 import { useSession } from '../stores/session.js';
 import { useToast } from '../stores/toast.js';
@@ -12,12 +12,13 @@ import FormField from '../components/FormField.vue';
 import StatusBadge from '../components/StatusBadge.vue';
 import AppIcon from '../components/AppIcon.vue';
 import OrderDetailModal from '../components/OrderDetailModal.vue';
-import Skeleton from '../components/Skeleton.vue';
+
 
 const session = useSession();
 const toast = useToast();
-const customers = ref(null); // null = first load (skeleton)
+const custPage = ref(null); // { rows, total, limit, offset } — null = loading
 const q = ref('');
+const CUST_LIMIT = 20;
 const addOpen = ref(false);
 const addForm = ref({ name: '', phone: '', notes: '' });
 const detail = ref(null);
@@ -25,18 +26,20 @@ const openOrderId = ref(null);
 const busy = ref(false);
 const creditForm = ref({ enabled: false, limit: 0, terms: 30 });
 
-async function load() {
-  try { customers.value = await api.get('/customers'); }
-  catch (e) { toast.error(e.message); }
+async function load(nextOffset = 0) {
+  try {
+    const params = new URLSearchParams({ limit: CUST_LIMIT, offset: nextOffset });
+    if (q.value.trim()) params.set('q', q.value.trim());
+    custPage.value = await api.get(`/customers?${params}`);
+  } catch (e) { toast.error(e.message); }
 }
 onMounted(load);
 
-const filtered = computed(() => {
-  const query = q.value.trim().toLowerCase();
-  const list = customers.value || [];
-  if (!query) return list;
-  return list.filter((c) =>
-    c.name.toLowerCase().includes(query) || c.phone.includes(query.replace(/\s/g, '')));
+// search is server-side — debounce keystrokes into one request
+let qTimer;
+watch(q, () => {
+  clearTimeout(qTimer);
+  qTimer = setTimeout(() => load(0), 300);
 });
 
 // a customer is "lapsing" if their last order is 30+ days old
@@ -101,9 +104,9 @@ const columns = [
     </div>
 
     <Panel>
-      <Skeleton v-if="!customers" variant="table" :count="5" />
-      <DataTable v-else :columns="columns" :rows="filtered" clickable empty-text="No customers yet — they are created automatically with their first order."
-        @row-click="openDetail">
+      <DataTable :columns="columns" :page="custPage" clickable :skeleton-count="5"
+        empty-text="No customers yet — they are created automatically with their first order."
+        @page="load" @row-click="openDetail">
         <template #cell-name="{ row }">
           <span class="cust"><Avatar :name="row.name" /> <b>{{ row.name }}</b></span>
         </template>

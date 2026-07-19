@@ -3,7 +3,6 @@ import { computed, onMounted, ref } from 'vue';
 import DataTable from '../components/DataTable.vue';
 import FormField from '../components/FormField.vue';
 import Modal from '../components/Modal.vue';
-import Pagination from '../components/Pagination.vue';
 import Panel from '../components/Panel.vue';
 import StatusBadge from '../components/StatusBadge.vue';
 import Tabs from '../components/Tabs.vue';
@@ -200,13 +199,12 @@ onMounted(async () => {
       </div>
     </template>
     <p v-if="error" class="error-text">{{ error }}</p>
-    <DataTable :columns="columns" :rows="rows" clickable @row-click="openTenant">
+    <DataTable :columns="columns" :page="{ rows, total, limit, offset }" clickable @page="load" @row-click="openTenant">
       <template #cell-name="{ row }"><b>{{ row.name }}</b><small>{{ row.billingEmail || 'No billing email' }}</small></template>
       <template #cell-outstanding="{ row }"><b>{{ money(row.outstandingCents) }}</b></template>
       <template #cell-status="{ row }"><StatusBadge :status="row.status" kind="generic" /></template>
       <template #cell-createdAt="{ row }">{{ dateOnly(row.createdAt) }}</template>
     </DataTable>
-    <Pagination :total="total" :limit="limit" :offset="offset" @change="load" />
   </Panel>
 
   <Modal v-if="detail" :title="detail.tenant.name" wide @close="detail = null">
@@ -230,12 +228,11 @@ onMounted(async () => {
     </div>
     <div v-else-if="detailTab === 'branches'" class="members">
       <div class="member-tools"><button class="btn btn-primary btn-sm" @click="openBranch()">+ Add branch</button></div>
-      <DataTable :columns="[{key:'name',label:'Branch'},{key:'users',label:'Active users',align:'right'},{key:'openOrders',label:'Open orders',align:'right'},{key:'active',label:'Status'},{key:'actions',label:'Actions'}]" :rows="branchData.rows">
+      <DataTable :columns="[{key:'name',label:'Branch'},{key:'users',label:'Active users',align:'right'},{key:'openOrders',label:'Open orders',align:'right'},{key:'active',label:'Status'},{key:'actions',label:'Actions'}]" :page="{ rows: branchData.rows, total: branchData.total, limit: 10, offset: branchOffset }" @page="loadBranches">
         <template #cell-name="{ row }"><b>{{ row.name }}</b><small>{{ row.location || 'No location' }}</small></template>
         <template #cell-active="{ row }"><StatusBadge :status="row.active ? 'active' : 'disabled'" kind="generic" /></template>
         <template #cell-actions="{ row }"><div class="inline-actions"><button @click="openBranch(row)">Manage</button></div></template>
       </DataTable>
-      <Pagination :total="branchData.total" :limit="10" :offset="branchOffset" @change="loadBranches" />
     </div>
     <div v-else-if="detailTab === 'subscription'" class="subscription-form">
       <FormField label="Plan"><select v-model="subscription.plan_id" @change="onPlanChange"><option v-for="plan in plans" :key="plan.id" :value="plan.id">{{ plan.name }}</option></select></FormField>
@@ -258,13 +255,12 @@ onMounted(async () => {
         <button class="btn btn-outline btn-sm" @click="loadMembers(0)">Search</button>
         <button class="btn btn-primary btn-sm" @click="openCreateMember">+ Add member</button>
       </div>
-      <DataTable :columns="[{key:'name',label:'Member'},{key:'roleName',label:'Role'},{key:'branchName',label:'Branch'},{key:'status',label:'Status'},{key:'actions',label:'Actions'}]" :rows="memberData.rows">
+      <DataTable :columns="[{key:'name',label:'Member'},{key:'roleName',label:'Role'},{key:'branchName',label:'Branch'},{key:'status',label:'Status'},{key:'actions',label:'Actions'}]" :page="{ rows: memberData.rows, total: memberData.total, limit: memberLimit, offset: memberOffset }" @page="loadMembers">
         <template #cell-name="{ row }"><b>{{ row.name }}</b><small>{{ row.email }}</small></template>
         <template #cell-branchName="{ row }">{{ row.branchName || 'All branches' }}</template>
         <template #cell-status="{ row }"><StatusBadge :status="row.status" kind="generic" /></template>
         <template #cell-actions="{ row }"><div class="inline-actions"><button @click="openEditMember(row)">Manage</button><button :disabled="row.status !== 'active'" @click="sendReset(row)">Reset password</button></div></template>
       </DataTable>
-      <Pagination :total="memberData.total" :limit="memberLimit" :offset="memberOffset" @change="loadMembers" />
     </div>
     <template #footer>
       <button v-if="detail.tenant.status !== 'active'" class="btn btn-outline" @click="action = { open: true, status: 'active', reason: 'Reactivated by platform administrator' }">Reactivate</button>

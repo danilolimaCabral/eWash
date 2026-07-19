@@ -6,6 +6,7 @@ import { useToast } from '../stores/toast.js';
 import { money, monthNow, monthLabel, dateTime, recentMonths } from '../utils/format.js';
 import KpiCard from '../components/KpiCard.vue';
 import Panel from '../components/Panel.vue';
+import DatePicker from '../components/DatePicker.vue';
 import DataTable from '../components/DataTable.vue';
 import Skeleton from '../components/Skeleton.vue';
 import Tabs from '../components/Tabs.vue';
@@ -21,20 +22,61 @@ const auditLog = ref(null); // null = first load (skeleton)
 const tab = ref('revenue');
 const tabs = computed(() => [
   { key: 'revenue', label: 'Revenue by category', icon: 'chart' },
+  { key: 'compare', label: 'This month vs last', icon: 'finance' },
   { key: 'register', label: 'Daily register', icon: 'cash' },
   { key: 'audit', label: 'Audit log', icon: 'history', count: auditLog.value?.length ?? undefined },
 ]);
 
 async function load() {
   try {
-    [summary.value, register.value, auditLog.value] = await Promise.all([
+    [summary.value, register.value, auditLog.value, compare.value] = await Promise.all([
       api.get(`/reports/summary?month=${month.value}`),
       api.get(`/reports/daily-register?date=${date.value}`),
       api.get('/audit-log'),
+      // the comparison always pins to the running month — projections only
+      // make sense for a month that is still in progress
+      api.get(`/finance/pl?month=${monthNow()}`),
     ]);
   } catch (e) { toast.error(e.message); }
 }
 onMounted(load);
+
+// ---- this month vs last + end-of-month projection ----
+const compare = ref(null);
+const today = new Date();
+const dayOfMonth = today.getDate();
+const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+
+// last month scaled to the same day, so "change" compares like with like
+const prorate = (v) => Math.round((v || 0) * (dayOfMonth / daysInMonth));
+const changePct = (cur, prevFull) => {
+  const prev = prorate(prevFull);
+  if (!prev) return null;
+  return Math.round(((cur - prev) / prev) * 100);
+};
+const cmpRows = computed(() => {
+  const c = compare.value; if (!c) return [];
+  const p = c.previous || {};
+  return [
+    { label: 'Money earned', cur: c.netCents, prev: p.netCents, isMoney: true },
+    { label: 'Money spent', cur: c.expensesCents, prev: p.expensesCents, isMoney: true, downIsGood: true },
+    { label: 'Profit', cur: c.profitCents, prev: p.profitCents, isMoney: true },
+    { label: 'Finished orders', cur: c.closedOrders, prev: p.closedOrders, isMoney: false },
+  ];
+});
+
+// straight-line pace to month end, with a better/worse band around sales
+const project = (v) => (dayOfMonth ? Math.round((v / dayOfMonth) * daysInMonth) : 0);
+const projection = computed(() => {
+  const c = compare.value; if (!c) return null;
+  const earned = project(c.netCents);
+  const spent = project(c.expensesCents);
+  return {
+    base: { earned, spent, profit: earned - spent },
+    good: { earned: Math.round(earned * 1.15), spent: Math.round(spent * 0.95), profit: Math.round(earned * 1.15) - Math.round(spent * 0.95) },
+    bad: { earned: Math.round(earned * 0.85), spent: Math.round(spent * 1.05), profit: Math.round(earned * 0.85) - Math.round(spent * 1.05) },
+  };
+});
 
 const months = computed(() => recentMonths(12));
 
@@ -120,9 +162,64 @@ const auditDetail = (row) => {
       <p v-else class="muted small">No closed orders this month yet — revenue appears when orders are delivered/collected.</p>
     </Panel>
 
+    <div v-else-if="tab === 'compare'" class="cmp-grid">
+      <Panel title="This month vs last month"
+        :subtitle="`Day ${dayOfMonth} of ${daysInMonth} · change is measured against the same point last month`">
+        <Skeleton v-if="!compare" variant="table" :count="4" />
+        <table v-else class="cmp-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>{{ monthLabel(compare.previous.month) }} (full)</th>
+              <th>This month so far</th>
+              <th>Change</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in cmpRows" :key="r.label">
+              <td><b>{{ r.label }}</b></td>
+              <td class="mono">{{ r.isMoney ? money(r.prev || 0, session.currency) : (r.prev || 0) }}</td>
+              <td class="mono">{{ r.isMoney ? money(r.cur || 0, session.currency) : (r.cur || 0) }}</td>
+              <td>
+                <span v-if="changePct(r.cur, r.prev) === null" class="muted">—</span>
+                <b v-else :class="(changePct(r.cur, r.prev) >= 0) !== !!r.downIsGood ? 'text-green' : 'text-red'">
+                  {{ changePct(r.cur, r.prev) >= 0 ? '▲' : '▼' }} {{ Math.abs(changePct(r.cur, r.prev)) }}%
+                </b>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </Panel>
+
+      <Panel title="Where this month is heading"
+        :subtitle="`A rough estimate from this month's pace — ${daysInMonth - dayOfMonth} days to go`">
+        <Skeleton v-if="!projection" variant="list" :count="3" />
+        <template v-else>
+          <div class="proj proj-base">
+            <div class="proj-head"><b>On today's pace</b></div>
+            <div class="proj-nums">earn {{ money(projection.base.earned, session.currency) }} · spend {{ money(projection.base.spent, session.currency) }}</div>
+            <div class="proj-profit" :class="projection.base.profit >= 0 ? 'text-green' : 'text-red'">Profit {{ money(projection.base.profit, session.currency) }}</div>
+          </div>
+          <div class="proj proj-good">
+            <div class="proj-head"><b>If it goes well</b> <small class="muted">sales up 15%, spending trimmed</small></div>
+            <div class="proj-nums">earn {{ money(projection.good.earned, session.currency) }} · spend {{ money(projection.good.spent, session.currency) }}</div>
+            <div class="proj-profit text-green">Profit {{ money(projection.good.profit, session.currency) }}</div>
+          </div>
+          <div class="proj proj-bad">
+            <div class="proj-head"><b>If it goes south</b> <small class="muted">sales down 15%, spending creeps up</small></div>
+            <div class="proj-nums">earn {{ money(projection.bad.earned, session.currency) }} · spend {{ money(projection.bad.spent, session.currency) }}</div>
+            <div class="proj-profit" :class="projection.bad.profit >= 0 ? 'text-green' : 'text-red'">Profit {{ money(projection.bad.profit, session.currency) }}</div>
+          </div>
+          <p class="muted small proj-note">
+            Estimates simply stretch this month's daily pace to {{ daysInMonth }} days — they get more reliable as the month goes on.
+          </p>
+        </template>
+      </Panel>
+    </div>
+
     <Panel v-else-if="tab === 'register'" title="Daily register" :subtitle="`reconciles the till · ${date}`">
       <template #actions>
-        <input v-model="date" type="date" style="width: 150px;" @change="load" />
+        <DatePicker v-model="date" style="width: 150px;" @change="load" />
       </template>
       <Skeleton v-if="!register" variant="table" :count="3" />
       <DataTable v-else :columns="regColumns" :rows="register.rows" row-key="attendantId"
@@ -145,6 +242,21 @@ const auditDetail = (row) => {
 </template>
 
 <style scoped>
+/* month comparison + projection */
+.cmp-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; align-items: start; }
+.cmp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cmp-table th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); padding: 7px 6px; border-bottom: 1px solid var(--line); }
+.cmp-table td { padding: 9px 6px; border-bottom: 1px solid #f0f4f3; }
+.proj { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+.proj-base { background: #f8fbfa; }
+.proj-good { background: #f0faf5; border-color: #cde9dc; }
+.proj-bad { background: #fdf5f0; border-color: #f2ddc9; }
+.proj-head { font-size: 12.5px; }
+.proj-nums { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+.proj-profit { font-weight: 800; font-size: 14.5px; margin-top: 3px; }
+.proj-note { margin-top: 6px; }
+@media (max-width: 980px) { .cmp-grid { grid-template-columns: 1fr; } }
+
 .catbars { display: flex; flex-direction: column; gap: 10px; }
 .catbar { display: grid; grid-template-columns: 110px 1fr auto; gap: 10px; align-items: center; font-size: 12.5px; }
 .cb-track { background: #eef4f2; border-radius: 6px; height: 14px; overflow: hidden; }
