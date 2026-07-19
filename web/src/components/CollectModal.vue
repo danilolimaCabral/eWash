@@ -3,7 +3,7 @@
 // creation: the operator pushes an STK, enters the customer's M-Pesa reference,
 // or takes cash — every payment is recorded against the order's tag. Handover
 // closes the order (revenue recognition).
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { api } from '../api.js';
 import { useSession } from '../stores/session.js';
 import { useToast } from '../stores/toast.js';
@@ -47,6 +47,28 @@ const customerOption = computed(() => order.value ? [{
 }] : []);
 const canHandOver = computed(() => (paid.value || creditApproved.value) && collectedByName.value.trim() && !busy.value);
 
+// who receives the order depends on the handoff type: in-person → the
+// customer; delivery → the business's delivery providers (riders)
+const deliveryProviders = ref(null); // null = not fetched yet
+watch(handoffType, async (t) => {
+  if (t === 'delivery') {
+    collectedByName.value = '';
+    if (deliveryProviders.value === null) {
+      try { deliveryProviders.value = await api.get('/service-providers/delivery'); }
+      catch { deliveryProviders.value = []; }
+    }
+    if (deliveryProviders.value.length === 1) collectedByName.value = deliveryProviders.value[0].name;
+  } else {
+    collectedByName.value = order.value?.customer?.name || '';
+  }
+});
+const peopleOptions = computed(() => (handoffType.value === 'delivery'
+  ? (deliveryProviders.value || []).map((p) => ({ id: p.id, label: p.name, sub: p.phone || 'delivery provider' }))
+  : customerOption.value));
+const personHint = computed(() => (handoffType.value === 'delivery'
+  ? (peopleOptions.value.length ? 'Choose one of your delivery providers, or type a rider’s name.' : 'No delivery providers yet — add them under Finance → Service providers, or type a name.')
+  : 'Select the customer or type the name of whoever collects for them.'));
+
 function selectPerson(person) {
   collectedByName.value = person.label;
 }
@@ -86,10 +108,17 @@ async function confirmStk() {
 async function handOver() {
   busy.value = true;
   try {
+    // when the name matches one of our delivery providers, the server SMSes
+    // them the run with a confirm link — the customer's delivered message
+    // then waits for the rider's confirmation
+    const rider = handoffType.value === 'delivery'
+      ? (deliveryProviders.value || []).find((p) => p.name === collectedByName.value.trim())
+      : null;
     await api.post(`/orders/${order.value.id}/advance`, {
       to: 'delivered',
       handoff_type: handoffType.value,
       collected_by_name: collectedByName.value.trim(),
+      delivery_provider_id: rider?.id || undefined,
     });
     toast.success(`${order.value.code} handed over to ${collectedByName.value.trim()} — ${money(order.value.totalCents, session.currency)} recognized as revenue`);
     emit('collected');
@@ -176,9 +205,10 @@ async function handOver() {
             </select>
           </FormField>
           <FormField :label="handoffType === 'pickup' ? 'Collected by' : 'Taken for delivery by'"
-            hint="Select the customer or type another person’s name.">
-            <ComboBox v-model="collectedByName" :items="customerOption" :allow-create="false"
-              placeholder="Type or select a name…" @select="selectPerson" />
+            :hint="personHint">
+            <ComboBox v-model="collectedByName" :items="peopleOptions" :allow-create="false"
+              :placeholder="handoffType === 'delivery' ? 'Choose a delivery provider…' : 'Type or select a name…'"
+              @select="selectPerson" />
           </FormField>
         </div>
       </div>

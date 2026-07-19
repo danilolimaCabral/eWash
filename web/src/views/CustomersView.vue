@@ -18,7 +18,7 @@ const session = useSession();
 const toast = useToast();
 const custPage = ref(null); // { rows, total, limit, offset } — null = loading
 const q = ref('');
-const CUST_LIMIT = 20;
+const CUST_LIMIT = 10;
 const addOpen = ref(false);
 const addForm = ref({ name: '', phone: '', notes: '' });
 const detail = ref(null);

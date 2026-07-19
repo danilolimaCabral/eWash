@@ -1,13 +1,14 @@
 <script setup>
 // THE table for the whole app. columns: [{ key, label, align?, width? }].
 // Cell content is overridable per column via a slot named `cell-<key>`
-// receiving { row }. Two data modes:
-//   rows  — plain array, no pagination chrome (small, fixed lists)
-//   page  — the standard paginated shape { rows, total, limit, offset }:
-//           renders the shared skeleton while `page` is null, then the rows
-//           and the shared pager, and emits 'page' with the next offset.
+// receiving { row }. Two data modes — both paginated by default:
+//   page  — the standard server shape { rows, total, limit, offset }: renders
+//           the shared skeleton while `page` is null, then the rows and the
+//           shared pager, and emits 'page' with the next offset.
+//   rows  — plain array; the table pages it client-side itself (`paginate`
+//           rows per page, default 10; pass :paginate="0" to opt out).
 // Usage: <DataTable :columns="cols" :page="page" @page="load" @row-click="open" />
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import Skeleton from './Skeleton.vue';
 import Pagination from './Pagination.vue';
 
@@ -15,6 +16,7 @@ const props = defineProps({
   columns: { type: Array, required: true },
   rows: { type: Array, default: null },
   page: { type: Object, default: undefined }, // undefined = rows mode; null = loading
+  paginate: { type: Number, default: 10 }, // rows-mode page size (0 = show all)
   rowKey: { type: String, default: 'id' },
   clickable: { type: Boolean, default: false },
   compact: { type: Boolean, default: false },
@@ -24,7 +26,14 @@ const props = defineProps({
 defineEmits(['row-click', 'page']);
 
 const loading = computed(() => props.page === null);
-const displayRows = computed(() => (props.page ? props.page.rows : props.rows) || []);
+// rows mode pages itself; back to page one whenever the data set changes
+const localOffset = ref(0);
+watch(() => props.rows, () => { localOffset.value = 0; });
+const displayRows = computed(() => {
+  if (props.page) return props.page.rows || [];
+  const all = props.rows || [];
+  return props.paginate > 0 ? all.slice(localOffset.value, localOffset.value + props.paginate) : all;
+});
 </script>
 
 <template>
@@ -58,6 +67,8 @@ const displayRows = computed(() => (props.page ? props.page.rows : props.rows) |
     </div>
     <Pagination v-if="page" :total="page.total" :limit="page.limit" :offset="page.offset"
       @change="$emit('page', $event)" />
+    <Pagination v-else-if="paginate > 0" :total="(rows || []).length" :limit="paginate"
+      :offset="localOffset" @change="(o) => { localOffset = o; }" />
   </template>
 </template>
 

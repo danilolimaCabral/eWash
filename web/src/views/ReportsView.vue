@@ -17,14 +17,15 @@ const month = ref(monthNow());
 const date = ref(new Date().toLocaleDateString('sv-SE')); // local YYYY-MM-DD
 const summary = ref(null);
 const register = ref(null);
-const auditLog = ref(null); // null = first load (skeleton)
+const auditLog = ref(null); // { rows, total, limit, offset } — null = loading
+const AUDIT_LIMIT = 10;
 
 const tab = ref('revenue');
 const tabs = computed(() => [
   { key: 'revenue', label: 'Revenue by category', icon: 'chart' },
   { key: 'compare', label: 'This month vs last', icon: 'finance' },
   { key: 'register', label: 'Daily register', icon: 'cash' },
-  { key: 'audit', label: 'Audit log', icon: 'history', count: auditLog.value?.length ?? undefined },
+  { key: 'audit', label: 'Audit log', icon: 'history', count: auditLog.value?.total ?? undefined },
 ]);
 
 async function load() {
@@ -32,7 +33,7 @@ async function load() {
     [summary.value, register.value, auditLog.value, compare.value] = await Promise.all([
       api.get(`/reports/summary?month=${month.value}`),
       api.get(`/reports/daily-register?date=${date.value}`),
-      api.get('/audit-log'),
+      api.get(`/audit-log?limit=${AUDIT_LIMIT}&offset=0`),
       // the comparison always pins to the running month — projections only
       // make sense for a month that is still in progress
       api.get(`/finance/pl?month=${monthNow()}`),
@@ -40,6 +41,11 @@ async function load() {
   } catch (e) { toast.error(e.message); }
 }
 onMounted(load);
+
+async function loadAudit(nextOffset = 0) {
+  try { auditLog.value = await api.get(`/audit-log?limit=${AUDIT_LIMIT}&offset=${nextOffset}`); }
+  catch (e) { toast.error(e.message); }
+}
 
 // ---- this month vs last + end-of-month projection ----
 const compare = ref(null);
@@ -231,8 +237,8 @@ const auditDetail = (row) => {
     </Panel>
 
     <Panel v-else title="Audit log" subtitle="every price-affecting action — immutable">
-      <Skeleton v-if="!auditLog" variant="table" :count="5" />
-      <DataTable v-else :columns="auditColumns" :rows="auditLog" empty-text="No audit entries yet.">
+      <DataTable :columns="auditColumns" :page="auditLog" :skeleton-count="5"
+        empty-text="No audit entries yet." @page="loadAudit">
         <template #cell-at="{ row }">{{ dateTime(row.at) }}</template>
         <template #cell-action="{ row }"><code class="action">{{ row.action }}</code></template>
         <template #cell-detail="{ row }">{{ auditDetail(row) }}</template>

@@ -4,6 +4,7 @@ import { api } from '../api.js';
 import { useSession } from '../stores/session.js';
 import { useToast } from '../stores/toast.js';
 import { money, monthNow, monthLabel, dateOnly, dateTime, recentMonths } from '../utils/format.js';
+import { PROVIDER_TYPES } from '../utils/providerTypes.js';
 import KpiCard from '../components/KpiCard.vue';
 import AppIcon from '../components/AppIcon.vue';
 import DatePicker from '../components/DatePicker.vue';
@@ -61,6 +62,11 @@ async function loadProviders(nextOffset = 0) {
   } catch (e) { toast.error(e.message); }
 }
 const providerForm = ref({ id: '', name: '', service_type: '', phone: '', email: '', notes: '', active: true });
+// keep a legacy free-text type selectable when editing an older provider
+const providerTypeOptions = computed(() =>
+  providerForm.value.service_type && !PROVIDER_TYPES.includes(providerForm.value.service_type)
+    ? [providerForm.value.service_type, ...PROVIDER_TYPES]
+    : PROVIDER_TYPES);
 const providerModal = ref(false);
 const openOrderId = ref(null);
 
@@ -512,7 +518,12 @@ const provColumns = [
     </Panel>
 
     <Modal v-if="providerModal" :title="providerForm.id ? 'Edit provider' : 'Add service provider'" @close="providerModal = false">
-      <div class="row"><FormField label="Name"><input v-model="providerForm.name" type="text" /></FormField><FormField label="Service type"><input v-model="providerForm.service_type" type="text" placeholder="Delivery, water, maintenance…" /></FormField></div>
+      <div class="row"><FormField label="Name"><input v-model="providerForm.name" type="text" /></FormField><FormField label="What they supply">
+          <select v-model="providerForm.service_type">
+            <option disabled value="">Choose a service type…</option>
+            <option v-for="t in providerTypeOptions" :key="t" :value="t">{{ t }}</option>
+          </select>
+        </FormField></div>
       <div class="row"><FormField label="Phone"><input v-model="providerForm.phone" type="tel" /></FormField><FormField label="Email"><input v-model="providerForm.email" type="email" /></FormField></div>
       <FormField label="Notes"><input v-model="providerForm.notes" type="text" /></FormField>
       <template #footer>

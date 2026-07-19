@@ -35,6 +35,9 @@ const blank = () => ({
 });
 const form = ref(blank());
 const riderOpen = ref(false); // add-on section starts collapsed unless the service has riders
+// on small screens the editor opens as a full-screen sheet instead of
+// rendering below the list (CSS-only on desktop — this flag has no effect there)
+const editorOpen = ref(false);
 
 const catalogStore = useCatalog();
 async function load(keepSelection = true) {
@@ -151,6 +154,7 @@ async function save() {
     }
     catalogStore.invalidate();
     toast.success('Saved ✔ — live for new orders. Existing orders keep their price snapshots.');
+    editorOpen.value = false;
     await load();
   } catch (e) { toast.error(e.message); }
   finally { busy.value = false; }
@@ -166,6 +170,7 @@ async function retire() {
     toast.success('Service retired');
     retireOpen.value = false;
     selectedId.value = null;
+    editorOpen.value = false;
     await load(false);
   } catch (e) { toast.error(e.message); }
   finally { busy.value = false; }
@@ -202,17 +207,22 @@ async function addCategory() {
         <div
           v-for="s in catalog.services" :key="s.id"
           class="sel-item" :class="{ sel: s.id === selectedId }"
-          @click="fillForm(s.id)"
+          @click="fillForm(s.id); editorOpen = true"
         >
           {{ s.name }}
           <span class="sp">{{ s.pricingModel }}<template v-if="!s.active"> · retired</template></span>
+          <span class="edit-chip"><AppIcon name="edit" :size="11" /> Edit</span>
         </div>
-        <button class="btn btn-ghost" style="width: 100%;" @click="startNew">
+        <button class="btn btn-ghost" style="width: 100%;" @click="startNew(); editorOpen = true">
           <AppIcon name="plus" :size="14" /> New service
         </button>
       </div>
 
+      <div class="editor-host" :class="{ open: editorOpen }" @click.self="editorOpen = false">
       <Panel :title="selectedId ? 'Edit service' : 'New service'">
+        <template #actions>
+          <button class="editor-close" aria-label="Close editor" @click="editorOpen = false">✕</button>
+        </template>
         <section class="sect first">
           <div class="sect-head">
             <h4><span class="sect-num">1</span> Basics</h4>
@@ -333,9 +343,10 @@ async function addCategory() {
 
         <div class="actions">
           <button class="btn btn-primary" :disabled="busy" @click="save">Save service</button>
-          <button v-if="selectedId && form.active" class="btn btn-danger" :disabled="busy" @click="retireOpen = true">Retire service</button>
+          <button v-if="selectedId && form.active" class="btn btn-danger" :disabled="busy" @click="retireOpen = true">Remove service</button>
         </div>
       </Panel>
+      </div>
     </div>
 
     <Modal v-if="catModal.open" title="New category" @close="catModal.open = false">
@@ -350,9 +361,9 @@ async function addCategory() {
     </Modal>
 
     <ConfirmDialog v-if="retireOpen" danger :busy="busy"
-      :title="`Retire “${form.name}”?`"
+      :title="`Remove “${form.name}”?`"
       message="It stops being sellable immediately. Existing orders keep their price snapshots, and you can rebuild it later."
-      confirm-label="Retire service"
+      confirm-label="Remove service"
       @confirm="retire" @close="retireOpen = false" />
   </div>
 </template>
@@ -420,6 +431,30 @@ async function addCategory() {
 .teal { color: #7ed7c9; }
 .actions { display: flex; gap: 10px; margin-top: 16px; }
 
+/* on desktop the editor sits beside the list; the mobile chrome stays hidden */
+.edit-chip { display: none; }
+.editor-close { display: none; }
+
+@media (max-width: 980px) {
+  .edit-chip {
+    display: inline-flex; align-items: center; gap: 4px; margin-left: 8px;
+    color: var(--brand); background: var(--brand-light); border-radius: 999px;
+    padding: 2px 9px; font-size: 10.5px; font-weight: 700; flex-shrink: 0;
+  }
+  /* the editor becomes a tap-to-open full-screen sheet */
+  .editor-host { display: none; }
+  .editor-host.open {
+    display: block; position: fixed; inset: 0; z-index: 85;
+    overflow-y: auto; padding: 12px; background: rgba(10, 28, 26, 0.45);
+    -webkit-overflow-scrolling: touch;
+  }
+  .editor-host.open > :deep(.panel) { max-width: 560px; margin: 0 auto 24px; }
+  .editor-close {
+    display: grid; place-items: center; border: none; background: #f2f6f5;
+    color: var(--muted); width: 30px; height: 30px; border-radius: 8px;
+    cursor: pointer; font-size: 13px;
+  }
+}
 @media (max-width: 640px) {
   .pv-extra { text-align: left; }
   .ov-input { margin-left: 0; max-width: 100%; }

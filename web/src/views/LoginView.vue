@@ -109,7 +109,7 @@ onMounted(async () => {
 
       <div v-if="mode === 'login' || mode === 'register'" class="mode-tabs">
         <button :class="{ active: mode === 'login' }" @click="mode = 'login'">Sign in</button>
-        <button :class="{ active: mode === 'register' }" @click="mode = 'register'">Start your laundry</button>
+        <button :class="{ active: mode === 'register' }" @click="mode = 'register'">Set up your account</button>
       </div>
       <div v-else-if="mode !== 'check-email'" class="gc-head">
         <template v-if="mode === 'forgot'">
@@ -175,9 +175,7 @@ onMounted(async () => {
         </button>
         <button v-if="mode === 'forgot'" type="button" class="back-link" @click="mode = 'login'">Back to sign in</button>
         <button v-else-if="mode === 'login'" type="button" class="forgot-link" @click="mode = 'forgot'; error = ''">Forgot password?</button>
-        <p v-if="mode === 'register'" class="muted small note">
-          You get a ready-made Kenyan laundry catalog (per-kg wash, duvets, ironing riders, dry cleaning) — edit anything later in the Service Builder.
-        </p>
+  
       </form>
 
       <p class="support">

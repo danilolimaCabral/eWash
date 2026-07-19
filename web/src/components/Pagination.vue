@@ -17,16 +17,20 @@ const visiblePages = computed(() => {
 </script>
 
 <template>
-  <div v-if="total > limit" class="pager">
-    <span>{{ offset + 1 }}–{{ Math.min(offset + limit, total) }} of {{ total }}</span>
-    <button class="btn btn-outline btn-sm" :disabled="offset === 0" @click="$emit('change', Math.max(0, offset - limit))">Previous</button>
-    <button
-      v-for="number in visiblePages" :key="number"
-      class="page" :class="{ active: number === page }"
-      :aria-label="`Page ${number}`" :aria-current="number === page ? 'page' : undefined"
-      @click="$emit('change', (number - 1) * limit)"
-    >{{ number }}</button>
-    <button class="btn btn-outline btn-sm" :disabled="offset + limit >= total" @click="$emit('change', offset + limit)">Next</button>
+  <!-- the count line always shows so a paginated table is visibly paginated;
+       the page controls appear once there is more than one page -->
+  <div v-if="total > 0" class="pager">
+    <span>Showing {{ offset + 1 }}–{{ Math.min(offset + limit, total) }} of {{ total }}</span>
+    <template v-if="total > limit">
+      <button class="btn btn-outline btn-sm" :disabled="offset === 0" @click="$emit('change', Math.max(0, offset - limit))">Previous</button>
+      <button
+        v-for="number in visiblePages" :key="number"
+        class="page" :class="{ active: number === page }"
+        :aria-label="`Page ${number}`" :aria-current="number === page ? 'page' : undefined"
+        @click="$emit('change', (number - 1) * limit)"
+      >{{ number }}</button>
+      <button class="btn btn-outline btn-sm" :disabled="offset + limit >= total" @click="$emit('change', offset + limit)">Next</button>
+    </template>
   </div>
 </template>
 

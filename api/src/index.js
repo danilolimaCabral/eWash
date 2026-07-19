@@ -9,7 +9,7 @@ import { authRoutes, meHandler, unlockHandler } from './routes/auth.js';
 import { googleRoutes } from './routes/google.js';
 import { catalogRoutes } from './routes/catalog.js';
 import { customerRoutes } from './routes/customers.js';
-import { orderRoutes } from './routes/orders.js';
+import { orderRoutes, deliveryRoutes } from './routes/orders.js';
 import { paymentRoutes, mpesaCallbackRoute } from './routes/payments.js';
 import { financeRoutes, postDueRecurring } from './routes/finance.js';
 import { reportRoutes } from './routes/reports.js';
@@ -83,6 +83,7 @@ app.route('/api/auth', authRoutes);
 app.route('/api/auth', googleRoutes);
 app.route('/api/platform/auth', platformAuthRoutes);
 app.route('/api', mpesaCallbackRoute);
+app.route('/api', deliveryRoutes); // public, per-delivery token in the URL
 
 const platformApi = new Hono();
 platformApi.use('*', platformAuthRequired);

@@ -157,6 +157,10 @@ export const orders = sqliteTable('orders', {
   handoffType: text('handoff_type', { enum: ['pickup', 'delivery'] }),
   collectedByName: text('collected_by_name'),
   collectedAt: text('collected_at'),
+  // rider dispatch: unguessable capability token for the public confirm-delivery
+  // page, and when the rider pressed "Delivered"
+  deliveryToken: text('delivery_token'),
+  deliveryConfirmedAt: text('delivery_confirmed_at'),
   creditDueAt: text('credit_due_at'),
   historical: integer('historical').notNull().default(0),
   dueAt: text('due_at'),

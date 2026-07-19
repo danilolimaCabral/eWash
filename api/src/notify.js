@@ -18,6 +18,8 @@ export const DEFAULT_TEMPLATES = {
     '{business}: Order {order_code} delivered/collected. Thank you for choosing us, {customer}!',
   payment_reminder:
     '{business}: Friendly reminder — order {order_code} is ready and has a balance of {balance}. Pay via M-Pesa to collect. Asante!',
+  delivery_dispatch:
+    '{business}: Deliver order {order_code} to {customer} ({phone}). When handed over, confirm here: {link}',
 };
 
 export function renderTemplate(tenant, key, fields) {

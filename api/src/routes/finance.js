@@ -157,6 +157,19 @@ financeRoutes.get('/service-providers', requirePolicy('finance.view'), async (c)
   return c.json({ rows, total: Number(count || 0), limit, offset });
 });
 
+// Delivery riders for the order-handoff flow: staff advancing orders may not
+// have finance access, so this exposes only active delivery-type providers
+// (name + phone, nothing financial)
+financeRoutes.get('/service-providers/delivery', requirePolicy('orders.advance'), async (c) => {
+  const rows = await c.get('db').select({
+    id: serviceProviders.id, name: serviceProviders.name, phone: serviceProviders.phone,
+  }).from(serviceProviders)
+    .where(and(eq(serviceProviders.tenantId, c.get('tenant').id), eq(serviceProviders.active, 1),
+      sql`lower(${serviceProviders.serviceType}) like '%deliver%'`))
+    .orderBy(serviceProviders.name);
+  return c.json(rows);
+});
+
 financeRoutes.post('/service-providers', requirePolicy('finance.manage'), async (c) => {
   const b = await c.req.json();
   const tenantId = c.get('tenant').id;

@@ -286,14 +286,23 @@ reportRoutes.get('/audit-log', requirePolicy('finance.view'), async (c) => {
   if (!isTenantWide(c)) forbidden('Tenant-wide access is required to view the audit log');
   const db = c.get('db');
   const tenantId = c.get('tenant').id;
-  const rows = await db.select({
+  // standard opt-in pagination: with `offset` the response becomes
+  // { rows, total, limit, offset }; without it the legacy capped array remains
+  const paginated = c.req.query('offset') != null;
+  const limit = Math.min(parseInt(c.req.query('limit') || (paginated ? '15' : '200'), 10) || 15, 200);
+  const offset = Math.max(0, parseInt(c.req.query('offset') || '0', 10) || 0);
+  const query = db.select({
     id: auditLog.id, action: auditLog.action, entity: auditLog.entity,
     entityId: auditLog.entityId, payload: auditLog.payload, at: auditLog.at,
     userName: users.name,
   }).from(auditLog)
     .innerJoin(users, eq(users.id, auditLog.userId))
     .where(eq(auditLog.tenantId, tenantId))
-    .orderBy(desc(auditLog.at))
-    .limit(200);
-  return c.json(rows.map((r) => ({ ...r, payload: r.payload ? JSON.parse(r.payload) : null })));
+    .orderBy(desc(auditLog.at));
+  const parse = (rows) => rows.map((r) => ({ ...r, payload: r.payload ? JSON.parse(r.payload) : null }));
+  if (!paginated) return c.json(parse(await query.limit(limit)));
+  const rows = await query.limit(limit).offset(offset);
+  const [{ count }] = await db.select({ count: sql`count(*)` }).from(auditLog)
+    .where(eq(auditLog.tenantId, tenantId));
+  return c.json({ rows: parse(rows), total: Number(count || 0), limit, offset });
 });

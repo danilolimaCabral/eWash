@@ -12,7 +12,6 @@ import Tabs from '../components/Tabs.vue';
 import DataTable from '../components/DataTable.vue';
 import Avatar from '../components/Avatar.vue';
 import StatusBadge from '../components/StatusBadge.vue';
-import Skeleton from '../components/Skeleton.vue';
 import EmptyState from '../components/EmptyState.vue';
 import CollectModal from '../components/CollectModal.vue';
 import OrderDetailModal from '../components/OrderDetailModal.vue';
@@ -21,16 +20,20 @@ const session = useSession();
 const toast = useToast();
 const tab = ref('ready'); // ready | history
 const q = ref('');
-const orders = ref(null); // ready queue — null = first load (skeleton)
+const ready = ref(null); // ready queue page — { rows, total, limit, offset }
+const READY_LIMIT = 10;
 const history = ref(null); // { rows, total, limit, offset }
 const historyOffset = ref(0);
 const HISTORY_LIMIT = 10;
 const collecting = ref(null); // order row being collected
 const viewing = ref(null); // order id open in the detail modal
 
-async function loadReady() {
-  try { orders.value = await api.get('/orders?status=ready'); }
-  catch (e) { toast.error(e.message); }
+async function loadReady(nextOffset = 0) {
+  try {
+    const params = new URLSearchParams({ status: 'ready', limit: READY_LIMIT, offset: nextOffset });
+    if (q.value.trim()) params.set('q', q.value.trim());
+    ready.value = await api.get(`/orders?${params}`);
+  } catch (e) { toast.error(e.message); }
 }
 async function loadHistory(nextOffset = 0) {
   historyOffset.value = nextOffset;
@@ -46,27 +49,16 @@ function reload() {
 }
 onMounted(reload);
 
-// history search is server-side — debounce keystrokes into one request
+// search is server-side on both tabs — debounce keystrokes into one request
 let qTimer;
 watch(q, () => {
-  if (tab.value !== 'history') return;
   clearTimeout(qTimer);
-  qTimer = setTimeout(() => loadHistory(0), 300);
+  qTimer = setTimeout(() => (tab.value === 'history' ? loadHistory(0) : loadReady(0)), 300);
 });
 watch(tab, () => { if (tab.value === 'history') loadHistory(0); });
 
-const filteredReady = computed(() => {
-  const query = q.value.trim().toLowerCase();
-  const list = orders.value || [];
-  if (!query) return list;
-  return list.filter((o) =>
-    o.code.toLowerCase().includes(query) ||
-    o.customerName.toLowerCase().includes(query) ||
-    (o.customerPhone || '').includes(query));
-});
-
 const tabs = computed(() => [
-  { key: 'ready', label: 'Ready for pickup', icon: 'bell', count: orders.value?.length ?? undefined },
+  { key: 'ready', label: 'Ready for pickup', icon: 'bell', count: ready.value?.total ?? undefined },
   { key: 'history', label: 'Pickup history', icon: 'history', count: history.value?.total ?? undefined },
 ]);
 
@@ -103,9 +95,8 @@ const historyColumns = [
     <Tabs v-model="tab" :tabs="tabs" />
 
     <Panel v-if="tab === 'ready'">
-      <Skeleton v-if="!orders" variant="table" :count="4" />
-      <template v-else>
-        <DataTable v-if="filteredReady.length" :columns="readyColumns" :rows="filteredReady" clickable @row-click="(row) => viewing = row.id">
+      <template v-if="!ready || ready.rows.length">
+        <DataTable :columns="readyColumns" :page="ready" clickable @page="loadReady" @row-click="(row) => viewing = row.id">
           <template #cell-code="{ row }"><b class="tag">{{ row.code }}</b></template>
           <template #cell-customer="{ row }">
             <span class="cust"><Avatar :name="row.customerName" />
@@ -123,9 +114,9 @@ const historyColumns = [
             <button class="btn btn-green btn-sm" @click.stop="collecting = row">Collect &amp; pay</button>
           </template>
         </DataTable>
-        <EmptyState v-else icon="checkCircle" title="Nothing waiting for pickup"
-          hint="Orders appear here when they reach the “Ready” stage on the pipeline." />
       </template>
+      <EmptyState v-else icon="checkCircle" title="Nothing waiting for pickup"
+        hint="Orders appear here when they reach the “Ready” stage on the pipeline." />
     </Panel>
 
     <Panel v-else>

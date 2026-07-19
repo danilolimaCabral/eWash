@@ -2,8 +2,9 @@ import { Hono } from 'hono';
 import { eq, and, desc, inArray, like, or, sql } from 'drizzle-orm';
 import {
   tenants, branches, customers, orders, orderItems, orderItemAddons,
-  itemTags, orderStatusHistory, payments,
+  itemTags, orderStatusHistory, payments, serviceProviders,
 } from '../db/schema.js';
+import { randomToken, appOrigin } from '../passwordReset.js';
 import { requirePolicy } from '../middleware.js';
 import { uid, now, bad, notFound, forbidden, audit, fmtMoney } from '../util.js';
 import { priceOrder } from '../pricing.js';
@@ -409,6 +410,20 @@ orderRoutes.post('/orders/:id/advance', requirePolicy('orders.advance'), async (
     patch.collectedAt = patch.closedAt;
     patch.handoffType = handoffType;
     patch.collectedByName = collectedByName;
+    // rider dispatch: when a known delivery provider takes the clothes, they
+    // get an SMS with a tokenized confirm link and the customer's delivered
+    // message waits for the rider's confirmation
+    if (handoffType === 'delivery' && body.delivery_provider_id) {
+      const [rider] = await db.select().from(serviceProviders).where(and(
+        eq(serviceProviders.tenantId, tenant.id),
+        eq(serviceProviders.id, String(body.delivery_provider_id)),
+        eq(serviceProviders.active, 1),
+      ));
+      if (rider?.phone) {
+        c.set('dispatchRider', rider);
+        patch.deliveryToken = randomToken();
+      }
+    }
     if (detail.balanceCents > 0) {
       const due = new Date();
       due.setDate(due.getDate() + detail.customer.creditTermsDays);
@@ -435,14 +450,30 @@ orderRoutes.post('/orders/:id/advance', requirePolicy('orders.advance'), async (
     });
   }
   if (to === 'delivered') {
-    await sendNotification(db, c.env, {
-      tenantId: tenant.id, orderId: detail.id, templateKey: 'order_delivered',
-      toPhone: detail.customer.phone,
-      message: renderTemplate(tenant, 'order_delivered', {
-        customer: detail.customer.name.split(' ')[0],
-        order_code: detail.code,
-      }),
-    });
+    const rider = c.get('dispatchRider');
+    if (rider && patch.deliveryToken) {
+      // rider gets the run details + confirm link; the customer's delivered
+      // message is sent when the rider presses "Delivered" on that page
+      await sendNotification(db, c.env, {
+        tenantId: tenant.id, orderId: detail.id, templateKey: 'delivery_dispatch',
+        toPhone: rider.phone,
+        message: renderTemplate(tenant, 'delivery_dispatch', {
+          order_code: detail.code,
+          customer: detail.customer.name,
+          phone: detail.customer.phone,
+          link: `${appOrigin(c)}/d/${patch.deliveryToken}`,
+        }),
+      });
+    } else {
+      await sendNotification(db, c.env, {
+        tenantId: tenant.id, orderId: detail.id, templateKey: 'order_delivered',
+        toPhone: detail.customer.phone,
+        message: renderTemplate(tenant, 'order_delivered', {
+          customer: detail.customer.name.split(' ')[0],
+          order_code: detail.code,
+        }),
+      });
+    }
   }
 
   await audit(db, tenant.id, user.id, 'order.advance', 'orders', detail.id, {
@@ -500,4 +531,59 @@ orderRoutes.post('/orders/:id/discount', requirePolicy('orders.discount'), async
     before: detail.totalCents, after: newTotal,
   });
   return c.json(await loadOrderDetail(db, tenant.id, detail.id));
+});
+
+// ---------- public rider delivery-confirmation (token-gated) ----------
+// Mounted OUTSIDE the authed /api middleware, like the M-Pesa callback: the
+// rider has no account, so the unguessable per-delivery token in the URL is
+// the credential. Reads expose the bare minimum; the write is idempotent and
+// rate-limited.
+export const deliveryRoutes = new Hono();
+
+async function loadDeliveryRun(db, token) {
+  if (typeof token !== 'string' || token.length < 32) notFound('Unknown delivery link');
+  const [row] = await db.select({
+    id: orders.id, code: orders.code, tenantId: orders.tenantId,
+    deliveryConfirmedAt: orders.deliveryConfirmedAt,
+    customerName: customers.name, customerPhone: customers.phone,
+  }).from(orders)
+    .innerJoin(customers, eq(customers.id, orders.customerId))
+    .where(eq(orders.deliveryToken, token));
+  if (!row) notFound('Unknown delivery link');
+  return row;
+}
+
+deliveryRoutes.get('/delivery/:token', async (c) => {
+  const { getDb } = await import('../db/index.js');
+  const db = getDb(c.env);
+  const run = await loadDeliveryRun(db, c.req.param('token'));
+  const [tenant] = await db.select({ name: tenants.name }).from(tenants).where(eq(tenants.id, run.tenantId));
+  return c.json({
+    code: run.code,
+    customerName: run.customerName,
+    customerPhone: run.customerPhone,
+    business: tenant?.name || 'eWash',
+    delivered: !!run.deliveryConfirmedAt,
+  });
+});
+
+deliveryRoutes.post('/delivery/:token/delivered', async (c) => {
+  const { getDb } = await import('../db/index.js');
+  const { enforceRateLimit, clientIp } = await import('../ratelimit.js');
+  const db = getDb(c.env);
+  await enforceRateLimit(db, `delivery:ip:${clientIp(c)}`, 30, 900,
+    'Too many attempts — please try again shortly');
+  const run = await loadDeliveryRun(db, c.req.param('token'));
+  if (run.deliveryConfirmedAt) return c.json({ ok: true, delivered: true }); // idempotent
+  await db.update(orders).set({ deliveryConfirmedAt: now() }).where(eq(orders.id, run.id));
+  const [tenant] = await db.select().from(tenants).where(eq(tenants.id, run.tenantId));
+  await sendNotification(db, c.env, {
+    tenantId: run.tenantId, orderId: run.id, templateKey: 'order_delivered',
+    toPhone: run.customerPhone,
+    message: renderTemplate(tenant, 'order_delivered', {
+      customer: run.customerName.split(' ')[0],
+      order_code: run.code,
+    }),
+  });
+  return c.json({ ok: true, delivered: true });
 });

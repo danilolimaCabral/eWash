@@ -19,7 +19,7 @@ const month = ref(recentMonths(1)[0]);
 const day = ref(new Date().toISOString().slice(0, 10));
 const months = recentMonths(12);
 const offset = ref(0);
-const limit = 12;
+const limit = 10;
 
 const columns = [
   { key: 'period', label: 'Period' },
@@ -42,7 +42,7 @@ const drillColumns = [
   { key: 'paidCents', label: 'Paid', align: 'right' },
   { key: 'dueAt', label: 'Due' },
 ];
-const drillLimit = 8;
+const drillLimit = 10;
 const drillLabel = (p) => (p.length === 7 ? monthLabel(p) : p);
 
 async function openDrill(period, nextOffset = 0) {
