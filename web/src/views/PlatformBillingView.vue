@@ -2,8 +2,8 @@
 import { computed, onMounted, ref } from 'vue';
 import DataTable from '../components/DataTable.vue';
 import FormField from '../components/FormField.vue';
+import DatePicker from '../components/DatePicker.vue';
 import Modal from '../components/Modal.vue';
-import Pagination from '../components/Pagination.vue';
 import Panel from '../components/Panel.vue';
 import StatusBadge from '../components/StatusBadge.vue';
 import { platformApi } from '../platformApi.js';
@@ -189,14 +189,13 @@ onMounted(async () => {
       <button class="btn btn-primary btn-sm" @click="openCreate">+ New invoice</button>
     </template>
     <p v-if="error" class="error-text">{{ error }}</p>
-    <DataTable :columns="columns" :rows="rows">
+    <DataTable :columns="columns" :page="{ rows, total, limit, offset }" @page="load">
       <template #cell-number="{ row }"><router-link class="invoice-link" :to="{ name: 'platform-invoice', params: { id: row.id } }">{{ row.number }}</router-link><small>{{ dateOnly(row.createdAt) }}</small></template>
       <template #cell-status="{ row }"><StatusBadge :status="row.status" kind="generic" /></template>
       <template #cell-total="{ row }">{{ money(row.totalCents, row.currency) }}</template>
       <template #cell-balance="{ row }"><b>{{ money(row.totalCents - row.paidCents, row.currency) }}</b></template>
       <template #cell-dueAt="{ row }"><span>{{ dateOnly(row.dueAt) }}</span><div class="row-actions"><button v-if="row.status === 'draft'" @click="issue(row)">Issue</button><button v-if="['issued','partially_paid','overdue'].includes(row.status)" @click="selected = row; payment.amount = (row.totalCents-row.paidCents)/100">Pay</button></div></template>
     </DataTable>
-    <Pagination :total="total" :limit="limit" :offset="offset" @change="load" />
   </Panel>
 
   <Modal v-if="planEdit" :title="`Edit plan · ${planEdit.name}`" @close="planEdit = null">
@@ -226,7 +225,7 @@ onMounted(async () => {
       <FormField label="Tenant" :error="invoiceErrors.tenant_id">
         <select v-model="invoice.tenant_id" @change="invoiceMode === 'plan' ? loadSubPreview() : (invoiceErrors.tenant_id = '')"><option disabled value="">Select tenant</option><option v-for="tenant in tenants" :key="tenant.id" :value="tenant.id">{{ tenant.name }}</option></select>
       </FormField>
-      <FormField label="Due date" :hint="invoiceMode === 'plan' ? 'Defaults to period start + 7 days' : ''"><input v-model="invoice.due_at" type="date" /></FormField>
+      <FormField label="Due date" :hint="invoiceMode === 'plan' ? 'Defaults to period start + 7 days' : ''"><DatePicker v-model="invoice.due_at" /></FormField>
     </div>
     <template v-if="invoiceMode === 'plan'">
       <div v-if="subPreview" class="sub-preview">
@@ -252,7 +251,7 @@ onMounted(async () => {
   <Modal v-if="selected" :title="`Record payment · ${selected.number}`" @close="selected = null">
     <div class="form-grid">
       <FormField label="Amount (KES)"><input v-model="payment.amount" type="number" min="1" step="1" /></FormField>
-      <FormField label="Payment date"><input v-model="payment.paid_at" type="date" /></FormField>
+      <FormField label="Payment date"><DatePicker v-model="payment.paid_at" /></FormField>
       <FormField label="Method"><select v-model="payment.method"><option value="mpesa_manual">M-Pesa code (manual)</option><option value="bank">Bank transfer</option><option value="cash">Cash</option></select></FormField>
       <FormField label="Reference"><input v-model="payment.reference" type="text" placeholder="M-Pesa code or bank reference" /></FormField>
     </div>

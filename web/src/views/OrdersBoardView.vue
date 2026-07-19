@@ -9,12 +9,13 @@ import OrderDetailModal from '../components/OrderDetailModal.vue';
 import Skeleton from '../components/Skeleton.vue';
 import EmptyState from '../components/EmptyState.vue';
 import CollectModal from '../components/CollectModal.vue';
+import AppIcon from '../components/AppIcon.vue';
 
 const session = useSession();
 const toast = useToast();
 const orders = ref(null); // null = first load (skeleton)
 const q = ref('');
-const showClosed = ref(false);
+const showClosed = ref(true); // settled/closed orders are visible by default
 const openOrderId = ref(null);
 const busyId = ref(null);
 const collectingOrderId = ref(null);
@@ -40,6 +41,9 @@ const filtered = computed(() => {
 
 const byStage = computed(() =>
   STAGES.map((s) => ({ stage: s, cards: filtered.value.filter((o) => o.status === s) })));
+
+// exact services on the order, one chip each ("Wash & Fold (per kg) · 7 kg")
+const services = (o) => (o.itemsDetail || o.itemSummary || '').split('|').filter(Boolean);
 
 async function advance(order) {
   if (order.status === 'ready') {
@@ -78,11 +82,16 @@ async function advance(order) {
       <div v-for="col in byStage" :key="col.stage" class="kcol">
         <h4>{{ ORDER_STATUS_LABELS[col.stage] }}<span>{{ col.cards.length }}</span></h4>
         <div v-for="c in col.cards" :key="c.id" class="kcard" @click="openOrderId = c.id">
-          <div class="id">{{ c.code }}</div>
+          <div class="khead">
+            <span class="ktag"><AppIcon name="tag" :size="11" /> {{ c.code }}</span>
+            <b class="kprice">{{ money(c.totalCents, session.currency) }}</b>
+          </div>
           <div class="meta">{{ c.customerName }}</div>
-          <div class="meta">{{ c.itemSummary }} · {{ money(c.totalCents, session.currency) }}</div>
+          <div class="kservices">
+            <span v-for="s in services(c)" :key="s" class="addon-chip">{{ s }}</span>
+          </div>
           <div class="kfoot">
-            <StatusBadge v-if="c.paymentStatus !== 'paid'" :status="c.paymentStatus" kind="payment" />
+            <StatusBadge :status="c.paymentStatus" kind="payment" />
             <StatusBadge v-if="c.express" status="generic" label="EXPRESS" />
             <button
               v-if="col.stage !== 'delivered' && session.can('orders.advance')"
@@ -104,5 +113,12 @@ async function advance(order) {
 </template>
 
 <style scoped>
+.khead { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.ktag {
+  display: inline-flex; align-items: center; gap: 4px; background: var(--side); color: #7ed7c9;
+  border-radius: 6px; padding: 2px 7px; font-weight: 800; font-size: 11px; letter-spacing: 0.04em;
+}
+.kprice { font-size: 12px; color: var(--brand-dark); }
+.kservices { display: flex; flex-wrap: wrap; margin-top: 3px; }
 .kfoot { display: flex; gap: 6px; align-items: center; margin-top: 7px; flex-wrap: wrap; }
 </style>

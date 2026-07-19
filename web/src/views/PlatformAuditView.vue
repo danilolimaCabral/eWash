@@ -1,7 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import DataTable from '../components/DataTable.vue';
-import Pagination from '../components/Pagination.vue';
 import Panel from '../components/Panel.vue';
 import { platformApi } from '../platformApi.js';
 import { dateTime } from '../utils/format.js';
@@ -25,13 +24,12 @@ onMounted(load);
 
 <template>
   <Panel title="Platform audit log" subtitle="Immutable record of central administrative actions">
-    <DataTable :columns="columns" :rows="rows">
+    <DataTable :columns="columns" :page="{ rows, total, limit, offset }" @page="load">
       <template #cell-at="{ row }">{{ dateTime(row.at) }}</template>
       <template #cell-action="{ row }"><b>{{ row.action }}</b><small>{{ row.entity }}</small></template>
       <template #cell-tenantName="{ row }">{{ row.tenantName || 'Platform' }}</template>
       <template #cell-reason="{ row }">{{ row.reason || '—' }}</template>
     </DataTable>
-    <Pagination :total="total" :limit="limit" :offset="offset" @change="load" />
   </Panel>
 </template>
 

@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { eq, and, desc, sql, isNull, like, ne } from 'drizzle-orm';
+import { eq, and, desc, sql, isNull, like, ne, gte, lte } from 'drizzle-orm';
 import {
   expenses, expenseCategories, serviceProviders, orders, payments, branches, customers,
   billingInvoices, billingInvoiceItems, billingPayments,
@@ -32,10 +32,21 @@ financeRoutes.get('/expenses', requirePolicy('expenses.create'), async (c) => {
   const tenantId = c.get('tenant').id;
   const scoped = scopedBranchId(c);
   const month = validMonth(c.req.query('month'), null);
+  // optional specific date range (YYYY-MM-DD, inclusive) — dates are stored
+  // as plain YYYY-MM-DD text so string comparison is correct
+  const from = validDate(c.req.query('from'), null);
+  const to = validDate(c.req.query('to'), null);
   const conds = [eq(expenses.tenantId, tenantId)];
   if (scoped) conds.push(eq(expenses.branchId, scoped));
   if (month) conds.push(like(expenses.expenseDate, `${month}%`));
-  const rows = await db
+  if (from) conds.push(gte(expenses.expenseDate, from));
+  if (to) conds.push(lte(expenses.expenseDate, to));
+  // standard opt-in pagination: with `offset` the response becomes
+  // { rows, total, limit, offset }; without it the legacy plain array remains
+  const paginated = c.req.query('offset') != null;
+  const limit = Math.min(parseInt(c.req.query('limit') || '20', 10) || 20, 100);
+  const offset = Math.max(0, parseInt(c.req.query('offset') || '0', 10) || 0);
+  const query = db
     .select({
       id: expenses.id, amountCents: expenses.amountCents, paidVia: expenses.paidVia,
       expenseDate: expenses.expenseDate, recurring: expenses.recurring,
@@ -50,7 +61,10 @@ financeRoutes.get('/expenses', requirePolicy('expenses.create'), async (c) => {
     .leftJoin(serviceProviders, eq(serviceProviders.id, expenses.providerId))
     .where(and(...conds))
     .orderBy(desc(expenses.expenseDate), desc(expenses.createdAt));
-  return c.json(rows);
+  if (!paginated) return c.json(await query);
+  const rows = await query.limit(limit).offset(offset);
+  const [{ count }] = await db.select({ count: sql`count(*)` }).from(expenses).where(and(...conds));
+  return c.json({ rows, total: Number(count || 0), limit, offset });
 });
 
 financeRoutes.post('/expenses', requirePolicy('expenses.create'), async (c) => {
@@ -129,8 +143,18 @@ financeRoutes.post('/expenses/:id/void', requirePolicy('finance.manage'), async 
 });
 
 financeRoutes.get('/service-providers', requirePolicy('finance.view'), async (c) => {
-  return c.json(await c.get('db').select().from(serviceProviders)
-    .where(eq(serviceProviders.tenantId, c.get('tenant').id)).orderBy(desc(serviceProviders.createdAt)));
+  const db = c.get('db');
+  const tenantId = c.get('tenant').id;
+  const paginated = c.req.query('offset') != null;
+  const limit = Math.min(parseInt(c.req.query('limit') || '20', 10) || 20, 100);
+  const offset = Math.max(0, parseInt(c.req.query('offset') || '0', 10) || 0);
+  const query = db.select().from(serviceProviders)
+    .where(eq(serviceProviders.tenantId, tenantId)).orderBy(desc(serviceProviders.createdAt));
+  if (!paginated) return c.json(await query);
+  const rows = await query.limit(limit).offset(offset);
+  const [{ count }] = await db.select({ count: sql`count(*)` }).from(serviceProviders)
+    .where(eq(serviceProviders.tenantId, tenantId));
+  return c.json({ rows, total: Number(count || 0), limit, offset });
 });
 
 financeRoutes.post('/service-providers', requirePolicy('finance.manage'), async (c) => {
@@ -217,18 +241,33 @@ financeRoutes.get('/billing/invoices/:id', requirePolicy('finance.view'), async 
 });
 
 financeRoutes.get('/credit-ledger', requirePolicy('finance.view'), async (c) => {
+  const db = c.get('db');
   const tenantId = c.get('tenant').id;
   const scoped = scopedBranchId(c);
-  const rows = await c.get('db').select({
+  const paginated = c.req.query('offset') != null;
+  const limit = Math.min(parseInt(c.req.query('limit') || '20', 10) || 20, 100);
+  const offset = Math.max(0, parseInt(c.req.query('offset') || '0', 10) || 0);
+  const conds = [eq(orders.tenantId, tenantId), eq(orders.status, 'delivered'),
+    sql`${orders.creditDueAt} is not null`,
+    ...(scoped ? [eq(orders.branchId, scoped)] : [])];
+  // paginated callers get only what is still owed — settled credit rows would
+  // make page totals meaningless
+  if (paginated) {
+    conds.push(sql`${orders.totalCents} > coalesce((select sum(p.amount_cents) from payments p where p.order_id = ${orders.id} and p.status = 'completed'), 0)`);
+  }
+  const query = db.select({
     orderId: orders.id, code: orders.code, customerId: customers.id, customerName: customers.name,
     customerPhone: customers.phone, totalCents: orders.totalCents, creditDueAt: orders.creditDueAt,
     closedAt: orders.closedAt,
     paidCents: sql`coalesce((select sum(p.amount_cents) from payments p where p.order_id = ${orders.id} and p.status = 'completed'), 0)`,
   }).from(orders).innerJoin(customers, eq(customers.id, orders.customerId))
-    .where(and(eq(orders.tenantId, tenantId), eq(orders.status, 'delivered'), sql`${orders.creditDueAt} is not null`,
-      ...(scoped ? [eq(orders.branchId, scoped)] : [])))
+    .where(and(...conds))
     .orderBy(desc(orders.closedAt));
-  return c.json(rows);
+  if (!paginated) return c.json(await query);
+  const rows = await query.limit(limit).offset(offset);
+  const [{ count }] = await db.select({ count: sql`count(*)` }).from(orders)
+    .innerJoin(customers, eq(customers.id, orders.customerId)).where(and(...conds));
+  return c.json({ rows, total: Number(count || 0), limit, offset });
 });
 
 // Recurring expenses auto-post on view of the current month (and via cron):
@@ -262,6 +301,60 @@ export async function postDueRecurring(db, tenantId, userIdForAudit = null) {
 // The whole P&L (spec §9.3): gross revenue from CLOSED orders − discounts &
 // refunds = net revenue; − expenses by category = operating profit. Plus
 // billed-vs-collected so revenue and cash never get confused.
+// Monthly financial-health trend for the overview chart: money earned (net),
+// money spent and profit per month, same definitions as /finance/pl
+financeRoutes.get('/finance/trend', requirePolicy('finance.view'), async (c) => {
+  const db = c.get('db');
+  const tenant = c.get('tenant');
+  const branchId = scopedBranchId(c, c.req.query('branch_id') || null);
+  const span = Math.min(Math.max(parseInt(c.req.query('months') || '6', 10) || 6, 2), 12);
+  const nowMonth = monthOf();
+  const [ny, nm] = nowMonth.split('-').map(Number);
+  const list = [];
+  for (let i = span - 1; i >= 0; i -= 1) {
+    const d = new Date(Date.UTC(ny, nm - 1 - i, 1));
+    list.push(d.toISOString().slice(0, 7));
+  }
+  const start = list[0];
+
+  const [revRows, refRows, expRows] = await db.batch([
+    db.select({
+      m: sql`substr(${orders.closedAt}, 1, 7)`.as('m'),
+      gross: sql`coalesce(sum(${orders.subtotalCents} + ${orders.expressCents}), 0)`,
+      discounts: sql`coalesce(sum(${orders.discountCents}), 0)`,
+    }).from(orders).where(and(
+      eq(orders.tenantId, tenant.id), eq(orders.status, 'delivered'),
+      sql`substr(${orders.closedAt}, 1, 7) >= ${start}`,
+      ...(branchId ? [eq(orders.branchId, branchId)] : []),
+    )).groupBy(sql`m`),
+    db.select({
+      m: sql`substr(${payments.at}, 1, 7)`.as('m'),
+      refunds: sql`coalesce(sum(${payments.amountCents}), 0)`,
+    }).from(payments).where(and(
+      eq(payments.tenantId, tenant.id), eq(payments.status, 'refunded'),
+      sql`substr(${payments.at}, 1, 7) >= ${start}`,
+    )).groupBy(sql`m`),
+    db.select({
+      m: sql`substr(${expenses.expenseDate}, 1, 7)`.as('m'),
+      spent: sql`coalesce(sum(${expenses.amountCents}), 0)`,
+    }).from(expenses).where(and(
+      eq(expenses.tenantId, tenant.id), eq(expenses.status, 'active'),
+      gte(expenses.expenseDate, `${start}-01`),
+      ...(branchId ? [eq(expenses.branchId, branchId)] : []),
+    )).groupBy(sql`m`),
+  ]);
+
+  const refMap = Object.fromEntries(refRows.map((r) => [r.m, Number(r.refunds)]));
+  const expMap = Object.fromEntries(expRows.map((r) => [r.m, Number(r.spent)]));
+  const points = list.map((m) => {
+    const rev = revRows.find((r) => r.m === m);
+    const earned = (rev ? Number(rev.gross) - Number(rev.discounts) : 0) - (refMap[m] || 0);
+    const spent = expMap[m] || 0;
+    return { month: m, earnedCents: earned, spentCents: spent, profitCents: earned - spent };
+  });
+  return c.json({ months: points });
+});
+
 financeRoutes.get('/finance/pl', requirePolicy('finance.view'), async (c) => {
   const db = c.get('db');
   const tenant = c.get('tenant');

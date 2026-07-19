@@ -207,9 +207,12 @@ const applyDiscount = () => run(async () => {
           <div v-if="!order.payments.length" class="muted small">No payments yet.</div>
           <div v-for="p in order.payments" :key="p.id" class="mini-row">
             <StatusBadge :status="p.status" kind="generic" />
-            <span>{{ p.method.replace('_', ' ') }} · <b>{{ money(p.amountCents, session.currency) }}</b>
-              <small v-if="p.mpesaRef" class="muted"> {{ p.mpesaRef }}</small></span>
-            <small class="muted">{{ dateTime(p.at) }}</small>
+            <span class="pay-info">
+              <b>{{ money(p.amountCents, session.currency) }}</b>
+              <small class="muted block">
+                {{ p.method === 'mpesa_manual' ? 'M-Pesa' : p.method.replace('_', ' ') }}<template v-if="p.mpesaRef"> · {{ p.mpesaRef }}</template> · {{ dateTime(p.at) }}
+              </small>
+            </span>
             <button v-if="p.status === 'pending' && p.method === 'mpesa_stk'" class="btn btn-ghost btn-sm" :disabled="busy"
               @click="simulateCallback(p.id)">Simulate callback</button>
             <button v-if="p.status === 'completed' && session.can('payments.refund')" class="btn btn-danger btn-sm" :disabled="busy"
@@ -220,7 +223,7 @@ const applyDiscount = () => run(async () => {
           <h4>Status history</h4>
           <div v-for="h in order.history" :key="h.id" class="mini-row">
             <AppIcon name="history" :size="13" />
-            <span>{{ h.fromStatus || '·' }} → <b>{{ h.toStatus }}</b></span>
+            <span class="pay-info">{{ h.fromStatus || 'created' }} → <b>{{ h.toStatus }}</b></span>
             <small class="muted">{{ dateTime(h.at) }}</small>
           </div>
         </div>
@@ -243,7 +246,11 @@ const applyDiscount = () => run(async () => {
 </template>
 
 <style scoped>
-.who { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.who {
+  display: flex; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap;
+  background: #f8fbfa; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+}
+.pay-info { flex: 1; min-width: 0; }
 .balance { text-align: right; }
 .balance b { display: block; font-size: 19px; font-family: var(--font-ui); }
 .block { display: block; }

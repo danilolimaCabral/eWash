@@ -14,7 +14,6 @@ import Avatar from '../components/Avatar.vue';
 import StatusBadge from '../components/StatusBadge.vue';
 import Skeleton from '../components/Skeleton.vue';
 import EmptyState from '../components/EmptyState.vue';
-import Pagination from '../components/Pagination.vue';
 import CollectModal from '../components/CollectModal.vue';
 import OrderDetailModal from '../components/OrderDetailModal.vue';
 
@@ -130,10 +129,8 @@ const historyColumns = [
     </Panel>
 
     <Panel v-else>
-      <Skeleton v-if="!history" variant="table" :count="4" />
-      <template v-else>
-        <template v-if="history.rows.length">
-          <DataTable :columns="historyColumns" :rows="history.rows" clickable @row-click="(row) => viewing = row.id">
+      <template v-if="!history || history.rows.length">
+        <DataTable :columns="historyColumns" :page="history" clickable @page="loadHistory" @row-click="(row) => viewing = row.id">
             <template #cell-code="{ row }"><b class="tag">{{ row.code }}</b></template>
             <template #cell-customer="{ row }">
               <span class="cust"><Avatar :name="row.customerName" />
@@ -154,15 +151,13 @@ const historyColumns = [
                 <template v-if="row.collectedByName">by {{ row.collectedByName }} · </template>{{ dateTime(row.collectedAt || row.closedAt) }}
               </small>
             </template>
-            <template #cell-action="{ row }">
-              <button class="btn btn-ghost btn-sm" @click.stop="viewing = row.id">View</button>
-            </template>
-          </DataTable>
-          <Pagination :total="history.total" :limit="HISTORY_LIMIT" :offset="historyOffset" @change="loadHistory" />
-        </template>
-        <EmptyState v-else icon="history" title="No past pickups"
-          :hint="q ? 'Nothing matches your search — try another tag, name or phone.' : 'Collected and delivered orders will build up here.'" />
+          <template #cell-action="{ row }">
+            <button class="btn btn-ghost btn-sm" @click.stop="viewing = row.id">View</button>
+          </template>
+        </DataTable>
       </template>
+      <EmptyState v-else icon="history" title="No past pickups"
+        :hint="q ? 'Nothing matches your search — try another tag, name or phone.' : 'Collected and delivered orders will build up here.'" />
     </Panel>
 
     <CollectModal v-if="collecting" :order-id="collecting.id" @close="collecting = null"

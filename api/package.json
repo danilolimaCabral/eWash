@@ -11,7 +11,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply ewash --remote"
   },
   "dependencies": {
-    "drizzle-orm": "^0.44.0",
+    "drizzle-orm": "^0.45.2",
     "hono": "^4.6.0"
   },
   "devDependencies": {

@@ -7,6 +7,7 @@ import { useCatalog } from '../stores/catalog.js';
 import { money } from '../utils/format.js';
 import Panel from '../components/Panel.vue';
 import FormField from '../components/FormField.vue';
+import DatePicker from '../components/DatePicker.vue';
 import ComboBox from '../components/ComboBox.vue';
 import AppIcon from '../components/AppIcon.vue';
 
@@ -112,7 +113,7 @@ const smsPreview = computed(() => {
     return `${l.serviceName}${l.variantLabel ? ` (${l.variantLabel})` : ''} ${q}: ${money(l.lineTotalCents, session.currency)}`
       + l.addons.map((a) => ` +${a.addonName}: ${money(a.totalCents, session.currency)}`).join('');
   }).join('; ');
-  return `eWash: Hello ${name}, your order has been assessed: ${items}. Total ${money(preview.value.totalCents, session.currency)}. Reply YES or pay via the M-Pesa prompt to confirm. Karibu!`;
+  return `eWash: Hello ${name}, your order has been assessed: ${items}. Total ${money(preview.value.totalCents, session.currency)}. Pay by M-Pesa or cash when you pick up. Karibu!`;
 });
 
 async function sendQuote() {
@@ -172,8 +173,8 @@ function clearAll() {
 
     <Panel v-if="historical" title="Historical accounting details" subtitle="Admin-only · dates determine the accounting month">
       <div class="history-grid">
-        <FormField label="Order date"><input v-model="historyForm.order_date" type="date" /></FormField>
-        <FormField label="Fulfilled / revenue date"><input v-model="historyForm.fulfilled_date" type="date" /></FormField>
+        <FormField label="Order date"><DatePicker v-model="historyForm.order_date" /></FormField>
+        <FormField label="Fulfilled / revenue date"><DatePicker v-model="historyForm.fulfilled_date" /></FormField>
         <FormField label="Handoff"><select v-model="historyForm.handoff_type"><option value="pickup">Picked up</option><option value="delivery">Delivered</option></select></FormField>
         <FormField label="Collected / delivered by"><input v-model="historyForm.collected_by_name" type="text" placeholder="Defaults to customer" /></FormField>
         <FormField label="Payment method"><select v-model="historyForm.payment_method"><option value="mpesa_manual">Manual M-Pesa</option><option value="cash">Cash</option></select></FormField>
@@ -279,7 +280,7 @@ function clearAll() {
       <div v-if="smsPreview || sentOrder" class="phone">
         <div class="small muted" style="text-align:center; margin-bottom:8px;">CUSTOMER'S PHONE</div>
         <div class="sms">
-          <template v-if="sentOrder"><b>eWash:</b> Hello {{ sentOrder.customer.name.split(' ')[0] }}, order <b>{{ sentOrder.code }}</b> assessed. Total <b>{{ money(sentOrder.totalCents, session.currency) }}</b>. Reply YES or pay via the M-Pesa prompt to confirm. Karibu!</template>
+          <template v-if="sentOrder"><b>eWash:</b> Hello {{ sentOrder.customer.name.split(' ')[0] }}, order <b>{{ sentOrder.code }}</b> assessed. Total <b>{{ money(sentOrder.totalCents, session.currency) }}</b>. Pay by M-Pesa or cash when you pick up. Karibu!</template>
           <template v-else>{{ smsPreview }}</template>
         </div>
         <div class="mpesa">

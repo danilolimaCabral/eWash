@@ -63,7 +63,23 @@ reportRoutes.get('/dashboard/active-orders', async (c) => {
   const db = c.get('db');
   const tenantId = c.get('tenant').id;
   const branchId = scopedBranchId(c, c.req.query('branch_id') || null);
-  const active = await db.select({
+  // standard opt-in pagination: with `offset` the listing covers the whole
+  // shop (completed orders included), returns { rows, total, limit, offset,
+  // counts } and accepts a `status` filter; without it the legacy
+  // active-only array shape is preserved
+  const STATUSES = ['received', 'washing', 'ironing', 'ready', 'delivered'];
+  const paginated = c.req.query('offset') != null;
+  const limit = Math.min(parseInt(c.req.query('limit') || '10', 10) || 10, 100);
+  const offset = Math.max(0, parseInt(c.req.query('offset') || '0', 10) || 0);
+  const status = c.req.query('status');
+  const conds = [
+    eq(orders.tenantId, tenantId),
+    status && STATUSES.includes(status)
+      ? eq(orders.status, status)
+      : inArray(orders.status, paginated ? STATUSES : ['received', 'washing', 'ironing', 'ready']),
+    ...(branchId ? [eq(orders.branchId, branchId)] : []),
+  ];
+  const query = db.select({
     id: orders.id, code: orders.code, status: orders.status,
     paymentStatus: orders.paymentStatus, totalCents: orders.totalCents,
     dueAt: orders.dueAt, createdAt: orders.createdAt, express: orders.express,
@@ -73,22 +89,39 @@ reportRoutes.get('/dashboard/active-orders', async (c) => {
     kgTotal: sql`(select coalesce(sum(oi.qty), 0) from order_items oi where oi.order_id = ${orders.id} and oi.unit = 'kg')`.as('kg_total'),
   }).from(orders)
     .innerJoin(customers, eq(customers.id, orders.customerId))
-    .where(and(eq(orders.tenantId, tenantId), inArray(orders.status, ['received', 'washing', 'ironing', 'ready']),
+    .where(and(...conds))
+    .orderBy(desc(orders.createdAt));
+  if (!paginated) return c.json(await query.limit(12));
+  const rows = await query.limit(limit).offset(offset);
+  const [{ count }] = await db.select({ count: sql`count(*)` }).from(orders).where(and(...conds));
+  const byStatus = await db.select({ status: orders.status, n: sql`count(*)` }).from(orders)
+    .where(and(eq(orders.tenantId, tenantId), inArray(orders.status, STATUSES),
       ...(branchId ? [eq(orders.branchId, branchId)] : [])))
-    .orderBy(desc(orders.createdAt))
-    .limit(12);
-  return c.json(active);
+    .groupBy(orders.status);
+  const counts = Object.fromEntries(byStatus.map((r) => [r.status, Number(r.n)]));
+  return c.json({ rows, total: Number(count || 0), limit, offset, counts });
 });
 
 reportRoutes.get('/dashboard/notifications', async (c) => {
   const db = c.get('db');
   const tenantId = c.get('tenant').id;
   const branchId = scopedBranchId(c, c.req.query('branch_id') || null);
-  const rows = await db.select({ notification: notifications }).from(notifications)
+  // legacy (no offset): the 5 most recent for the dashboard panel; with
+  // `offset`: the full system listing as { rows, total, limit, offset }
+  const paginated = c.req.query('offset') != null;
+  const limit = Math.min(parseInt(c.req.query('limit') || (paginated ? '10' : '5'), 10) || 5, 100);
+  const offset = Math.max(0, parseInt(c.req.query('offset') || '0', 10) || 0);
+  const conds = [eq(notifications.tenantId, tenantId), ...(branchId ? [eq(orders.branchId, branchId)] : [])];
+  const query = db.select({ notification: notifications }).from(notifications)
     .leftJoin(orders, eq(orders.id, notifications.orderId))
-    .where(and(eq(notifications.tenantId, tenantId), ...(branchId ? [eq(orders.branchId, branchId)] : [])))
-    .orderBy(desc(notifications.sentAt)).limit(6);
-  return c.json(rows.map((row) => row.notification));
+    .where(and(...conds))
+    .orderBy(desc(notifications.sentAt));
+  if (!paginated) return c.json((await query.limit(limit)).map((row) => row.notification));
+  const rows = (await query.limit(limit).offset(offset)).map((row) => row.notification);
+  const [{ count }] = await db.select({ count: sql`count(*)` }).from(notifications)
+    .leftJoin(orders, eq(orders.id, notifications.orderId))
+    .where(and(...conds));
+  return c.json({ rows, total: Number(count || 0), limit, offset });
 });
 
 // Daily register (spec §8): per attendant — orders taken, cash vs M-Pesa

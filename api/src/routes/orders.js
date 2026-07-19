@@ -311,6 +311,9 @@ orderRoutes.get('/orders', async (c) => {
       customerName: customers.name, customerPhone: customers.phone,
       itemCount: sql`(select count(*) from order_items oi where oi.order_id = ${orders.id})`.as('item_count'),
       itemSummary: sql`(select group_concat(oi.service_name, ', ') from order_items oi where oi.order_id = ${orders.id})`.as('item_summary'),
+      // per-service detail for the pipeline board: "name · qty unit" per line
+      // item, '|'-separated (qty rendered without a trailing .0)
+      itemsDetail: sql`(select group_concat(oi.service_name || ' · ' || (case when oi.qty = cast(oi.qty as integer) then cast(cast(oi.qty as integer) as text) else cast(oi.qty as text) end) || ' ' || oi.unit, '|') from order_items oi where oi.order_id = ${orders.id})`.as('items_detail'),
       paidCents: sql`coalesce((select sum(p.amount_cents) from payments p where p.order_id = ${orders.id} and p.status = 'completed'), 0)`.as('paid_cents'),
     })
     .from(orders)
