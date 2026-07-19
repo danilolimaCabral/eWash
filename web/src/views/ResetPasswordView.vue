@@ -30,7 +30,7 @@ async function submit() {
 </script>
 
 <template>
-  <div class="reset-wrap">
+  <div class="reset-wrap auth-backdrop">
     <div class="reset-card">
       <div class="reset-brand"><span><AppIcon name="shirt" :size="22" /></span><div><b>eWash</b><small>Laundry Management System</small></div></div>
       <template v-if="done">
@@ -51,7 +51,7 @@ async function submit() {
 </template>
 
 <style scoped>
-.reset-wrap { min-height: 100vh; display: grid; place-items: center; padding: 20px; background: var(--side); }
+.reset-wrap { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
 .reset-card { width: 100%; max-width: 420px; padding: 26px; border-radius: 18px; background: #fff; box-shadow: 0 24px 64px rgba(0,0,0,.3); }
 .reset-brand { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
 .reset-brand > span { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 11px; background: #77d2c3; color: #0c4d49; }

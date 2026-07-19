@@ -5,11 +5,13 @@
 // auth headers, tiny and fast on a phone.
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import ConfirmDialog from '../components/ConfirmDialog.vue';
 
 const route = useRoute();
 const run = ref(null);
 const state = ref('loading'); // loading | ready | done | error
 const busy = ref(false);
+const confirmOpen = ref(false); // marking delivered is irreversible — ask first
 
 const base = `/api/delivery/${encodeURIComponent(route.params.token)}`;
 
@@ -30,6 +32,7 @@ async function confirmDelivered() {
     const res = await fetch(`${base}/delivered`, { method: 'POST' });
     if (!res.ok) throw new Error();
     state.value = 'done';
+    confirmOpen.value = false;
   } catch {
     // leave the button usable — flaky connections are normal on the road
   } finally {
@@ -58,7 +61,7 @@ async function confirmDelivered() {
         <a :href="`tel:${run.customerPhone}`" class="tel">{{ run.customerPhone }}</a>
       </p>
 
-      <button v-if="state === 'ready'" class="deliver-btn" :disabled="busy" @click="confirmDelivered">
+      <button v-if="state === 'ready'" class="deliver-btn" :disabled="busy" @click="confirmOpen = true">
         ✓ Delivered
       </button>
       <div v-else class="done-note">
@@ -66,6 +69,12 @@ async function confirmDelivered() {
         <p class="dim">Asante! The customer has been notified.</p>
       </div>
     </template>
+
+    <ConfirmDialog v-if="confirmOpen" :busy="busy"
+      :title="`Order ${run?.code} handed to the customer?`"
+      message="This cannot be undone — the customer is notified immediately that their clothes have arrived."
+      confirm-label="Yes, delivered"
+      @confirm="confirmDelivered" @close="confirmOpen = false" />
   </div>
 </template>
 

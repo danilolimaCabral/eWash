@@ -22,6 +22,15 @@ body {
 h1, h2, h3, h4 { font-family: var(--font-ui); letter-spacing: -0.02em; }
 a { color: var(--brand); }
 
+/* auth screens share the brand wallpaper, washed dark for legibility */
+.auth-backdrop {
+  background-color: var(--side); /* paints instantly while the image loads */
+  background-image: linear-gradient(rgba(10, 28, 26, 0.5), rgba(10, 28, 26, 0.62)), url('/auth-bg.jpg');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
 /* buttons */
 .btn {
   border: none; border-radius: 9px; padding: 9px 14px; font-size: 13px; font-weight: 600;

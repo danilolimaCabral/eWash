@@ -27,7 +27,7 @@ async function submit() {
 </script>
 
 <template>
-  <main class="platform-login">
+  <main class="platform-login auth-backdrop">
     <form class="auth-card" @submit.prevent="submit">
       <div class="brand"><span><AppIcon name="shield" :size="22" /></span><div><b>e<em>Wash</em></b><small>Platform Control Centre</small></div></div>
       <h1>Platform sign in</h1>
@@ -42,7 +42,7 @@ async function submit() {
 </template>
 
 <style scoped>
-.platform-login { min-height: 100vh; display: grid; place-items: center; padding: 20px; background: var(--side); }
+.platform-login { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
 .auth-card { width: 100%; max-width: 420px; padding: 28px; border-radius: 18px; background: #fff; box-shadow: 0 24px 64px rgba(0,0,0,.32); }
 .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
 .brand > span { width: 42px; height: 42px; display: grid; place-items: center; color: #0c4d49; background: #77d2c3; border-radius: 12px; }

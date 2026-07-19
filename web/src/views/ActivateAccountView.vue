@@ -69,7 +69,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="activate-wrap">
+  <div class="activate-wrap auth-backdrop">
     <div class="activate-card">
       <div class="activate-brand"><span><AppIcon name="shirt" :size="22" /></span><div><b>eWash</b><small>Laundry Management System</small></div></div>
 
@@ -100,7 +100,7 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.activate-wrap { min-height: 100vh; display: grid; place-items: center; padding: 20px; background: var(--side); }
+.activate-wrap { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
 .activate-card { width: 100%; max-width: 420px; padding: 26px; border-radius: 18px; background: #fff; box-shadow: 0 24px 64px rgba(0,0,0,.3); }
 .activate-brand { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
 .activate-brand > span { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 11px; background: #77d2c3; color: #0c4d49; }

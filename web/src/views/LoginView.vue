@@ -100,7 +100,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="auth-wrap">
+  <div class="auth-wrap auth-backdrop">
     <div class="auth-card">
       <div class="auth-brand">
         <span class="brand-mark"><AppIcon name="shirt" :size="22" /></span>
@@ -186,7 +186,7 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.auth-wrap { min-height: 100vh; display: grid; place-items: center; background: var(--side); padding: 20px; }
+.auth-wrap { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
 .auth-card { width: 100%; max-width: 440px; background: #fff; border-radius: 18px; padding: 28px; box-shadow: 0 24px 64px rgba(0,0,0,0.35); }
 .auth-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
 .auth-brand .brand-mark { width: 42px; height: 42px; display: grid; place-items: center; background: #77d2c3; border-radius: 12px; color: #0c4d49; }

@@ -135,8 +135,13 @@ onMounted(async () => {
 .boot { display: grid; place-items: center; min-height: 100vh; color: var(--muted); }
 
 .side {
-  width: 226px; background: var(--side); padding: 22px 10px 14px; flex-shrink: 0;
+  width: 226px; padding: 22px 10px 14px; flex-shrink: 0;
   display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  /* the auth wallpaper, barely-there: a ~93% dark wash keeps nav contrast
+     while the mountains give the panel some depth */
+  background-color: var(--side);
+  background-image: linear-gradient(rgba(14, 36, 36, 0.9), rgba(14, 36, 36, 0.97)), url('/auth-bg.jpg');
+  background-position: center; background-size: cover; background-repeat: no-repeat;
 }
 .brand { display: flex; align-items: center; gap: 11px; padding: 0 10px 22px; font: 800 17px var(--font-ui); color: #fff; }
 .brand .brand-mark { width: 34px; height: 34px; flex-shrink: 0; display: grid; place-items: center; background: #77d2c3; border-radius: 10px; color: #0c4d49; }
