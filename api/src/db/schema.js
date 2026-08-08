@@ -58,6 +58,7 @@ export const users = sqliteTable('users', {
   name: text('name').notNull(),
   phone: text('phone'),
   email: text('email').notNull().unique(),
+  pendingEmail: text('pending_email'),
   // Google-only accounts carry the sentinel 'google-only' (never verifiable)
   passwordHash: text('password_hash').notNull(),
   googleSub: text('google_sub').unique(), // Google account id when linked
@@ -301,7 +302,8 @@ export const passwordResetTokens = sqliteTable('password_reset_tokens', {
   userId: text('user_id').notNull().references(() => users.id),
   tokenHash: text('token_hash').notNull().unique(),
   // one-time emailed tokens share this table; purpose keeps them unswappable
-  purpose: text('purpose', { enum: ['password_reset', 'activation', 'invite'] }).notNull().default('password_reset'),
+  purpose: text('purpose', { enum: ['password_reset', 'activation', 'invite', 'email_change'] }).notNull().default('password_reset'),
+  targetEmail: text('target_email'),
   expiresAt: text('expires_at').notNull(),
   usedAt: text('used_at'),
   requestedIp: text('requested_ip'),
@@ -314,6 +316,7 @@ export const passwordResetTokens = sqliteTable('password_reset_tokens', {
 export const serviceProviders = sqliteTable('service_providers', {
   id: id(),
   tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  userId: text('user_id').references(() => users.id),
   name: text('name').notNull(),
   serviceType: text('service_type').notNull(),
   phone: text('phone'),
@@ -321,7 +324,10 @@ export const serviceProviders = sqliteTable('service_providers', {
   notes: text('notes'),
   active: integer('active').notNull().default(1),
   createdAt: createdAt(),
-}, (t) => [index('idx_providers_tenant').on(t.tenantId)]);
+}, (t) => [
+  index('idx_providers_tenant').on(t.tenantId),
+  uniqueIndex('uq_provider_tenant_user').on(t.tenantId, t.userId),
+]);
 
 export const expenses = sqliteTable('expenses', {
   id: id(),

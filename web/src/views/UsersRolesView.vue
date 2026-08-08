@@ -11,6 +11,9 @@ import FormField from '../components/FormField.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import AppIcon from '../components/AppIcon.vue';
 import Skeleton from '../components/Skeleton.vue';
+import AppSelect from '../components/AppSelect.vue';
+import BaseButton from '../components/BaseButton.vue';
+import ConfirmDialog from '../components/ConfirmDialog.vue';
 
 const session = useSession();
 const toast = useToast();
@@ -23,6 +26,9 @@ const inviteOpen = ref(false);
 const inviteForm = ref({ name: '', email: '', phone: '', role_id: '', branch_id: '', access_scope: 'branch' });
 const branchesOpen = ref(false);
 const branchForm = ref({ id: '', name: '', location: '', active: true });
+const editUserOpen = ref(false);
+const editUserForm = ref({ name: '', phone: '', email: '' });
+const resetUser = ref(null);
 
 // pending edits for the selected user
 const pendingRole = ref('');
@@ -88,7 +94,7 @@ async function save() {
       branch_id: pendingBranch.value || undefined,
       access_scope: pendingScope.value,
     });
-    toast.success('Saved ✔ — applies at next login · written to audit log');
+    toast.success('Saved — applies at next login · written to audit log');
     await load();
   } catch (e) { toast.error(e.message); }
   finally { busy.value = false; }
@@ -123,6 +129,45 @@ async function resendInvite(u) {
     toast.success(result.message);
     await load();
   } catch (e) { toast.error(e.message); }
+}
+function openUserEditor(u) {
+  editUserForm.value = { name: u.name || '', phone: u.phone || '', email: '' };
+  editUserOpen.value = true;
+}
+async function saveUserDetails() {
+  if (!selected.value) return;
+  busy.value = true;
+  try {
+    await api.patch(`/users/${selected.value.id}`, {
+      name: editUserForm.value.name,
+      phone: editUserForm.value.phone,
+    });
+    toast.success(`${editUserForm.value.name}'s details were updated`);
+    editUserOpen.value = false;
+    await load();
+  } catch (e) { toast.error(e.message); }
+  finally { busy.value = false; }
+}
+async function requestUserEmailChange() {
+  if (!selected.value || !editUserForm.value.email.trim()) return;
+  busy.value = true;
+  try {
+    const result = await api.post(`/users/${selected.value.id}/email-change`, { email: editUserForm.value.email });
+    toast.success(result.message);
+    editUserForm.value.email = '';
+    await load();
+  } catch (e) { toast.error(e.message); }
+  finally { busy.value = false; }
+}
+async function sendPasswordReset() {
+  if (!resetUser.value) return;
+  busy.value = true;
+  try {
+    const result = await api.post(`/users/${resetUser.value.id}/reset-password`);
+    toast.success(result.message);
+    resetUser.value = null;
+  } catch (e) { toast.error(e.message); }
+  finally { busy.value = false; }
 }
 function editBranch(branch = null) {
   branchForm.value = branch ? { ...branch, active: !!branch.active } : { id: '', name: '', location: '', active: true };
@@ -198,9 +243,12 @@ async function saveBranch() {
                 </span>
               </div>
               <p>{{ selected.email }}<template v-if="selected.phone"> · {{ selected.phone }}</template></p>
+              <small v-if="selected.pendingEmail" class="pending-copy">New email awaiting verification: {{ selected.pendingEmail }}</small>
             </div>
           </div>
           <div v-if="selected.id !== session.user?.id" class="user-actions">
+            <BaseButton variant="ghost" size="sm" @click="openUserEditor(selected)">Edit details</BaseButton>
+            <BaseButton v-if="selected.status === 'active' && !selected.invited" variant="ghost" size="sm" @click="resetUser = selected">Reset password</BaseButton>
             <button v-if="selected.invited && selected.status !== 'active'" class="btn btn-ghost btn-sm" @click="resendInvite(selected)">
               Resend invite
             </button>
@@ -212,12 +260,12 @@ async function saveBranch() {
 
         <div class="role-strip">
           <FormField label="Role template">
-            <select v-model="pendingRole" @change="onRoleChange">
+            <AppSelect v-model="pendingRole" @change="onRoleChange">
               <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.name }}</option>
-            </select>
+            </AppSelect>
           </FormField>
-          <FormField label="Access scope"><select v-model="pendingScope"><option value="branch">Assigned branch only</option><option value="tenant">All branches</option></select></FormField>
-          <FormField label="Assigned branch"><select v-model="pendingBranch"><option value="">No branch</option><option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option></select></FormField>
+          <FormField label="Access scope"><AppSelect v-model="pendingScope"><option value="branch">Assigned branch only</option><option value="tenant">All branches</option></AppSelect></FormField>
+          <FormField label="Assigned branch"><AppSelect v-model="pendingBranch"><option value="">No branch</option><option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option></AppSelect></FormField>
           <div class="role-summary">
             <span>{{ selectedRole?.policies?.length || 0 }}</span>
             <small>role permissions</small>
@@ -255,18 +303,18 @@ async function saveBranch() {
       </Panel>
     </div>
 
-    <Modal v-if="inviteOpen" title="Invite a staff member" @close="inviteOpen = false">
+    <Modal v-if="inviteOpen" title="Invite a staff member" subtitle="Choose their role and branch access before sending the invitation." @close="inviteOpen = false">
       <div class="row">
         <FormField label="Name"><input v-model="inviteForm.name" type="text" /></FormField>
         <FormField label="Role">
-          <select v-model="inviteForm.role_id">
+          <AppSelect v-model="inviteForm.role_id">
             <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.name }}</option>
-          </select>
+          </AppSelect>
         </FormField>
       </div>
       <div class="row">
-        <FormField label="Access scope"><select v-model="inviteForm.access_scope"><option value="branch">Assigned branch only</option><option value="tenant">All branches</option></select></FormField>
-        <FormField label="Branch"><select v-model="inviteForm.branch_id"><option value="">No branch</option><option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option></select></FormField>
+        <FormField label="Access scope"><AppSelect v-model="inviteForm.access_scope"><option value="branch">Assigned branch only</option><option value="tenant">All branches</option></AppSelect></FormField>
+        <FormField label="Branch"><AppSelect v-model="inviteForm.branch_id"><option value="">No branch</option><option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option></AppSelect></FormField>
       </div>
       <div class="row">
         <FormField label="Email"><input v-model="inviteForm.email" type="email" /></FormField>
@@ -279,7 +327,34 @@ async function saveBranch() {
       </template>
     </Modal>
 
-    <Modal v-if="branchesOpen" title="Manage branches" wide @close="branchesOpen = false">
+    <Modal v-if="editUserOpen && selected" title="Edit user details"
+      :subtitle="`Update ${selected.name}'s contact details. Login email changes require verification.`"
+      @close="editUserOpen = false">
+      <section class="edit-section">
+        <h4>Profile</h4>
+        <div class="row">
+          <FormField label="Name"><input v-model="editUserForm.name" autocomplete="off" /></FormField>
+          <FormField label="Phone"><input v-model="editUserForm.phone" type="tel" autocomplete="off" /></FormField>
+        </div>
+        <BaseButton size="sm" :loading="busy" :disabled="!editUserForm.name.trim()" @click="saveUserDetails">Save profile</BaseButton>
+      </section>
+      <section class="edit-section email-section">
+        <div><h4>Login email</h4><p>Current: <b>{{ selected.email }}</b></p></div>
+        <p v-if="selected.pendingEmail" class="pending-copy">Awaiting verification: {{ selected.pendingEmail }}</p>
+        <div class="email-edit">
+          <FormField label="New email address"><input v-model="editUserForm.email" type="email" autocomplete="off" /></FormField>
+          <BaseButton variant="ghost" size="sm" :loading="busy" :disabled="!editUserForm.email.trim()" @click="requestUserEmailChange">Send verification</BaseButton>
+        </div>
+        <p class="muted small">The user keeps signing in with their current email until they confirm the secure link.</p>
+      </section>
+      <template #footer><BaseButton variant="ghost" :disabled="busy" @click="editUserOpen = false">Close</BaseButton></template>
+    </Modal>
+
+    <ConfirmDialog v-if="resetUser" title="Send password reset link?"
+      :message="`${resetUser.name} will receive a secure one-time link at ${resetUser.email}. You will never see or set their password.`"
+      confirm-label="Send reset link" :busy="busy" @confirm="sendPasswordReset" @close="resetUser = null" />
+
+    <Modal v-if="branchesOpen" title="Manage branches" subtitle="Select a branch to edit it, or create a new location." wide @close="branchesOpen = false">
       <div class="branch-manager">
         <div class="branch-list">
           <button v-for="branch in branches" :key="branch.id" @click="editBranch(branch)">
@@ -290,7 +365,7 @@ async function saveBranch() {
         <div class="branch-form">
           <FormField label="Branch name"><input v-model="branchForm.name" /></FormField>
           <FormField label="Location"><input v-model="branchForm.location" /></FormField>
-          <FormField v-if="branchForm.id" label="Status"><select v-model="branchForm.active"><option :value="true">Active</option><option :value="false">Deactivated</option></select></FormField>
+          <FormField v-if="branchForm.id" label="Status"><AppSelect v-model="branchForm.active"><option :value="true">Active</option><option :value="false">Deactivated</option></AppSelect></FormField>
           <button class="btn btn-primary" :disabled="!branchForm.name.trim()" @click="saveBranch">{{ branchForm.id ? 'Save branch' : 'Create branch' }}</button>
         </div>
       </div>
@@ -330,6 +405,7 @@ async function saveBranch() {
 .user-identity { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .user-identity h3 { font-size: 15px; margin: 0; }
 .user-identity p { color: var(--muted); font-size: 10.5px; overflow-wrap: anywhere; }
+.pending-copy { display: block; color: var(--accent); font-size: 9.5px; overflow-wrap: anywhere; }
 .identity-line { display: flex; align-items: center; gap: 7px; }
 .status-chip { padding: 2px 7px; border-radius: 999px; background: #e6f5ef; color: var(--green); font-size: 9px; font-weight: 700; }
 .status-chip.disabled { background: #fdf0ee; color: var(--red); }
@@ -344,6 +420,10 @@ async function saveBranch() {
 .role-summary span { display: block; font-size: 15px; font-weight: 700; line-height: 1.1; }
 .role-summary small { color: var(--muted); font-size: 9px; }
 .branch-manager{display:grid;grid-template-columns:1fr 1fr;gap:14px}.branch-list{display:flex;flex-direction:column;gap:6px;max-height:360px;overflow:auto}.branch-list button{display:flex;justify-content:space-between;align-items:center;padding:10px;border:1px solid var(--line);border-radius:9px;background:#fff;text-align:left;cursor:pointer}.branch-list span,.branch-list small{display:block}.branch-list small{color:var(--muted);font-size:9px}.branch-list em{color:var(--muted);font-size:9px;font-style:normal}.branch-form{display:flex;flex-direction:column;gap:9px}
+.edit-section { padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-md); }
+.edit-section + .edit-section { margin-top: 10px; }.edit-section h4 { font-size: 12.5px; margin-bottom: 8px; }
+.email-section > div:first-child { margin-bottom: 8px; }.email-section > div:first-child h4 { margin-bottom: 1px; }.email-section > div:first-child p { color: var(--muted); font-size: 10.5px; overflow-wrap: anywhere; }
+.email-edit { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 9px; margin-top: 9px; }
 .permissions-head { display: flex; justify-content: space-between; align-items: end; gap: 10px; padding: 12px 0 8px; }
 .permissions-head h4 { font-size: 12.5px; }
 .permissions-head p { color: var(--muted); font-size: 9.5px; }
@@ -390,6 +470,8 @@ async function saveBranch() {
   .permissions-grid { overflow: visible; }
 }
 @media (max-width: 640px) {
+  .email-edit { grid-template-columns: 1fr; }
+  .email-edit :deep(.btn) { width: 100%; justify-content: center; }
   .section-head p { max-width: 34ch; }
   .user-toolbar { align-items: flex-start; }
   .user-toolbar > .btn { padding: 5px 8px; font-size: 10px; }

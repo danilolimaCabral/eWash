@@ -6,6 +6,7 @@ import Modal from '../components/Modal.vue';
 import Panel from '../components/Panel.vue';
 import StatusBadge from '../components/StatusBadge.vue';
 import Tabs from '../components/Tabs.vue';
+import AppSelect from '../components/AppSelect.vue';
 import { platformApi } from '../platformApi.js';
 import { dateOnly, money } from '../utils/format.js';
 import { useToast } from '../stores/toast.js';
@@ -194,7 +195,7 @@ onMounted(async () => {
     <template #actions>
       <div class="filters">
         <input v-model="q" type="search" placeholder="Search business or email" @keyup.enter="load(0)" />
-        <select v-model="status" @change="load(0)"><option value="">All statuses</option><option>active</option><option>suspended</option><option>cancelled</option></select>
+        <AppSelect v-model="status" compact @change="load(0)"><option value="">All statuses</option><option>active</option><option>suspended</option><option>cancelled</option></AppSelect>
         <button class="btn btn-outline btn-sm" @click="load(0)">Search</button>
       </div>
     </template>
@@ -207,7 +208,7 @@ onMounted(async () => {
     </DataTable>
   </Panel>
 
-  <Modal v-if="detail" :title="detail.tenant.name" wide @close="detail = null">
+  <Modal v-if="detail" :title="detail.tenant.name" subtitle="Tenant profile, subscription, branches, invoices, and members" size="workspace" @close="detail = null">
     <Tabs v-model="detailTab" :tabs="[
       { key: 'overview', label: 'Overview' }, { key: 'branches', label: 'Branches', count: branchData.total }, { key: 'subscription', label: 'Subscription' },
       { key: 'invoices', label: 'Invoices', count: detail.invoices.length }, { key: 'users', label: 'Members', count: memberData.total },
@@ -235,13 +236,13 @@ onMounted(async () => {
       </DataTable>
     </div>
     <div v-else-if="detailTab === 'subscription'" class="subscription-form">
-      <FormField label="Plan"><select v-model="subscription.plan_id" @change="onPlanChange"><option v-for="plan in plans" :key="plan.id" :value="plan.id">{{ plan.name }}</option></select></FormField>
+      <FormField label="Plan"><AppSelect v-model="subscription.plan_id" @change="onPlanChange"><option v-for="plan in plans" :key="plan.id" :value="plan.id">{{ plan.name }}</option></AppSelect></FormField>
       <FormField label="Billing term" hint="Longer commitments get the lower per-month rate">
-        <select v-model.number="subscription.term_months">
+        <AppSelect v-model="subscription.term_months">
           <option v-for="t in planTerms" :key="t.termMonths" :value="t.termMonths">{{ t.termMonths }} {{ t.termMonths === 1 ? 'month' : 'months' }} — {{ money(t.priceCents, 'KES') }}/mo</option>
-        </select>
+        </AppSelect>
       </FormField>
-      <FormField label="Subscription status"><select v-model="subscription.status"><option>trial</option><option>active</option><option>past_due</option><option>suspended</option><option>cancelled</option></select></FormField>
+      <FormField label="Subscription status"><AppSelect v-model="subscription.status"><option>trial</option><option>active</option><option>past_due</option><option>suspended</option><option>cancelled</option></AppSelect></FormField>
       <FormField label="Custom price per month (KES)" hint="Leave blank to use the plan's term rate"><input v-model="subscription.custom_price" type="number" min="0" step="1" /></FormField>
       <button class="btn btn-primary" @click="saveSubscription">Save subscription</button>
     </div>
@@ -251,7 +252,7 @@ onMounted(async () => {
     <div v-else class="members">
       <div class="member-tools">
         <input v-model="memberQ" type="search" placeholder="Search members" @keyup.enter="loadMembers(0)" />
-        <select v-model="memberStatus" @change="loadMembers(0)"><option value="">All statuses</option><option value="active">Active</option><option value="disabled">Disabled</option></select>
+        <AppSelect v-model="memberStatus" compact @change="loadMembers(0)"><option value="">All statuses</option><option value="active">Active</option><option value="disabled">Disabled</option></AppSelect>
         <button class="btn btn-outline btn-sm" @click="loadMembers(0)">Search</button>
         <button class="btn btn-primary btn-sm" @click="openCreateMember">+ Add member</button>
       </div>
@@ -269,32 +270,32 @@ onMounted(async () => {
     </template>
   </Modal>
 
-  <Modal v-if="action.open" :title="action.status === 'cancelled' ? 'Cancel tenancy' : action.status === 'suspended' ? 'Suspend tenant' : 'Reactivate tenant'" @close="action.open = false">
+  <Modal v-if="action.open" :title="action.status === 'cancelled' ? 'Cancel tenancy' : action.status === 'suspended' ? 'Suspend tenant' : 'Reactivate tenant'" subtitle="Review the effect and provide an audit reason." @close="action.open = false">
     <p class="muted">This action is immediate and will be recorded in the platform audit log.</p>
     <FormField label="Reason"><textarea v-model="action.reason" rows="3" required /></FormField>
     <template #footer><button class="btn btn-outline" @click="action.open = false">Back</button><button class="btn btn-primary" :disabled="!action.reason.trim()" @click="changeStatus">Confirm</button></template>
   </Modal>
 
-  <Modal v-if="memberModal" :title="memberModal === 'create' ? 'Add tenant member' : 'Manage tenant member'" @close="memberModal = ''">
+  <Modal v-if="memberModal" :title="memberModal === 'create' ? 'Add tenant member' : 'Manage tenant member'" subtitle="Set identity, role, branch access, and account status." @close="memberModal = ''">
     <div class="member-form">
       <FormField label="Name"><input v-model="memberForm.name" type="text" :disabled="memberModal === 'edit'" required /></FormField>
       <FormField label="Email"><input v-model="memberForm.email" type="email" :disabled="memberModal === 'edit'" required /></FormField>
       <FormField v-if="memberModal === 'create'" label="Phone"><input v-model="memberForm.phone" type="tel" /></FormField>
-      <FormField label="Role"><select v-model="memberForm.role_id"><option v-for="role in memberData.roles" :key="role.id" :value="role.id">{{ role.name }}</option></select></FormField>
-      <FormField label="Access scope"><select v-model="memberForm.access_scope"><option value="branch">Assigned branch only</option><option value="tenant">All tenant branches</option></select></FormField>
-      <FormField label="Branch"><select v-model="memberForm.branch_id"><option value="">All branches</option><option v-for="branch in memberData.branches" :key="branch.id" :value="branch.id">{{ branch.name }}</option></select></FormField>
-      <FormField v-if="memberModal === 'edit'" label="Status"><select v-model="memberForm.status"><option value="active">Active</option><option value="disabled">Deactivated</option></select></FormField>
+      <FormField label="Role"><AppSelect v-model="memberForm.role_id"><option v-for="role in memberData.roles" :key="role.id" :value="role.id">{{ role.name }}</option></AppSelect></FormField>
+      <FormField label="Access scope"><AppSelect v-model="memberForm.access_scope"><option value="branch">Assigned branch only</option><option value="tenant">All tenant branches</option></AppSelect></FormField>
+      <FormField label="Branch"><AppSelect v-model="memberForm.branch_id"><option value="">All branches</option><option v-for="branch in memberData.branches" :key="branch.id" :value="branch.id">{{ branch.name }}</option></AppSelect></FormField>
+      <FormField v-if="memberModal === 'edit'" label="Status"><AppSelect v-model="memberForm.status"><option value="active">Active</option><option value="disabled">Deactivated</option></AppSelect></FormField>
     </div>
     <FormField v-if="memberModal === 'edit'" label="Reason" hint="Required for a clear audit trail"><textarea v-model="memberForm.reason" rows="2" /></FormField>
     <p v-else class="muted small">The member will receive a secure link to choose their password.</p>
     <template #footer><button class="btn btn-outline" @click="memberModal = ''">Cancel</button><button class="btn btn-primary" :disabled="!memberForm.name || !memberForm.email || !memberForm.role_id || (memberModal === 'edit' && !memberForm.reason.trim())" @click="saveMember">{{ memberModal === 'create' ? 'Create & send link' : 'Save changes' }}</button></template>
   </Modal>
 
-  <Modal v-if="branchModal" :title="branchModal === 'create' ? 'Add tenant branch' : 'Manage tenant branch'" @close="branchModal = ''">
+  <Modal v-if="branchModal" :title="branchModal === 'create' ? 'Add tenant branch' : 'Manage tenant branch'" subtitle="Maintain the location and availability of this branch." @close="branchModal = ''">
     <div class="member-form">
       <FormField label="Branch name"><input v-model="branchForm.name" required /></FormField>
       <FormField label="Location"><input v-model="branchForm.location" /></FormField>
-      <FormField v-if="branchModal === 'edit'" label="Status"><select v-model="branchForm.active"><option :value="true">Active</option><option :value="false">Deactivated</option></select></FormField>
+      <FormField v-if="branchModal === 'edit'" label="Status"><AppSelect v-model="branchForm.active"><option :value="true">Active</option><option :value="false">Deactivated</option></AppSelect></FormField>
     </div>
     <FormField v-if="branchModal === 'edit'" label="Reason"><textarea v-model="branchForm.reason" rows="2" /></FormField>
     <p v-if="branchModal === 'edit' && !branchForm.active" class="muted small">Deactivation is blocked until active users are reassigned and open orders are completed.</p>

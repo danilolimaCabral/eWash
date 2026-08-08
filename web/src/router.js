@@ -6,6 +6,7 @@ const routes = [
   { path: '/login', name: 'login', component: () => import('./views/LoginView.vue'), meta: { public: true } },
   { path: '/reset-password', name: 'reset-password', component: () => import('./views/ResetPasswordView.vue'), meta: { public: true } },
   { path: '/activate', name: 'activate', component: () => import('./views/ActivateAccountView.vue'), meta: { public: true } },
+  { path: '/verify-email', name: 'verify-email', component: () => import('./views/VerifyEmailView.vue'), meta: { public: true } },
   { path: '/d/:token', name: 'delivery-run', component: () => import('./views/DeliveryRunView.vue'), meta: { public: true } },
   { path: '/platform/login', name: 'platform-login', component: () => import('./views/PlatformLoginView.vue'), meta: { public: true, platform: true } },
   {

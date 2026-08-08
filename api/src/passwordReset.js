@@ -3,7 +3,10 @@
 // preview and production hosts; APP_URL is only a fallback.
 import { eq } from 'drizzle-orm';
 import { passwordResetTokens } from './db/schema.js';
-import { sendPasswordResetEmail, sendActivationEmail, sendStaffInviteEmail } from './smtp.js';
+import {
+  sendPasswordResetEmail, sendActivationEmail, sendStaffInviteEmail,
+  sendEmailChangeVerificationEmail,
+} from './smtp.js';
 import { now, uid } from './util.js';
 
 export const passwordResetTokenHash = async (token) => {
@@ -19,13 +22,13 @@ export const randomToken = () => {
 export const appOrigin = (c) =>
   (new URL(c.req.url).origin || c.env.APP_URL || 'https://ewash.qesuite.com').replace(/\/+$/, '');
 
-async function issueEmailToken(db, { user, purpose, ttlMinutes, requestedIp }) {
+async function issueEmailToken(db, { user, purpose, ttlMinutes, requestedIp, targetEmail = null }) {
   const rawToken = randomToken();
   const id = uid();
   const expiresAt = new Date(Date.now() + ttlMinutes * 60_000).toISOString().slice(0, 19).replace('T', ' ');
   await db.insert(passwordResetTokens).values({
     id, userId: user.id, tokenHash: await passwordResetTokenHash(rawToken),
-    purpose, expiresAt, requestedIp,
+    purpose, expiresAt, requestedIp, targetEmail,
   });
   return { id, rawToken };
 }
@@ -74,5 +77,23 @@ export async function issueAccountActivation(db, env, user, origin, requestedIp 
     if (env.ENVIRONMENT !== 'production') return { sent: false, activationUrl };
     await db.update(passwordResetTokens).set({ usedAt: now() }).where(eq(passwordResetTokens.id, id));
     return { sent: false, activationUrl: null };
+  }
+}
+
+export async function issueEmailChangeVerification(db, env, user, targetEmail, origin, requestedIp = null) {
+  const { id, rawToken } = await issueEmailToken(db, {
+    user, purpose: 'email_change', ttlMinutes: 60, requestedIp, targetEmail,
+  });
+  const verificationUrl = `${origin}/verify-email?token=${encodeURIComponent(rawToken)}`;
+  try {
+    await sendEmailChangeVerificationEmail(env, {
+      to: targetEmail, name: user.name, verificationUrl,
+    });
+    return { sent: true, verificationUrl };
+  } catch (error) {
+    console.error('email change verification failed:', error.message);
+    if (env.ENVIRONMENT !== 'production') return { sent: false, verificationUrl };
+    await db.update(passwordResetTokens).set({ usedAt: now() }).where(eq(passwordResetTokens.id, id));
+    return { sent: false, verificationUrl: null };
   }
 }

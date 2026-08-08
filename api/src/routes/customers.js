@@ -71,13 +71,22 @@ customerRoutes.get('/customers/:id', async (c) => {
   const db = c.get('db');
   const tenantId = c.get('tenant').id;
   const branchId = scopedBranchId(c, c.req.query('branch_id') || null);
+  const limit = Math.max(1, Math.min(parseInt(c.req.query('limit') || '10', 10) || 10, 50));
+  const offset = Math.max(0, parseInt(c.req.query('offset') || '0', 10) || 0);
   const [cust] = await db.select().from(customers)
     .where(and(eq(customers.tenantId, tenantId), eq(customers.id, c.req.param('id'))));
   if (!cust) notFound('Customer not found');
+  const orderScope = and(eq(orders.customerId, cust.id), ...(branchId ? [eq(orders.branchId, branchId)] : []));
+  const [{ count }] = await db.select({ count: sql`count(*)` }).from(orders).where(orderScope);
+  const total = Number(count || 0);
+  if (branchId && !total) notFound('Customer not found');
   const orderRows = await db.select().from(orders)
-    .where(and(eq(orders.customerId, cust.id), ...(branchId ? [eq(orders.branchId, branchId)] : []))).orderBy(desc(orders.createdAt));
-  if (branchId && !orderRows.length) notFound('Customer not found');
-  return c.json({ ...cust, orders: orderRows });
+    .where(orderScope).orderBy(desc(orders.createdAt)).limit(limit).offset(offset);
+  return c.json({
+    ...cust,
+    orders: orderRows,
+    orderPage: { rows: orderRows, total, limit, offset },
+  });
 });
 
 customerRoutes.patch('/customers/:id', async (c) => {

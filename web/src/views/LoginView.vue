@@ -46,7 +46,7 @@ async function submit() {
       session.setTokens(pair);
       session.unlock();
       await session.loadMe();
-      toast.success('Karibu! Your laundry is set up with a template catalog — adjust prices in the Service Builder.');
+      toast.success('Welcome! Your laundry is set up with a template catalog — adjust prices in the Service Builder.');
     } else {
       // registration does not sign in — the account activates via email
       const result = await session.register({ ...form.value });

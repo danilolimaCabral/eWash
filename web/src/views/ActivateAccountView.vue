@@ -29,8 +29,8 @@ async function redeem(body) {
   session.unlock();
   await session.loadMe();
   toast.success(invite.value
-    ? `Karibu to ${invite.value.business}! You're all set.`
-    : 'Karibu! Your laundry is live — adjust prices anytime in the Service Builder.');
+    ? `Welcome to ${invite.value.business}! You're all set.`
+    : 'Welcome! Your laundry is live — adjust prices anytime in the Service Builder.');
   router.replace({ name: 'dashboard' });
 }
 
@@ -81,7 +81,7 @@ onMounted(async () => {
 
       <form v-else-if="state === 'set-password'" @submit.prevent="acceptInvite">
         <h2>Join {{ invite.business }}</h2>
-        <p class="muted lead">Karibu {{ invite.name }} — choose the password you'll sign in with as <b>{{ invite.email }}</b>.</p>
+        <p class="muted lead">Welcome, {{ invite.name }} — choose the password you'll sign in with as <b>{{ invite.email }}</b>.</p>
         <FormField label="Password" hint="At least 8 characters"><input v-model="password" type="password" autocomplete="new-password" required minlength="8" /></FormField>
         <FormField label="Confirm password"><input v-model="confirmPassword" type="password" autocomplete="new-password" required minlength="8" /></FormField>
         <p v-if="error" class="error-text">{{ error }}</p>

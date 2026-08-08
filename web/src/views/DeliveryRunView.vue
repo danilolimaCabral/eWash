@@ -6,6 +6,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import ConfirmDialog from '../components/ConfirmDialog.vue';
+import AppIcon from '../components/AppIcon.vue';
 
 const route = useRoute();
 const run = ref(null);
@@ -48,7 +49,7 @@ async function confirmDelivered() {
     </template>
 
     <template v-else-if="state === 'error'">
-      <div class="tag-code small-code">✕</div>
+      <div class="state-icon error-icon"><AppIcon name="alert" :size="46" /></div>
       <p class="dim">This delivery link is not valid.<br />Please check the SMS you received.</p>
     </template>
 
@@ -62,11 +63,11 @@ async function confirmDelivered() {
       </p>
 
       <button v-if="state === 'ready'" class="deliver-btn" :disabled="busy" @click="confirmOpen = true">
-        ✓ Delivered
+        <AppIcon name="check" :size="21" /> Delivered
       </button>
       <div v-else class="done-note">
-        <span class="done-badge">✓ Delivered</span>
-        <p class="dim">Asante! The customer has been notified.</p>
+        <span class="done-badge"><AppIcon name="checkCircle" :size="20" /> Delivered</span>
+        <p class="dim">Thank you! The customer has been notified.</p>
       </div>
     </template>
 
@@ -90,18 +91,21 @@ async function confirmDelivered() {
   font: 800 clamp(56px, 18vw, 120px) var(--font-ui); color: #7ed7c9;
   letter-spacing: 0.06em; line-height: 1.1; margin: 6px 0;
 }
-.small-code { font-size: 56px; }
+.state-icon { display: grid; place-items: center; width: 76px; height: 76px; margin: 6px 0; border-radius: 50%; }
+.error-icon { color: #f2a399; background: rgba(242, 163, 153, 0.1); }
 .who { font-size: 17px; line-height: 1.7; }
 .tel { color: #7ed7c9; font-weight: 700; font-size: 19px; text-decoration: none; }
 .deliver-btn {
   margin-top: 22px; border: none; border-radius: 16px; cursor: pointer;
   background: var(--green); color: #fff; font: 800 20px var(--font-ui);
-  padding: 18px 46px; box-shadow: 0 10px 28px rgba(38, 130, 108, 0.45);
+  display: inline-flex; align-items: center; gap: 8px; padding: 18px 46px;
+  box-shadow: 0 10px 28px rgba(38, 130, 108, 0.45);
 }
 .deliver-btn:disabled { opacity: 0.6; }
 .done-note { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; align-items: center; }
 .done-badge {
   background: rgba(126, 215, 201, 0.15); border: 1px solid #7ed7c9; color: #7ed7c9;
-  font: 800 18px var(--font-ui); padding: 10px 26px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 7px; font: 800 18px var(--font-ui);
+  padding: 10px 26px; border-radius: 999px;
 }
 </style>

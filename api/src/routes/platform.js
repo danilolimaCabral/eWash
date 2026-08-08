@@ -14,7 +14,7 @@ import {
   revokePlatformSession, rotatePlatformSession,
 } from '../platform.js';
 import { ApiError, audit, bad, notFound, now, uid } from '../util.js';
-import { issuePasswordReset } from '../passwordReset.js';
+import { issuePasswordReset, appOrigin } from '../passwordReset.js';
 
 export const platformAuthRoutes = new Hono();
 export const platformRoutes = new Hono();
@@ -451,7 +451,7 @@ platformRoutes.post('/tenants/:id/members', requirePlatformPolicy('platform.tena
   };
   if (member.accessScope === 'branch' && !member.branchId) bad('Branch-scoped users require a branch');
   await db.insert(users).values(member);
-  const emailSent = await issuePasswordReset(db, c.env, member, clientIp(c));
+  const emailSent = await issuePasswordReset(db, c.env, member, appOrigin(c), clientIp(c));
   await platformAudit(db, actor.id, 'tenant_member.create', 'users', member.id, {
     tenantId, payload: { name, email, role: role.name, branch_id: member.branchId, reset_email_sent: emailSent },
   });
@@ -522,7 +522,7 @@ platformRoutes.post('/tenants/:tenantId/members/:userId/reset-password', require
     .where(and(eq(users.id, c.req.param('userId')), eq(users.tenantId, tenantId)));
   if (!member) notFound('Tenant member not found');
   if (member.status !== 'active') bad('Activate the member before sending a password reset');
-  const emailSent = await issuePasswordReset(db, c.env, member, clientIp(c));
+  const emailSent = await issuePasswordReset(db, c.env, member, appOrigin(c), clientIp(c));
   await platformAudit(db, actor.id, 'tenant_member.password_reset', 'users', member.id, {
     tenantId, payload: { email: member.email, email_sent: emailSent },
   });

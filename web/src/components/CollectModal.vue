@@ -13,6 +13,8 @@ import FormField from './FormField.vue';
 import StatusBadge from './StatusBadge.vue';
 import AppIcon from './AppIcon.vue';
 import ComboBox from './ComboBox.vue';
+import AppSelect from './AppSelect.vue';
+import BaseButton from './BaseButton.vue';
 
 const props = defineProps({ orderId: { type: String, required: true } });
 const emit = defineEmits(['close', 'collected']);
@@ -128,8 +130,15 @@ async function handOver() {
 </script>
 
 <template>
-  <Modal :title="order ? `Collect — tag ${order.code}` : 'Collect'" @close="$emit('close')">
+  <Modal :title="order ? `Complete handoff · ${order.code}` : 'Complete handoff'"
+    :subtitle="order ? `${order.customer?.name || 'Customer'} · ${money(order.totalCents, session.currency)}` : 'Loading order information'"
+    :close-on-backdrop="!busy" @close="$emit('close')">
     <div v-if="order">
+      <div class="handoff-steps">
+        <div :class="{ done: paid || creditApproved }"><span>1</span><b>{{ paid ? 'Payment complete' : creditApproved ? 'Credit approved' : 'Settle payment' }}</b></div>
+        <AppIcon name="chevronRight" :size="13" />
+        <div :class="{ done: canHandOver }"><span>2</span><b>Confirm recipient</b></div>
+      </div>
       <div class="collect-head">
         <div class="tag-chip"><AppIcon name="tag" :size="14" />{{ order.code }}</div>
         <div>
@@ -142,10 +151,7 @@ async function handOver() {
         </div>
       </div>
 
-      <div v-for="item in order.items" :key="item.id" class="li-line muted small">
-        {{ item.qty }} {{ item.unit }} · {{ item.serviceName }}<template v-if="item.variantLabel"> ({{ item.variantLabel }})</template>
-        — {{ money(item.lineTotalCents, session.currency) }}
-      </div>
+      <details class="order-items"><summary>{{ order.items.length }} service{{ order.items.length === 1 ? '' : 's' }} in this order</summary><div v-for="item in order.items" :key="item.id" class="li-line muted small">{{ item.qty }} {{ item.unit }} · {{ item.serviceName }}<template v-if="item.variantLabel"> ({{ item.variantLabel }})</template> — {{ money(item.lineTotalCents, session.currency) }}</div></details>
 
       <template v-if="!paid">
         <div v-if="pendingStk" class="stk-wait">
@@ -154,14 +160,14 @@ async function handOver() {
           <button class="btn btn-green btn-sm" :disabled="busy" @click="confirmStk">Confirm received</button>
         </div>
         <template v-else>
-          <label class="field-label" style="margin-top: 12px;">Take payment</label>
+          <div class="flow-title"><span class="flow-icon"><AppIcon name="cash" :size="16" /></span><div><b>Settle the balance</b><small>Record how the customer paid before handoff.</small></div></div>
           <div class="row">
             <FormField label="Method">
-              <select v-model="method">
+              <AppSelect v-model="method">
                 <option value="mpesa_manual">M-Pesa — enter reference</option>
                 <option value="cash">Cash</option>
                 <option value="mpesa_stk" disabled>M-Pesa STK push — Coming soon</option>
-              </select>
+              </AppSelect>
             </FormField>
             <FormField :label="`Amount (${session.currency})`">
               <input v-model.number="amount" type="number" min="1" />
@@ -173,10 +179,7 @@ async function handOver() {
               <input v-model="mpesaRef" type="text" placeholder="e.g. SGH61KXTOP" style="text-transform: uppercase;" />
             </FormField>
           </div>
-          <button class="btn btn-green" :disabled="busy" @click="takePayment">
-            <AppIcon name="cash" :size="14" />
-            Record payment
-          </button>
+          <BaseButton variant="green" icon="cash" :loading="busy" @click="takePayment">Record payment</BaseButton>
         </template>
       </template>
 
@@ -191,6 +194,7 @@ async function handOver() {
 
       <div class="handoff-box" :class="{ locked: !paid && !creditApproved }">
         <div class="handoff-title">
+          <span class="flow-icon"><AppIcon name="user" :size="16" /></span>
           <div>
             <b>Order handoff</b>
             <small>{{ paid ? 'Record who receives the finished order.' : creditApproved ? 'Approved customer credit will be recorded against this order.' : 'Full payment is required before handoff.' }}</small>
@@ -199,10 +203,10 @@ async function handOver() {
         </div>
         <div class="handoff-fields">
           <FormField label="Handoff type">
-            <select v-model="handoffType" :disabled="!paid">
+            <AppSelect v-model="handoffType" :disabled="!paid">
               <option value="pickup">Customer pickup</option>
               <option value="delivery">Taken for delivery</option>
-            </select>
+            </AppSelect>
           </FormField>
           <FormField :label="handoffType === 'pickup' ? 'Collected by' : 'Taken for delivery by'"
             :hint="personHint">
@@ -216,18 +220,21 @@ async function handOver() {
     <div v-else class="muted" style="padding: 16px; text-align: center;">Loading…</div>
 
     <template #footer>
-      <button class="btn btn-ghost" @click="$emit('close')">Close</button>
-      <button v-if="order" class="btn btn-primary" :disabled="!canHandOver" @click="handOver"
+      <BaseButton variant="ghost" :disabled="busy" @click="$emit('close')">Close</BaseButton>
+      <BaseButton v-if="order" icon="check" :loading="busy" :disabled="!canHandOver" @click="handOver"
         :title="!paid && !creditApproved ? 'Full payment is required before pickup' : !collectedByName.trim() ? 'Record who receives the order' : ''">
-        <AppIcon name="check" :size="14" />
         {{ !paid && creditApproved ? 'Complete handoff on credit' : !paid ? 'Payment required before handoff' : 'Complete handoff' }}
-      </button>
+      </BaseButton>
     </template>
   </Modal>
 </template>
 
 <style scoped>
 .collect-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+.handoff-steps { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 13px; padding: 8px; border-radius: 10px; background: #f4f7f6; color: var(--muted); }
+.handoff-steps > div { display: flex; align-items: center; gap: 5px; }
+.handoff-steps span { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #dfe8e6; font-size: 9px; font-weight: 800; }
+.handoff-steps b { font-size: 10px; }.handoff-steps .done { color: var(--brand-dark); }.handoff-steps .done span { background: var(--brand); color: #fff; }
 .tag-chip {
   display: inline-flex; align-items: center; gap: 7px; background: var(--side); color: #7ed7c9;
   font: 800 15px var(--font-ui); letter-spacing: 0.06em; padding: 7px 13px; border-radius: 10px;
@@ -236,12 +243,19 @@ async function handOver() {
 .balance b { display: block; font-size: 18px; font-family: var(--font-ui); }
 .block { display: block; }
 .li-line { padding: 2px 0; }
+.order-items { margin: 9px 0 12px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: #fafcfc; }
+.order-items summary { color: var(--muted); font-size: 10.5px; font-weight: 600; cursor: pointer; }
+.order-items[open] summary { margin-bottom: 5px; }
+.flow-title { display: flex; align-items: center; gap: 8px; margin: 12px 0 9px; }
+.flow-title b, .flow-title small { display: block; }.flow-title b { font-size: 12px; }.flow-title small { color: var(--muted); font-size: 9.5px; }
+.flow-icon { display: grid; place-items: center; flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px; color: var(--brand); background: var(--brand-light); }
 .stk-wait { display: flex; align-items: center; gap: 10px; background: #fdf6ea; border: 1px solid #f0dfc0; border-radius: 10px; padding: 10px 12px; margin-top: 12px; flex-wrap: wrap; }
 .paid-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 .ref { background: #eef2f7; padding: 1px 7px; border-radius: 4px; font-size: 11px; }
 .handoff-box { margin-top: 14px; padding: 11px; border: 1px solid #b9ddd7; border-radius: 10px; background: #f4faf8; }
 .handoff-box.locked { border-color: #f0cbc7; background: #fff8f7; }
 .handoff-title { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 9px; }
+.handoff-title > div { flex: 1; }
 .handoff-title b, .handoff-title small { display: block; }
 .handoff-title b { font-size: 12px; }
 .handoff-title small { color: var(--muted); font-size: 9.5px; }

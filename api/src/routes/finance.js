@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { eq, and, desc, sql, isNull, like, ne, gte, lte } from 'drizzle-orm';
 import {
   expenses, expenseCategories, serviceProviders, orders, payments, branches, customers,
-  billingInvoices, billingInvoiceItems, billingPayments,
+  billingInvoices, billingInvoiceItems, billingPayments, users, roles,
 } from '../db/schema.js';
 import { requirePolicy } from '../middleware.js';
 import { uid, bad, notFound, today, monthOf, audit } from '../util.js';
@@ -157,6 +157,37 @@ financeRoutes.get('/service-providers', requirePolicy('finance.view'), async (c)
   return c.json({ rows, total: Number(count || 0), limit, offset });
 });
 
+// Minimal team directory for linking an internal Rider to a delivery provider.
+// Contact and role data only; finance data never crosses this boundary.
+financeRoutes.get('/service-providers/rider-users', requirePolicy('finance.manage'), async (c) => {
+  const db = c.get('db');
+  const tenantId = c.get('tenant').id;
+  const branchId = scopedBranchId(c);
+  const rows = await db.select({
+    id: users.id,
+    name: users.name,
+    phone: users.phone,
+    email: users.email,
+    branchName: branches.name,
+    linkedProviderId: serviceProviders.id,
+  }).from(users)
+    .innerJoin(roles, eq(roles.id, users.roleId))
+    .leftJoin(branches, eq(branches.id, users.branchId))
+    .leftJoin(serviceProviders, and(
+      eq(serviceProviders.tenantId, tenantId),
+      eq(serviceProviders.userId, users.id),
+    ))
+    .where(and(
+      eq(users.tenantId, tenantId),
+      eq(users.status, 'active'),
+      eq(roles.tenantId, tenantId),
+      eq(roles.name, 'Rider'),
+      ...(branchId ? [eq(users.branchId, branchId)] : []),
+    ))
+    .orderBy(users.name);
+  return c.json(rows);
+});
+
 // Delivery riders for the order-handoff flow: staff advancing orders may not
 // have finance access, so this exposes only active delivery-type providers
 // (name + phone, nothing financial)
@@ -170,19 +201,52 @@ financeRoutes.get('/service-providers/delivery', requirePolicy('orders.advance')
   return c.json(rows);
 });
 
+async function linkedRider(c, userId, providerId = null) {
+  if (!userId) return null;
+  const db = c.get('db');
+  const tenantId = c.get('tenant').id;
+  const branchId = scopedBranchId(c);
+  const [rider] = await db.select({
+    id: users.id, name: users.name, phone: users.phone, email: users.email,
+  }).from(users)
+    .innerJoin(roles, eq(roles.id, users.roleId))
+    .where(and(
+      eq(users.id, String(userId)),
+      eq(users.tenantId, tenantId),
+      eq(users.status, 'active'),
+      eq(roles.tenantId, tenantId),
+      eq(roles.name, 'Rider'),
+      ...(branchId ? [eq(users.branchId, branchId)] : []),
+    ));
+  if (!rider) bad('Choose an active user with the Rider role');
+  const [duplicate] = await db.select({ id: serviceProviders.id }).from(serviceProviders)
+    .where(and(
+      eq(serviceProviders.tenantId, tenantId),
+      eq(serviceProviders.userId, rider.id),
+      ...(providerId ? [ne(serviceProviders.id, providerId)] : []),
+    ));
+  if (duplicate) bad('This rider is already linked to a service provider');
+  return rider;
+}
+
 financeRoutes.post('/service-providers', requirePolicy('finance.manage'), async (c) => {
   const b = await c.req.json();
   const tenantId = c.get('tenant').id;
-  const name = cleanStr(b.name, LIMITS.name, 'Provider name');
   const serviceType = cleanStr(b.service_type, 80, 'Service type');
+  const rider = await linkedRider(c, b.user_id);
+  if (rider && serviceType !== 'Delivery / rider') bad('Team riders can only be linked to delivery providers');
+  const name = cleanStr(b.name, LIMITS.name, 'Provider name') || rider?.name;
   if (!name || !serviceType) bad('Provider name and service type are required');
   const row = {
-    id: uid(), tenantId, name, serviceType,
-    phone: cleanStr(b.phone, LIMITS.phone, 'Phone'), email: cleanStr(b.email, LIMITS.email, 'Email'),
+    id: uid(), tenantId, userId: rider?.id || null, name, serviceType,
+    phone: cleanStr(b.phone, LIMITS.phone, 'Phone') || rider?.phone || null,
+    email: cleanStr(b.email, LIMITS.email, 'Email') || rider?.email || null,
     notes: cleanStr(b.notes, LIMITS.note, 'Notes'), active: 1,
   };
   await c.get('db').insert(serviceProviders).values(row);
-  await audit(c.get('db'), tenantId, c.get('user').id, 'provider.create', 'service_providers', row.id, { name, service_type: serviceType });
+  await audit(c.get('db'), tenantId, c.get('user').id, 'provider.create', 'service_providers', row.id, {
+    name, service_type: serviceType, rider_user_id: row.userId,
+  });
   return c.json(row, 201);
 });
 
@@ -193,10 +257,17 @@ financeRoutes.put('/service-providers/:id', requirePolicy('finance.manage'), asy
   const [existing] = await db.select().from(serviceProviders)
     .where(and(eq(serviceProviders.tenantId, tenantId), eq(serviceProviders.id, c.req.param('id'))));
   if (!existing) bad('Provider not found');
+  const serviceType = cleanStr(b.service_type, 80, 'Service type') || existing.serviceType;
+  const requestedUserId = serviceType === 'Delivery / rider'
+    ? (Object.hasOwn(b, 'user_id') ? (b.user_id || null) : existing.userId)
+    : null;
+  const rider = await linkedRider(c, requestedUserId, existing.id);
   const patch = {
-    name: cleanStr(b.name, LIMITS.name, 'Provider name') || existing.name,
-    serviceType: cleanStr(b.service_type, 80, 'Service type') || existing.serviceType,
-    phone: cleanStr(b.phone, LIMITS.phone, 'Phone'), email: cleanStr(b.email, LIMITS.email, 'Email'),
+    userId: serviceType === 'Delivery / rider' ? rider?.id || null : null,
+    name: cleanStr(b.name, LIMITS.name, 'Provider name') || rider?.name || existing.name,
+    serviceType,
+    phone: cleanStr(b.phone, LIMITS.phone, 'Phone') || rider?.phone || null,
+    email: cleanStr(b.email, LIMITS.email, 'Email') || rider?.email || null,
     notes: cleanStr(b.notes, LIMITS.note, 'Notes'), active: b.active === false ? 0 : 1,
   };
   await db.update(serviceProviders).set(patch).where(eq(serviceProviders.id, existing.id));

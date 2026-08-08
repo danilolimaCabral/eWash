@@ -4,6 +4,7 @@ import DataTable from '../components/DataTable.vue';
 import KpiCard from '../components/KpiCard.vue';
 import Panel from '../components/Panel.vue';
 import StatusBadge from '../components/StatusBadge.vue';
+import AppSelect from '../components/AppSelect.vue';
 import { platformApi } from '../platformApi.js';
 import { money, monthLabel, recentMonths } from '../utils/format.js';
 
@@ -53,10 +54,10 @@ onMounted(() => load());
 
     <Panel title="Revenue by tenant" subtitle="Operational income each business earns through eWash — ranked highest first">
       <template #actions>
-        <select v-model="month" class="filter" @change="load(0)">
+        <AppSelect v-model="month" compact class="filter" @change="load(0)">
           <option value="">All time</option>
           <option v-for="m in months" :key="m" :value="m">{{ monthLabel(m) }}</option>
-        </select>
+        </AppSelect>
       </template>
       <DataTable :columns="columns" :page="{ rows: data.rows, total, limit, offset }" empty-text="No tenant revenue recorded for this period yet." @page="load">
         <template #cell-rank="{ row }">{{ offset + data.rows.indexOf(row) + 1 }}</template>
@@ -73,7 +74,7 @@ onMounted(() => load());
 
 <style scoped>
 .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
-.filter{height:34px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:#fff}
+.filter{width:auto;min-width:160px}
 .foot{font-size:10.5px;margin-top:10px}
 @media(max-width:980px){.kpis{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.kpis{grid-template-columns:1fr}}

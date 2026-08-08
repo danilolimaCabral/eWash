@@ -10,6 +10,8 @@ import { enforceRateLimit, clientIp } from '../ratelimit.js';
 import { cleanStr, checkPassword, LIMITS } from '../security.js';
 import { issueSession, refreshSession, revokeSession } from '../session.js';
 import { issuePasswordReset, issueAccountActivation, passwordResetTokenHash, appOrigin } from '../passwordReset.js';
+import { findEmailChangeToken } from '../account.js';
+import { cacheDelete, authCacheKey } from '../cache.js';
 
 export const authRoutes = new Hono();
 const genericResetMessage = 'If an account exists for that email, a password reset link has been sent.';
@@ -236,6 +238,45 @@ authRoutes.post('/reset-password', async (c) => {
   return c.json({ ok: true });
 });
 
+// Email-change links require an explicit confirmation click. Inspecting the
+// link never consumes it, so inbox security scanners cannot change an account.
+authRoutes.post('/email-change/inspect', async (c) => {
+  const db = getDb(c.env);
+  await enforceRateLimit(db, `email-change-inspect:ip:${clientIp(c)}`, 20 * rlMult(c), 900,
+    'Too many verification attempts — please try again later');
+  const { token } = await c.req.json();
+  const { row, user } = await findEmailChangeToken(db, token);
+  return c.json({ name: user.name, email: row.targetEmail });
+});
+
+authRoutes.post('/email-change/confirm', async (c) => {
+  const db = getDb(c.env);
+  await enforceRateLimit(db, `email-change-confirm:ip:${clientIp(c)}`, 10 * rlMult(c), 900,
+    'Too many verification attempts — please try again later');
+  const { token } = await c.req.json();
+  const { row, user } = await findEmailChangeToken(db, token);
+  const [conflict] = await db.select({ id: users.id }).from(users)
+    .where(and(eq(users.email, row.targetEmail), ne(users.id, user.id)));
+  if (conflict) bad('That email is now used by another account');
+
+  const consumed = await db.update(passwordResetTokens).set({ usedAt: now() })
+    .where(and(eq(passwordResetTokens.id, row.id), isNull(passwordResetTokens.usedAt)))
+    .returning({ id: passwordResetTokens.id });
+  if (!consumed.length) bad('Invalid or expired email verification link');
+  await db.update(users).set({ email: row.targetEmail, pendingEmail: null }).where(eq(users.id, user.id));
+  await db.update(passwordResetTokens).set({ usedAt: now() }).where(and(
+    eq(passwordResetTokens.userId, user.id),
+    eq(passwordResetTokens.purpose, 'email_change'),
+    isNull(passwordResetTokens.usedAt),
+  ));
+  await db.update(sessions).set({ revokedAt: now() }).where(eq(sessions.userId, user.id));
+  cacheDelete(authCacheKey(user.id));
+  await audit(db, user.tenantId, user.id, 'user.email_change', 'users', user.id, {
+    before: user.email, after: row.targetEmail,
+  });
+  return c.json({ ok: true, email: row.targetEmail });
+});
+
 // Rotate the refresh token → fresh access + refresh pair. Reuse of an old
 // refresh token revokes the session (theft detection).
 authRoutes.post('/refresh', async (c) => {
@@ -295,7 +336,8 @@ export async function meHandler(c) {
   );
   return c.json({
     user: {
-      id: user.id, name: user.name, email: user.email, phone: user.phone, branchId: user.branchId,
+      id: user.id, name: user.name, email: user.email, pendingEmail: user.pendingEmail,
+      phone: user.phone, branchId: user.branchId,
       accessScope: user.accessScope,
       // google-only / not-yet-accepted-invite accounts have no usable password
       // (lock screen adapts)

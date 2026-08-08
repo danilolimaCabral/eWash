@@ -165,7 +165,7 @@ const columns = [
       </Panel>
     </div>
 
-    <Modal v-if="notifAllOpen" title="All notifications" wide @close="notifAllOpen = false">
+    <Modal v-if="notifAllOpen" title="All notifications" subtitle="Recent customer and delivery messages sent by the business" wide @close="notifAllOpen = false">
       <Skeleton v-if="!notifPage" variant="list" :count="5" />
       <template v-else>
         <div v-if="notifPage.rows.length" class="notif-list">
@@ -203,7 +203,9 @@ const columns = [
 .cust { display: flex; align-items: center; gap: 9px; }
 .block { display: block; }
 .notif-list { display: flex; flex-direction: column; gap: 12px; }
-.notif p { font-size: 11.5px; margin: 5px 0 2px; color: #45535a; }
+/* SMS bodies can contain long unbroken URLs (rider confirm links) — allow
+   them to break anywhere so they never overflow the panel */
+.notif p { font-size: 11.5px; margin: 5px 0 2px; color: #45535a; overflow-wrap: anywhere; }
 .all-row { border-bottom: 1px solid #f0f4f3; padding-bottom: 10px; }
 .all-row:last-child { border-bottom: 0; }
 .all-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }

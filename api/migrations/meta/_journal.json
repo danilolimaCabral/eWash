@@ -85,6 +85,27 @@
       "when": 1784486498347,
       "tag": "0011_delivery-confirmation",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1786201684492,
+      "tag": "0012_user-email-verification",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1786201798452,
+      "tag": "0013_email-change-token-binding",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1786206007489,
+      "tag": "0014_provider-rider-link",
+      "breakpoints": true
     }
   ]
 }

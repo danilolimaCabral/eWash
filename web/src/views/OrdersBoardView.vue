@@ -46,6 +46,11 @@ const byStage = computed(() =>
 const services = (o) => (o.itemsDetail || o.itemSummary || '').split('|').filter(Boolean);
 
 async function advance(order) {
+  if (!order.confirmedAt) {
+    toast.error('Confirm this order before moving it through the pipeline');
+    openOrderId.value = order.id;
+    return;
+  }
   if (order.status === 'ready') {
     collectingOrderId.value = order.id;
     return;
@@ -67,7 +72,7 @@ async function advance(order) {
     <div class="section-head">
       <div>
         <h2>Orders Pipeline</h2>
-        <p>Tap ▶ to advance an order. Customers are notified automatically at “Ready”.</p>
+        <p>Use the arrow button to advance an order. Customers are notified automatically at “Ready”.</p>
       </div>
       <div class="head-actions">
         <input v-model="q" type="search" placeholder="Search code, name, phone…" style="width: 220px;" />
@@ -97,7 +102,7 @@ async function advance(order) {
               v-if="col.stage !== 'delivered' && session.can('orders.advance')"
               class="btn btn-primary btn-sm" :disabled="busyId === c.id"
               @click.stop="advance(c)"
-            >▶ {{ ORDER_STATUS_LABELS[STAGES[STAGES.indexOf(col.stage) + 1]] }}</button>
+            ><AppIcon name="chevronRight" :size="13" /> {{ ORDER_STATUS_LABELS[STAGES[STAGES.indexOf(col.stage) + 1]] }}</button>
             <StatusBadge v-else-if="col.stage === 'delivered'" status="delivered" label="closed" />
           </div>
         </div>

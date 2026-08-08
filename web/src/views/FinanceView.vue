@@ -18,6 +18,9 @@ import Modal from '../components/Modal.vue';
 import EmptyState from '../components/EmptyState.vue';
 import OrderDetailModal from '../components/OrderDetailModal.vue';
 import ConfirmDialog from '../components/ConfirmDialog.vue';
+import AppSelect from '../components/AppSelect.vue';
+import BaseButton from '../components/BaseButton.vue';
+import ComboBox from '../components/ComboBox.vue';
 
 
 const session = useSession();
@@ -61,14 +64,53 @@ async function loadProviders(nextOffset = 0) {
     provPage.value = await api.get(`/service-providers?limit=${PAGE_LIMIT}&offset=${nextOffset}`);
   } catch (e) { toast.error(e.message); }
 }
-const providerForm = ref({ id: '', name: '', service_type: '', phone: '', email: '', notes: '', active: true });
+const blankProvider = () => ({ id: '', user_id: '', rider_query: '', name: '', service_type: '', phone: '', email: '', notes: '', active: true });
+const providerForm = ref(blankProvider());
+const riderUsers = ref(null);
+const riderUsersLoading = ref(false);
 // keep a legacy free-text type selectable when editing an older provider
 const providerTypeOptions = computed(() =>
   providerForm.value.service_type && !PROVIDER_TYPES.includes(providerForm.value.service_type)
     ? [providerForm.value.service_type, ...PROVIDER_TYPES]
     : PROVIDER_TYPES);
 const providerModal = ref(false);
+const riderOptions = computed(() => (riderUsers.value || [])
+  .filter((rider) => !rider.linkedProviderId || rider.linkedProviderId === providerForm.value.id)
+  .map((rider) => ({
+    id: rider.id,
+    label: rider.name,
+    sub: [rider.phone || 'No phone', rider.branchName].filter(Boolean).join(' · '),
+    phone: rider.phone || '',
+    email: rider.email || '',
+  })));
 const openOrderId = ref(null);
+
+async function loadRiderUsers() {
+  if (riderUsers.value || riderUsersLoading.value) return;
+  riderUsersLoading.value = true;
+  try { riderUsers.value = await api.get('/service-providers/rider-users'); }
+  catch (error) { toast.error(error.message); riderUsers.value = []; }
+  finally { riderUsersLoading.value = false; }
+}
+watch(() => providerForm.value.service_type, (type) => {
+  if (type === 'Delivery / rider') loadRiderUsers();
+  else {
+    providerForm.value.user_id = '';
+    providerForm.value.rider_query = '';
+  }
+});
+function selectRider(rider) {
+  providerForm.value.user_id = rider.id;
+  providerForm.value.rider_query = rider.label;
+  providerForm.value.name = rider.label;
+  providerForm.value.phone = rider.phone;
+  providerForm.value.email = rider.email;
+}
+function riderQueryChanged(value) {
+  providerForm.value.rider_query = value;
+  const selected = riderOptions.value.find((rider) => rider.id === providerForm.value.user_id);
+  if (!selected || selected.label !== value) providerForm.value.user_id = '';
+}
 
 // record a payment against an owing order (credit tab) — reuses the same
 // policy-guarded endpoint the order view uses
@@ -94,7 +136,7 @@ async function savePayment() {
       amount_cents: Math.round(payForm.value.amount * 100),
       mpesa_ref: payForm.value.mpesa_ref || undefined,
     });
-    toast.success('Payment recorded ✔ — the customer gets a receipt message');
+    toast.success('Payment recorded — the customer gets a receipt message');
     payModal.value = false;
     await load();
   } catch (e) { toast.error(e.message); }
@@ -201,7 +243,7 @@ async function saveExpense() {
     };
     if (editingExpenseId.value) await api.put(`/expenses/${editingExpenseId.value}`, payload);
     else await api.post('/expenses', payload);
-    toast.success(editingExpenseId.value ? 'Expense updated — change recorded in the audit log' : 'Expense saved ✔ — your books are updated' + (exForm.value.recurring ? ' · will be added automatically every month' : ''));
+    toast.success(editingExpenseId.value ? 'Expense updated — change recorded in the audit log' : 'Expense saved — your books are updated' + (exForm.value.recurring ? ' · will be added automatically every month' : ''));
     editingExpenseId.value = null;
     exModal.value = false;
     exForm.value = blankExpense();
@@ -246,10 +288,10 @@ async function voidExpense() {
 async function saveProvider() {
   busy.value = true;
   try {
-    const payload = { ...providerForm.value };
+    const { rider_query: _riderQuery, ...payload } = providerForm.value;
     if (payload.id) await api.put(`/service-providers/${payload.id}`, payload);
     else await api.post('/service-providers', payload);
-    providerForm.value = { id: '', name: '', service_type: '', phone: '', email: '', notes: '', active: true };
+    providerForm.value = blankProvider();
     providerModal.value = false;
     toast.success('Service provider saved');
     await load();
@@ -258,11 +300,15 @@ async function saveProvider() {
 }
 
 function openAddProvider() {
-  providerForm.value = { id: '', name: '', service_type: '', phone: '', email: '', notes: '', active: true };
+  providerForm.value = blankProvider();
   providerModal.value = true;
 }
 function editProvider(row) {
-  providerForm.value = { id: row.id, name: row.name, service_type: row.serviceType, phone: row.phone || '', email: row.email || '', notes: row.notes || '', active: !!row.active };
+  providerForm.value = {
+    id: row.id, user_id: row.userId || '', rider_query: row.userId ? row.name : '',
+    name: row.name, service_type: row.serviceType, phone: row.phone || '', email: row.email || '',
+    notes: row.notes || '', active: !!row.active,
+  };
   providerModal.value = true;
 }
 
@@ -322,9 +368,9 @@ const provColumns = [
         <p>Owner only · Money is counted once an order is <b>finished</b> (delivered or collected)</p>
       </div>
       <div class="head-actions">
-        <select v-model="month" style="width: 170px;" @change="load">
+        <AppSelect v-model="month" compact style="width: 170px;" @change="load">
           <option v-for="m in months" :key="m" :value="m">{{ monthLabel(m) }}</option>
-        </select>
+        </AppSelect>
         <button class="btn btn-ghost" @click="exportCsv">Export CSV</button>
       </div>
     </div>
@@ -411,10 +457,10 @@ const provColumns = [
       subtitle="Everything the business paid for in this period">
       <template #actions>
         <div class="ex-filter">
-          <select v-model="exFilter.mode" @change="loadExpenses(0)">
+          <AppSelect v-model="exFilter.mode" compact @change="loadExpenses(0)">
             <option value="month">By month</option>
             <option value="range">Pick dates</option>
-          </select>
+          </AppSelect>
           <template v-if="exFilter.mode === 'range'">
             <DatePicker v-model="exFilter.from" placeholder="From" class="dp-filter" @change="loadExpenses(0)" />
             <span class="muted small">to</span>
@@ -446,12 +492,12 @@ const provColumns = [
       </DataTable>
     </Panel>
 
-    <Modal v-if="exModal" :title="editingExpenseId ? 'Edit expense' : 'Add expense'" @close="closeExpenseModal">
+    <Modal v-if="exModal" :title="editingExpenseId ? 'Edit expense' : 'Add expense'" subtitle="Record what was spent, when, and how it was paid." @close="closeExpenseModal">
       <div class="row">
         <FormField label="Category">
-          <select v-model="exForm.category_id">
+          <AppSelect v-model="exForm.category_id">
             <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-          </select>
+          </AppSelect>
         </FormField>
         <FormField :label="`Amount (${session.currency})`">
           <input v-model.number="exForm.amount" type="number" min="1" />
@@ -460,15 +506,15 @@ const provColumns = [
       <div class="row">
         <FormField label="Date"><DatePicker v-model="exForm.expense_date" /></FormField>
         <FormField label="Paid via">
-          <select v-model="exForm.paid_via">
+          <AppSelect v-model="exForm.paid_via">
             <option value="mpesa">M-Pesa</option>
             <option value="cash">Cash</option>
-          </select>
+          </AppSelect>
         </FormField>
       </div>
       <div class="row">
         <FormField label="Service provider (optional)">
-          <select v-model="exForm.provider_id"><option value="">None</option><option v-for="p in providers.filter((x) => x.active)" :key="p.id" :value="p.id">{{ p.name }}</option></select>
+          <AppSelect v-model="exForm.provider_id"><option value="">None</option><option v-for="p in providers.filter((x) => x.active)" :key="p.id" :value="p.id">{{ p.name }}</option></AppSelect>
         </FormField>
         <FormField label="Note"><input v-model="exForm.note" type="text" placeholder="e.g. 20L detergent, Sarit" /></FormField>
       </div>
@@ -517,36 +563,49 @@ const provColumns = [
       </DataTable>
     </Panel>
 
-    <Modal v-if="providerModal" :title="providerForm.id ? 'Edit provider' : 'Add service provider'" @close="providerModal = false">
-      <div class="row"><FormField label="Name"><input v-model="providerForm.name" type="text" /></FormField><FormField label="What they supply">
-          <select v-model="providerForm.service_type">
-            <option disabled value="">Choose a service type…</option>
-            <option v-for="t in providerTypeOptions" :key="t" :value="t">{{ t }}</option>
-          </select>
-        </FormField></div>
-      <div class="row"><FormField label="Phone"><input v-model="providerForm.phone" type="tel" /></FormField><FormField label="Email"><input v-model="providerForm.email" type="email" /></FormField></div>
+    <Modal v-if="providerModal" :title="providerForm.id ? 'Edit provider' : 'Add service provider'"
+      subtitle="Keep supplier and delivery contacts available for expenses and order handoffs." @close="providerModal = false">
+      <FormField label="What they supply">
+        <AppSelect v-model="providerForm.service_type">
+          <option disabled value="">Choose a service type…</option>
+          <option v-for="t in providerTypeOptions" :key="t" :value="t">{{ t }}</option>
+        </AppSelect>
+      </FormField>
+      <section v-if="providerForm.service_type === 'Delivery / rider'" class="rider-link-card">
+        <div class="rider-link-head"><span><AppIcon name="customers" :size="16" /></span><div><h4>Link a team rider</h4><p>Choose an active user with the Rider role to pull in their contact details.</p></div></div>
+        <FormField label="Team rider (optional)" hint="Leave blank when this is an external delivery provider.">
+          <ComboBox :model-value="providerForm.rider_query" :items="riderOptions" :loading="riderUsersLoading"
+            :allow-create="false" placeholder="Search active riders…" @update:model-value="riderQueryChanged" @select="selectRider" />
+        </FormField>
+        <p v-if="!riderUsersLoading && riderUsers && !riderOptions.length" class="rider-empty">
+          No available Rider users. Add or assign the Rider role under Users &amp; Roles first.
+        </p>
+        <p v-else-if="providerForm.user_id" class="rider-linked"><AppIcon name="checkCircle" :size="13" /> Linked to this team user</p>
+      </section>
+      <div class="row"><FormField label="Name"><input v-model="providerForm.name" type="text" /></FormField><FormField label="Phone"><input v-model="providerForm.phone" type="tel" /></FormField></div>
+      <FormField label="Email"><input v-model="providerForm.email" type="email" /></FormField>
       <FormField label="Notes"><input v-model="providerForm.notes" type="text" /></FormField>
       <template #footer>
-        <button class="btn btn-ghost" @click="providerModal = false">Cancel</button>
-        <button class="btn btn-primary" :disabled="busy" @click="saveProvider">Save provider</button>
+        <BaseButton variant="ghost" :disabled="busy" @click="providerModal = false">Cancel</BaseButton>
+        <BaseButton :loading="busy" :disabled="!providerForm.name.trim() || !providerForm.service_type" @click="saveProvider">Save provider</BaseButton>
       </template>
     </Modal>
 
-    <Modal v-if="payModal" title="Record a payment" @close="payModal = false">
+    <Modal v-if="payModal" title="Record a payment" subtitle="Choose the order, amount received, and payment method." @close="payModal = false">
       <FormField label="Order" hint="Who is paying, and for which order">
-        <select v-model="payForm.order_id" @change="payOrderChanged">
+        <AppSelect v-model="payForm.order_id" @change="payOrderChanged">
           <option v-for="r in owing" :key="r.orderId" :value="r.orderId">
             {{ r.code }} · {{ r.customerName }} — owes {{ money(r.totalCents - r.paidCents, session.currency) }}
           </option>
-        </select>
+        </AppSelect>
       </FormField>
       <div class="row">
         <FormField :label="`Amount (${session.currency})`"><input v-model.number="payForm.amount" type="number" min="1" /></FormField>
         <FormField label="Paid via">
-          <select v-model="payForm.method">
+          <AppSelect v-model="payForm.method">
             <option value="cash">Cash</option>
             <option value="mpesa_manual">M-Pesa (enter code)</option>
-          </select>
+          </AppSelect>
         </FormField>
       </div>
       <FormField v-if="payForm.method === 'mpesa_manual'" label="M-Pesa transaction code">
@@ -561,14 +620,14 @@ const provColumns = [
     <Panel v-if="activeTab === 'billing'" title="Your eWash bill"
       subtitle="Invoices for your eWash subscription — what you've been billed, what you've paid, and what's still to pay. Paid invoices are added to your expenses automatically.">
       <template #actions>
-        <select v-model="billingStatus" @change="loadBilling(0)">
+        <AppSelect v-model="billingStatus" compact @change="loadBilling(0)">
           <option value="">All invoices</option>
           <option value="issued">Issued</option>
           <option value="partially_paid">Partially paid</option>
           <option value="paid">Paid</option>
           <option value="overdue">Overdue</option>
           <option value="void">Void</option>
-        </select>
+        </AppSelect>
       </template>
       <template v-if="!billing || billing.rows.length">
         <DataTable :columns="billingColumns" :page="billing" clickable @page="loadBilling" @row-click="openInvoice">
@@ -593,7 +652,7 @@ const provColumns = [
         :hint="billingStatus ? 'Nothing matches this status filter.' : 'Invoices from your eWash subscription will appear here once issued.'" />
     </Panel>
 
-    <Modal v-if="billingDetail" :title="`Invoice ${billingDetail.invoice.number}`" wide @close="billingDetail = null">
+    <Modal v-if="billingDetail" :title="`Invoice ${billingDetail.invoice.number}`" subtitle="Invoice charges, payments, and outstanding balance" wide @close="billingDetail = null">
       <template #header-extra><StatusBadge :status="billingDetail.invoice.status" kind="generic" /></template>
       <div class="inv-meta">
         <div><span>Billing period</span><b v-if="billingDetail.invoice.periodStart">{{ dateOnly(billingDetail.invoice.periodStart) }} → {{ dateOnly(billingDetail.invoice.periodEnd) }}</b><b v-else>—</b></div>
@@ -662,6 +721,9 @@ const provColumns = [
 .ex-filter .dp-filter { width: 138px; }
 .rec-check { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 4px 0 12px; }
 .rec-check input { width: auto; }
+.rider-link-card { padding: 12px; margin: 11px 0 12px; border: 1px solid #bcd8d4; border-radius: var(--radius-md); background: var(--surface-subtle); }
+.rider-link-head { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 10px; }.rider-link-head > span { width: 30px; height: 30px; display: grid; place-items: center; flex-shrink: 0; border-radius: var(--radius-sm); background: var(--brand-light); color: var(--brand); }.rider-link-head h4 { font-size: 12px; }.rider-link-head p { color: var(--muted); font-size: 10px; }
+.rider-empty { padding: 8px; border-radius: var(--radius-sm); background: var(--surface-muted); color: var(--muted); font-size: 10.5px; }.rider-linked { display: flex; align-items: center; gap: 5px; margin-top: 7px; color: var(--green); font-size: 10.5px; font-weight: 600; }
 .block { display: block; }
 .inv { letter-spacing: 0.04em; color: var(--brand-dark); }
 .inv-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }

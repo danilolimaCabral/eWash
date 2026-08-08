@@ -3,12 +3,14 @@
 // items: [{ id, label, sub }]. Emits select(item) and create(query).
 import { ref, computed } from 'vue';
 import Avatar from './Avatar.vue';
+import AppIcon from './AppIcon.vue';
 
 const props = defineProps({
   items: { type: Array, required: true },
   placeholder: { type: String, default: 'Type to search…' },
   allowCreate: { type: Boolean, default: true },
   modelValue: { type: String, default: '' },
+  loading: { type: Boolean, default: false },
 });
 const emit = defineEmits(['update:modelValue', 'select', 'create']);
 
@@ -44,26 +46,28 @@ function blur() {
 
 <template>
   <div class="combo">
-    <input
-      v-model="query" type="text" :placeholder="placeholder" autocomplete="off"
-      @focus="open = true" @input="open = true" @blur="blur"
-    />
+    <span class="combo-search"><AppIcon name="search" :size="14" /></span>
+    <input v-model="query" type="text" :placeholder="placeholder" autocomplete="off"
+      @focus="open = true" @input="open = true" @blur="blur" />
     <div v-if="open" class="combo-list">
+      <div v-if="loading" class="combo-loading">Searching…</div>
       <div v-for="item in hits" :key="item.id" class="combo-item" @mousedown.prevent="pick(item)">
         <Avatar :name="item.label" :size="24" />
         <span>{{ item.label }}</span>
         <small v-if="item.sub">{{ item.sub }}</small>
       </div>
       <div v-if="allowCreate && query.trim()" class="combo-item combo-new" @mousedown.prevent="create">
-        ＋ Add “{{ query.trim() }}” as a new customer
+        <AppIcon name="plus" :size="14" /> Add “{{ query.trim() }}” as a new customer
       </div>
-      <div v-if="!hits.length && !(allowCreate && query.trim())" class="combo-empty">No matches</div>
+      <div v-if="!loading && !hits.length && !(allowCreate && query.trim())" class="combo-empty">No matches</div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .combo { position: relative; }
+.combo > input { padding-left: 32px; }
+.combo-search { position: absolute; left: 10px; top: 50%; z-index: 1; display: grid; place-items: center; color: var(--muted); transform: translateY(-50%); pointer-events: none; }
 .combo-list {
   position: absolute; top: 100%; left: 0; right: 0; z-index: 40; background: #fff;
   border: 1px solid var(--line); border-radius: 10px;
@@ -74,4 +78,5 @@ function blur() {
 .combo-item small { color: var(--muted); margin-left: auto; padding-left: 10px; }
 .combo-new { color: var(--brand); font-weight: 700; border-top: 1px solid var(--line); }
 .combo-empty { padding: 10px 12px; color: var(--muted); font-size: 12px; }
+.combo-loading { padding: 7px 12px; color: var(--muted); font-size: 10.5px; border-bottom: 1px solid var(--line); }
 </style>

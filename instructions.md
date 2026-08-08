@@ -2,7 +2,8 @@
 
 Every task in this repository — feature, fix, refactor, doc — follows this
 loop. No exceptions, no shortcuts, regardless of how small the task looks.
-Rules of conduct are in `AGENTS.md`; architecture in `CLAUDE.md`.
+Rules of conduct are in `AGENTS.md`; architecture in `CLAUDE.md`; mandatory
+interface principles and the UI review checklist are in `UX_UI.md`.
 
 ## The loop: Understand → Investigate → Plan → Review → Implement → Verify → Review
 

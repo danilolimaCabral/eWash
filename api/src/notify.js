@@ -9,15 +9,15 @@ import { notifications } from './db/schema.js';
 // {business} merge field — never with the eWash platform name.
 export const DEFAULT_TEMPLATES = {
   quote_ready:
-    '{business}: Hello {customer}, order {order_code} assessed: {items}. Total {total}. Pay by M-Pesa or cash when you pick up. Karibu!',
+    '{business}: Hello {customer}, order {order_code} assessed: {items}. Total {total}. Pay by M-Pesa or cash when you pick up. Thank you for choosing us!',
   payment_received:
-    '{business}: Payment of {amount} received for order {order_code}. Balance: {balance}. Asante!',
+    '{business}: Payment of {amount} received for order {order_code}. Balance: {balance}. Thank you!',
   order_ready:
-    '{business}: Hello {customer}, your order {order_code} is ready for pickup. {balance_note}Karibu!',
+    '{business}: Hello {customer}, your order {order_code} is ready for pickup. {balance_note}Thank you!',
   order_delivered:
     '{business}: Order {order_code} delivered/collected. Thank you for choosing us, {customer}!',
   payment_reminder:
-    '{business}: Friendly reminder — order {order_code} is ready and has a balance of {balance}. Pay via M-Pesa to collect. Asante!',
+    '{business}: Friendly reminder — order {order_code} is ready and has a balance of {balance}. Pay via M-Pesa to collect. Thank you!',
   delivery_dispatch:
     '{business}: Deliver order {order_code} to {customer} ({phone}). When handed over, confirm here: {link}',
 };

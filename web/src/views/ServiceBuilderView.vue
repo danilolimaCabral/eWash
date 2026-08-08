@@ -1,462 +1,353 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { api } from '../api.js';
+import { useCatalog } from '../stores/catalog.js';
 import { useSession } from '../stores/session.js';
 import { useToast } from '../stores/toast.js';
-import { useCatalog } from '../stores/catalog.js';
 import { money } from '../utils/format.js';
-import Panel from '../components/Panel.vue';
-import FormField from '../components/FormField.vue';
 import AppIcon from '../components/AppIcon.vue';
-import ToggleSwitch from '../components/ToggleSwitch.vue';
-import Modal from '../components/Modal.vue';
+import AppSelect from '../components/AppSelect.vue';
+import BaseButton from '../components/BaseButton.vue';
 import ConfirmDialog from '../components/ConfirmDialog.vue';
+import EmptyState from '../components/EmptyState.vue';
+import FormField from '../components/FormField.vue';
+import Modal from '../components/Modal.vue';
+import Pagination from '../components/Pagination.vue';
+import Panel from '../components/Panel.vue';
+import ServiceEditor from '../components/ServiceEditor.vue';
+import Skeleton from '../components/Skeleton.vue';
 
+const DIRECTORY_LIMIT = 16;
 const session = useSession();
 const toast = useToast();
+const catalogStore = useCatalog();
 
 const catalog = ref({ categories: [], services: [] });
-const selectedId = ref(null); // null = new service
+const directory = ref({ rows: [], total: 0, limit: DIRECTORY_LIMIT, offset: 0 });
+const directoryLoading = ref(true);
+const directoryError = ref('');
+const selectedId = ref(null);
+const editorOpen = ref(false);
+const compact = ref(false);
 const busy = ref(false);
 const previewQty = ref(7);
-
-const MODELS = [
-  { key: 'PER_KG', label: 'Per KG', icon: 'scale' },
-  { key: 'PER_ITEM', label: 'Per Item', icon: 'shirt' },
-  { key: 'FLAT', label: 'Flat', icon: 'box' },
-  { key: 'TIERED', label: 'Tiered', icon: 'tiers' },
-];
+const filters = ref({ q: '', category: '', status: 'active' });
+const savedSnapshot = ref('');
+const pendingAction = ref(null);
+const retireOpen = ref(false);
+const catModal = ref({ open: false, name: '', error: '' });
+let searchTimer;
+let mediaQuery;
 
 const blank = () => ({
   name: '', category_id: '', pricing_model: 'PER_KG',
   base_rate: 0, min_charge: 0, express_pct: 50, active: 1,
-  variants: [], tiers: [],
-  attach: {}, // parentServiceId -> { on, override (KES or ''), inherit }
+  variants: [], tiers: [], attach: {},
 });
 const form = ref(blank());
-const riderOpen = ref(false); // add-on section starts collapsed unless the service has riders
-// on small screens the editor opens as a full-screen sheet instead of
-// rendering below the list (CSS-only on desktop — this flag has no effect there)
-const editorOpen = ref(false);
+const snapshot = () => JSON.stringify(form.value);
+const dirty = computed(() => snapshot() !== savedSnapshot.value);
+const categoryNames = computed(() => new Map(catalog.value.categories.map((category) => [category.id, category.name])));
+const activeServices = computed(() => catalog.value.services
+  .filter((service) => service.active && service.id !== selectedId.value)
+  .map((service) => ({ ...service, categoryName: categoryNames.value.get(service.categoryId) || 'Service' })));
+const selectedService = computed(() => catalog.value.services.find((service) => service.id === selectedId.value));
+const editorTitle = computed(() => selectedId.value ? (form.value.name || 'Edit service') : 'New service');
 
-const catalogStore = useCatalog();
-async function load(keepSelection = true) {
-  try {
-    catalog.value = await catalogStore.load(true);
-    if (!keepSelection || !selectedId.value) {
-      selectedId.value = catalog.value.services[0]?.id ?? null;
+const preview = computed(() => {
+  const current = form.value;
+  const qty = previewQty.value || 1;
+  const unit = current.pricing_model === 'PER_KG' ? 'kg' : current.pricing_model === 'PER_ITEM' ? 'items' : 'order';
+  let amount;
+  if (current.pricing_model === 'FLAT') amount = +current.base_rate || 0;
+  else if (current.pricing_model === 'TIERED') {
+    const band = current.tiers.find((tier) => qty >= (+tier.min_qty || 0) && (tier.max_qty === '' || qty <= +tier.max_qty));
+    amount = band ? (band.band_price !== '' ? +band.band_price : (+band.rate || +current.base_rate) * qty) : (+current.base_rate || 0) * qty;
+  } else {
+    let rate = +current.base_rate || 0;
+    if (current.pricing_model === 'PER_KG') {
+      const tier = current.tiers.find((item) => qty >= (+item.min_qty || 0) && (item.max_qty === '' || qty <= +item.max_qty) && item.rate !== '');
+      if (tier) rate = +tier.rate;
     }
-    if (selectedId.value) fillForm(selectedId.value);
-    else startNew();
-  } catch (e) { toast.error(e.message); }
-}
-onMounted(() => load(false));
+    amount = rate * qty;
+  }
+  const minHit = +current.min_charge > 0 && amount < +current.min_charge;
+  if (minHit) amount = +current.min_charge;
+  const override = Object.values(current.attach).find((item) => item.on && item.override !== '');
+  return {
+    amount, minHit, unit, qty,
+    express: amount * (1 + (+current.express_pct || 0) / 100),
+    bundled: override ? +override.override * (current.pricing_model === 'FLAT' ? 1 : qty) : null,
+  };
+});
 
-const activeServices = computed(() => catalog.value.services.filter((s) => s.active));
-const attachParents = computed(() =>
-  activeServices.value.filter((s) => s.id !== selectedId.value));
-const riderParentCount = computed(() =>
-  Object.values(form.value.attach).filter((a) => a.on).length);
+function initializeAttach() {
+  const attach = {};
+  for (const service of catalog.value.services) attach[service.id] = { on: false, override: '', inherit: true };
+  return attach;
+}
 
 function fillForm(id) {
-  const s = catalog.value.services.find((x) => x.id === id);
-  if (!s) return;
-  selectedId.value = id;
-  const attach = {};
-  for (const p of catalog.value.services) {
-    const rule = s.attachableTo.find((r) => r.parentServiceId === p.id);
-    attach[p.id] = rule
-      ? { on: true, override: rule.overrideRateCents != null ? rule.overrideRateCents / 100 : '', inherit: !!rule.inheritQty }
-      : { on: false, override: '', inherit: true };
+  const service = catalog.value.services.find((item) => item.id === id);
+  if (!service) return;
+  const attach = initializeAttach();
+  for (const rule of service.attachableTo) {
+    attach[rule.parentServiceId] = {
+      on: true,
+      override: rule.overrideRateCents != null ? rule.overrideRateCents / 100 : '',
+      inherit: !!rule.inheritQty,
+    };
   }
+  selectedId.value = id;
   form.value = {
-    name: s.name, category_id: s.categoryId, pricing_model: s.pricingModel,
-    base_rate: s.baseRateCents / 100, min_charge: s.minChargeCents / 100,
-    express_pct: s.expressPct, active: s.active,
-    variants: s.variants.map((v) => ({ label: v.label, price: v.priceCents / 100 })),
-    tiers: s.tiers.map((t) => ({
-      min_qty: t.minQty, max_qty: t.maxQty ?? '',
-      rate: t.rateCents != null ? t.rateCents / 100 : '',
-      band_price: t.bandPriceCents != null ? t.bandPriceCents / 100 : '',
+    name: service.name,
+    category_id: service.categoryId,
+    pricing_model: service.pricingModel,
+    base_rate: service.baseRateCents / 100,
+    min_charge: service.minChargeCents / 100,
+    express_pct: service.expressPct,
+    active: service.active,
+    variants: service.variants.map((variant) => ({ label: variant.label, price: variant.priceCents / 100 })),
+    tiers: service.tiers.map((tier) => ({
+      min_qty: tier.minQty,
+      max_qty: tier.maxQty ?? '',
+      rate: tier.rateCents != null ? tier.rateCents / 100 : '',
+      band_price: tier.bandPriceCents != null ? tier.bandPriceCents / 100 : '',
     })),
     attach,
   };
-  riderOpen.value = Object.values(attach).some((a) => a.on);
+  savedSnapshot.value = snapshot();
 }
 
 function startNew() {
   selectedId.value = null;
   form.value = blank();
   form.value.category_id = catalog.value.categories[0]?.id || '';
-  for (const p of catalog.value.services) form.value.attach[p.id] = { on: false, override: '', inherit: true };
-  riderOpen.value = false;
+  form.value.attach = initializeAttach();
+  savedSnapshot.value = snapshot();
 }
 
-const rateLabel = computed(() =>
-  form.value.pricing_model === 'PER_KG' ? `Price per kg (${session.currency})`
-  : form.value.pricing_model === 'PER_ITEM' ? `Price per item (${session.currency})`
-  : form.value.pricing_model === 'TIERED' ? `Default price (${session.currency})`
-  : `Price (${session.currency})`);
-const rateHint = computed(() =>
-  form.value.pricing_model === 'TIERED' ? 'Used when the quantity falls outside every range below' : '');
+async function loadDirectory(offset = 0) {
+  directoryLoading.value = true;
+  directoryError.value = '';
+  try {
+    const params = new URLSearchParams({ limit: DIRECTORY_LIMIT, offset, status: filters.value.status });
+    if (filters.value.q.trim()) params.set('q', filters.value.q.trim());
+    if (filters.value.category) params.set('category_id', filters.value.category);
+    directory.value = await api.get(`/services?${params}`);
+  } catch (error) {
+    directoryError.value = error.message;
+    toast.error(error.message);
+  } finally { directoryLoading.value = false; }
+}
 
-// live preview mirrors the server pricing engine
-const preview = computed(() => {
-  const f = form.value;
-  const qty = previewQty.value || 1;
-  let unit = f.pricing_model === 'PER_KG' ? 'kg' : f.pricing_model === 'PER_ITEM' ? 'items' : 'order';
-  let amount;
-  if (f.pricing_model === 'FLAT') amount = f.base_rate;
-  else if (f.pricing_model === 'TIERED') {
-    const band = f.tiers.find((t) => qty >= (+t.min_qty || 0) && (t.max_qty === '' || qty <= +t.max_qty));
-    amount = band ? (band.band_price !== '' ? +band.band_price : (+band.rate || f.base_rate) * qty) : f.base_rate * qty;
-  } else {
-    let rate = f.base_rate;
-    if (f.pricing_model === 'PER_KG') {
-      const tier = f.tiers.find((t) => qty >= (+t.min_qty || 0) && (t.max_qty === '' || qty <= +t.max_qty) && t.rate !== '');
-      if (tier) rate = +tier.rate;
-    }
-    amount = rate * qty;
+async function initialize() {
+  try {
+    catalog.value = await catalogStore.load(true);
+    await loadDirectory(0);
+    const initialId = directory.value.rows[0]?.id || catalog.value.services[0]?.id;
+    if (initialId) fillForm(initialId);
+    else startNew();
+  } catch (error) {
+    directoryError.value = error.message;
+    toast.error(error.message);
+    directoryLoading.value = false;
   }
-  const minHit = f.min_charge > 0 && amount < f.min_charge;
-  if (minHit) amount = f.min_charge;
-  const overrides = Object.values(f.attach).filter((a) => a.on && a.override !== '');
-  return { amount, minHit, unit, qty, express: amount * (1 + (f.express_pct || 0) / 100), bundled: overrides[0] ? +overrides[0].override * (f.pricing_model === 'FLAT' ? 1 : qty) : null };
+}
+
+function updateCompact(event) { compact.value = event.matches; }
+onMounted(() => {
+  mediaQuery = window.matchMedia('(max-width: 980px)');
+  compact.value = mediaQuery.matches;
+  mediaQuery.addEventListener('change', updateCompact);
+  initialize();
+});
+onBeforeUnmount(() => {
+  clearTimeout(searchTimer);
+  mediaQuery?.removeEventListener('change', updateCompact);
 });
 
+function searchDirectory() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadDirectory(0), 250);
+}
+function guard(action) {
+  if (dirty.value) pendingAction.value = action;
+  else action();
+}
+function confirmDiscard() {
+  const action = pendingAction.value;
+  pendingAction.value = null;
+  action?.();
+}
+function selectService(id) {
+  if (id === selectedId.value) { editorOpen.value = true; return; }
+  guard(() => { fillForm(id); editorOpen.value = true; });
+}
+function newService() {
+  guard(() => { startNew(); editorOpen.value = true; });
+}
+function closeEditor() {
+  guard(() => { editorOpen.value = false; });
+}
+
 async function save() {
-  const f = form.value;
-  if (!f.name.trim()) { toast.error('Service name is required'); return; }
+  if (!form.value.name.trim()) { toast.error('Service name is required'); return; }
   busy.value = true;
   try {
+    const current = form.value;
+    const usesVariants = current.pricing_model === 'PER_ITEM';
+    const usesTiers = ['PER_KG', 'TIERED'].includes(current.pricing_model);
     const payload = {
-      name: f.name, category_id: f.category_id, pricing_model: f.pricing_model,
-      base_rate_cents: Math.round(f.base_rate * 100),
-      min_charge_cents: Math.round(f.min_charge * 100),
-      express_pct: f.express_pct, active: f.active,
-      variants: f.variants.filter((v) => v.label.trim()).map((v) => ({ label: v.label, price_cents: Math.round(v.price * 100) })),
-      tiers: f.tiers.filter((t) => t.min_qty !== '').map((t) => ({
-        min_qty: +t.min_qty, max_qty: t.max_qty === '' ? null : +t.max_qty,
-        rate_cents: t.rate === '' ? null : Math.round(+t.rate * 100),
-        band_price_cents: t.band_price === '' ? null : Math.round(+t.band_price * 100),
-      })),
-      attach_to: Object.entries(f.attach).filter(([, a]) => a.on).map(([pid, a]) => ({
-        parent_service_id: pid,
-        override_rate_cents: a.override === '' ? null : Math.round(+a.override * 100),
-        inherit_qty: a.inherit,
+      name: current.name,
+      category_id: current.category_id,
+      pricing_model: current.pricing_model,
+      base_rate_cents: Math.round((+current.base_rate || 0) * 100),
+      min_charge_cents: Math.round((+current.min_charge || 0) * 100),
+      express_pct: +current.express_pct || 0,
+      active: current.active,
+      variants: usesVariants ? current.variants.filter((variant) => variant.label.trim()).map((variant) => ({
+        label: variant.label, price_cents: Math.round((+variant.price || 0) * 100),
+      })) : [],
+      tiers: usesTiers ? current.tiers.filter((tier) => tier.min_qty !== '').map((tier) => ({
+        min_qty: +tier.min_qty,
+        max_qty: tier.max_qty === '' ? null : +tier.max_qty,
+        rate_cents: current.pricing_model === 'PER_KG' && tier.rate !== '' ? Math.round(+tier.rate * 100) : null,
+        band_price_cents: current.pricing_model === 'TIERED' && tier.band_price !== '' ? Math.round(+tier.band_price * 100) : null,
+      })) : [],
+      attach_to: Object.entries(current.attach).filter(([, item]) => item.on).map(([parentId, item]) => ({
+        parent_service_id: parentId,
+        override_rate_cents: item.override === '' ? null : Math.round(+item.override * 100),
+        inherit_qty: item.inherit,
       })),
     };
-    if (selectedId.value) {
-      await api.put(`/services/${selectedId.value}`, payload);
-    } else {
-      const { id } = await api.post('/services', payload);
-      selectedId.value = id;
-    }
+    if (selectedId.value) await api.put(`/services/${selectedId.value}`, payload);
+    else selectedId.value = (await api.post('/services', payload)).id;
     catalogStore.invalidate();
-    toast.success('Saved ✔ — live for new orders. Existing orders keep their price snapshots.');
+    catalog.value = await catalogStore.load(true);
+    await loadDirectory(directory.value.offset);
+    fillForm(selectedId.value);
     editorOpen.value = false;
-    await load();
-  } catch (e) { toast.error(e.message); }
+    toast.success('Service saved. Existing orders keep their original price snapshots.');
+  } catch (error) { toast.error(error.message); }
   finally { busy.value = false; }
 }
 
-const retireOpen = ref(false);
 async function retire() {
   if (!selectedId.value) return;
   busy.value = true;
   try {
     await api.delete(`/services/${selectedId.value}`);
     catalogStore.invalidate();
-    toast.success('Service retired');
+    catalog.value = await catalogStore.load(true);
     retireOpen.value = false;
-    selectedId.value = null;
     editorOpen.value = false;
-    await load(false);
-  } catch (e) { toast.error(e.message); }
+    selectedId.value = null;
+    await loadDirectory(0);
+    if (directory.value.rows[0]) fillForm(directory.value.rows[0].id);
+    else startNew();
+    toast.success('Service removed from new orders');
+  } catch (error) { toast.error(error.message); }
   finally { busy.value = false; }
 }
 
-const catModal = ref({ open: false, name: '', error: '' });
 async function addCategory() {
   const name = catModal.value.name.trim();
   if (!name) { catModal.value.error = 'Give the category a name'; return; }
   busy.value = true;
   try {
-    const cat = await api.post('/categories', { name });
-    catalog.value.categories.push(cat);
-    form.value.category_id = cat.id;
+    const category = await api.post('/categories', { name });
+    catalog.value.categories.push(category);
+    form.value.category_id = category.id;
     catalogStore.invalidate();
     catModal.value = { open: false, name: '', error: '' };
     toast.success(`Category “${name}” added`);
-  } catch (e) { catModal.value.error = e.message; }
+  } catch (error) { catModal.value.error = error.message; }
   finally { busy.value = false; }
 }
+
+const pricingLabel = (service) => ({
+  PER_KG: 'Per kg', PER_ITEM: 'Per item', FLAT: 'Flat price', TIERED: 'Quantity bands',
+}[service.pricingModel] || service.pricingModel);
+const rateSummary = (service) => {
+  const suffix = service.pricingModel === 'PER_KG' ? '/kg' : service.pricingModel === 'PER_ITEM' ? '/item' : '';
+  return `${money(service.baseRateCents, session.currency)}${suffix}`;
+};
 </script>
 
 <template>
-  <div>
+  <div class="builder-page">
     <div class="section-head">
-      <div>
-        <h2>Service &amp; Pricing Builder</h2>
-        <p>Admin only · Changes apply to new orders — existing orders keep their price snapshot</p>
-      </div>
+      <div><h2>Service &amp; Pricing Builder</h2><p>Configure what you sell and how each service is priced. Existing orders never change.</p></div>
+      <BaseButton icon="plus" @click="newService">New service</BaseButton>
     </div>
 
-    <div class="split">
-      <div>
-        <div
-          v-for="s in catalog.services" :key="s.id"
-          class="sel-item" :class="{ sel: s.id === selectedId }"
-          @click="fillForm(s.id); editorOpen = true"
-        >
-          {{ s.name }}
-          <span class="sp">{{ s.pricingModel }}<template v-if="!s.active"> · retired</template></span>
-          <span class="edit-chip"><AppIcon name="edit" :size="11" /> Edit</span>
+    <div class="builder-workspace">
+      <Panel class="directory-panel" title="Services" :subtitle="`${directory.total} matching services`" flush>
+        <div class="directory-tools">
+          <div class="search-box"><AppIcon name="search" :size="14" /><input v-model="filters.q" type="search" placeholder="Search services…" @input="searchDirectory" /></div>
+          <div class="filter-row">
+            <AppSelect v-model="filters.category" compact @change="loadDirectory(0)"><option value="">All categories</option><option v-for="category in catalog.categories" :key="category.id" :value="category.id">{{ category.name }}</option></AppSelect>
+            <AppSelect v-model="filters.status" compact @change="loadDirectory(0)"><option value="active">Active</option><option value="retired">Removed</option><option value="all">All statuses</option></AppSelect>
+          </div>
         </div>
-        <button class="btn btn-ghost" style="width: 100%;" @click="startNew(); editorOpen = true">
-          <AppIcon name="plus" :size="14" /> New service
-        </button>
-      </div>
 
-      <div class="editor-host" :class="{ open: editorOpen }" @click.self="editorOpen = false">
-      <Panel :title="selectedId ? 'Edit service' : 'New service'">
-        <template #actions>
-          <button class="editor-close" aria-label="Close editor" @click="editorOpen = false">✕</button>
-        </template>
-        <section class="sect first">
-          <div class="sect-head">
-            <h4><span class="sect-num">1</span> Basics</h4>
-            <button class="btn btn-ghost btn-sm push-right" @click="catModal = { open: true, name: '', error: '' }">
-              <AppIcon name="plus" :size="12" /> Category
+        <div class="directory-body">
+          <Skeleton v-if="directoryLoading" variant="list" :count="6" />
+          <EmptyState v-else-if="directoryError" icon="alert" title="Services could not be loaded" :hint="directoryError"><BaseButton size="sm" variant="ghost" @click="loadDirectory(directory.offset)">Try again</BaseButton></EmptyState>
+          <EmptyState v-else-if="!directory.rows.length" icon="builder" :title="filters.q || filters.category || filters.status !== 'active' ? 'No matching services' : 'No services yet'" :hint="filters.q || filters.category || filters.status !== 'active' ? 'Clear or change the filters to see other services.' : 'Create your first service to start taking orders.'"><BaseButton v-if="!filters.q && !filters.category && filters.status === 'active'" size="sm" variant="ghost" icon="plus" @click="newService">Create service</BaseButton></EmptyState>
+          <div v-else class="service-list">
+            <button v-for="service in directory.rows" :key="service.id" class="service-card"
+              :class="{ selected: service.id === selectedId }" @click="selectService(service.id)">
+              <span class="service-icon"><AppIcon :name="service.pricingModel === 'PER_KG' ? 'scale' : service.pricingModel === 'PER_ITEM' ? 'shirt' : service.pricingModel === 'TIERED' ? 'tiers' : 'box'" :size="15" /></span>
+              <span class="service-copy"><b>{{ service.name }}</b><small>{{ service.categoryName }} · {{ pricingLabel(service) }}</small></span>
+              <span class="service-rate"><b>{{ rateSummary(service) }}</b><small v-if="!service.active">Removed</small><AppIcon v-else name="chevronRight" :size="13" /></span>
             </button>
           </div>
-          <div class="row">
-            <FormField label="Service name" style="flex: 2;">
-              <input v-model="form.name" type="text" placeholder="e.g. Wash &amp; Fold (per kg)" />
-            </FormField>
-            <FormField label="Category">
-              <select v-model="form.category_id">
-                <option v-for="c in catalog.categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-              </select>
-            </FormField>
-          </div>
-        </section>
-
-        <section class="sect">
-          <div class="sect-head"><h4><span class="sect-num">2</span> Pricing</h4></div>
-          <label class="field-label">How is this service charged?</label>
-          <div class="radio-cards">
-            <div
-              v-for="m in MODELS" :key="m.key"
-              :class="{ sel: form.pricing_model === m.key }"
-              @click="form.pricing_model = m.key"
-            ><AppIcon :name="m.icon" :size="15" /> {{ m.label }}<span v-if="form.pricing_model === m.key" class="model-check"><AppIcon name="check" :size="11" /></span></div>
-          </div>
-
-          <div class="row">
-            <FormField :label="rateLabel" :hint="rateHint"><input v-model.number="form.base_rate" type="number" min="0" /></FormField>
-            <FormField :label="`Minimum charge (${session.currency})`" hint="The least a customer pays"><input v-model.number="form.min_charge" type="number" min="0" /></FormField>
-            <FormField label="Express extra charge (%)" hint="Added for same-day / rush orders"><input v-model.number="form.express_pct" type="number" min="0" /></FormField>
-          </div>
-
-          <template v-if="form.pricing_model === 'PER_ITEM'">
-            <div class="sub-head">
-              <span>Sizes &amp; options</span>
-              <small>optional — e.g. duvet sizes; leave empty to charge the price per item above</small>
-            </div>
-            <div v-if="form.variants.length" class="grid-rows cols-2">
-              <div class="gr-h">Name</div>
-              <div class="gr-h">Price ({{ session.currency }})</div>
-              <div class="gr-h" />
-              <template v-for="(v, i) in form.variants" :key="i">
-                <input v-model="v.label" type="text" placeholder="e.g. King size" :aria-label="`Option ${i + 1} name`" />
-                <input v-model.number="v.price" type="number" min="0" :aria-label="`Option ${i + 1} price`" />
-                <button class="row-rm" aria-label="Remove option" @click="form.variants.splice(i, 1)"><AppIcon name="x" :size="12" /></button>
-              </template>
-            </div>
-            <button class="btn btn-ghost btn-sm" @click="form.variants.push({ label: '', price: 0 })"><AppIcon name="plus" :size="12" /> Add size / option</button>
-          </template>
-
-          <template v-if="form.pricing_model === 'PER_KG' || form.pricing_model === 'TIERED'">
-            <div class="sub-head">
-              <span>{{ form.pricing_model === 'PER_KG' ? 'Cheaper rate for bigger loads' : 'Price by quantity range' }}</span>
-              <small>{{ form.pricing_model === 'PER_KG' ? 'optional — from a certain quantity, a lower price per kg applies' : 'each range gets one fixed price' }}</small>
-            </div>
-            <div v-if="form.tiers.length" class="grid-rows cols-3">
-              <div class="gr-h">From qty</div>
-              <div class="gr-h">Up to qty (blank = no limit)</div>
-              <div class="gr-h">{{ form.pricing_model === 'PER_KG' ? `New price per kg (${session.currency})` : `Fixed price (${session.currency})` }}</div>
-              <div class="gr-h" />
-              <template v-for="(t, i) in form.tiers" :key="i">
-                <input v-model.number="t.min_qty" type="number" min="0" step="0.5" aria-label="From quantity" />
-                <input v-model="t.max_qty" type="number" min="0" step="0.5" aria-label="Up to quantity" />
-                <input v-if="form.pricing_model === 'PER_KG'" v-model="t.rate" type="number" min="0" aria-label="New price per kg" />
-                <input v-else v-model="t.band_price" type="number" min="0" aria-label="Fixed price for this range" />
-                <button class="row-rm" aria-label="Remove range" @click="form.tiers.splice(i, 1)"><AppIcon name="x" :size="12" /></button>
-              </template>
-            </div>
-            <button class="btn btn-ghost btn-sm" @click="form.tiers.push({ min_qty: 0, max_qty: '', rate: '', band_price: '' })"><AppIcon name="plus" :size="12" /> Add {{ form.pricing_model === 'PER_KG' ? 'quantity discount' : 'quantity range' }}</button>
-          </template>
-        </section>
-
-        <details class="sect sect-details" :open="riderOpen" @toggle="riderOpen = $event.target.open">
-          <summary class="sect-head">
-            <h4><span class="sect-num">3</span> Attach as an additional service</h4>
-            <span class="count-chip">{{ riderParentCount }} selected</span>
-            <span class="caret" aria-hidden="true" />
-          </summary>
-          <p class="sect-hint">
-            Let customers add this service on top of another one — e.g. Ironing added to Wash &amp; Fold.
-            You can give it a cheaper price when it's added this way.
-          </p>
-          <div v-for="p in attachParents" :key="p.id" class="attach-row">
-            <ToggleSwitch v-model="form.attach[p.id].on" />
-            <span class="attach-name" @click="form.attach[p.id].on = !form.attach[p.id].on">{{ p.name }}</span>
-            <template v-if="form.attach[p.id].on">
-              <input v-model="form.attach[p.id].override" type="number" min="0"
-                class="ov-input" placeholder="price when added (blank = normal price)" />
-              <label class="attach-check small">
-                <input v-model="form.attach[p.id].inherit" type="checkbox" /> use same quantity as the main service
-              </label>
-            </template>
-          </div>
-        </details>
-
-        <section class="sect">
-          <div class="sect-head"><h4><span class="sect-num">4</span> Price preview</h4></div>
-          <div class="preview-box pv">
-            <div class="pv-qty">
-              <label class="pv-cap" for="pv-qty">Try a quantity</label>
-              <input id="pv-qty" v-model.number="previewQty" type="number" min="0.5" step="0.5" />
-            </div>
-            <div class="pv-main">
-              <div class="pv-cap">On its own · {{ preview.qty }} {{ preview.unit }}</div>
-              <div class="big">{{ money(preview.amount * 100, session.currency) }}</div>
-              <div v-if="preview.minHit" class="warn">minimum charge applied</div>
-            </div>
-            <div class="pv-extra">
-              <div v-if="preview.bundled != null">Added to another service: <b class="teal">{{ money(preview.bundled * 100, session.currency) }}</b></div>
-              <div v-if="form.express_pct">With express (+{{ form.express_pct }}%): <b class="teal">{{ money(preview.express * 100, session.currency) }}</b></div>
-            </div>
-          </div>
-        </section>
-
-        <div class="actions">
-          <button class="btn btn-primary" :disabled="busy" @click="save">Save service</button>
-          <button v-if="selectedId && form.active" class="btn btn-danger" :disabled="busy" @click="retireOpen = true">Remove service</button>
         </div>
+        <Pagination :total="directory.total" :limit="directory.limit" :offset="directory.offset" @change="loadDirectory" />
       </Panel>
-      </div>
+
+      <Panel v-if="!compact" class="editor-panel" :title="editorTitle"
+        :subtitle="selectedId ? `${categoryNames.get(form.category_id) || 'Uncategorised'} · ${dirty ? 'Unsaved changes' : 'Up to date'}` : 'Set up a new service'">
+        <ServiceEditor v-model="form" v-model:preview-qty="previewQty" :service-id="selectedId"
+          :categories="catalog.categories" :attach-parents="activeServices" :currency="session.currency"
+          :preview="preview" :busy="busy" :dirty="dirty" @save="save"
+          @add-category="catModal = { open: true, name: '', error: '' }" @retire="retireOpen = true" />
+      </Panel>
     </div>
 
-    <Modal v-if="catModal.open" title="New category" @close="catModal.open = false">
-      <FormField label="Category name" :error="catModal.error"
-        hint="Groups services in the builder, on the order screen, and in reports">
-        <input v-model="catModal.name" type="text" placeholder="e.g. Curtains & Drapes" @keyup.enter="addCategory" />
-      </FormField>
-      <template #footer>
-        <button class="btn btn-ghost" @click="catModal.open = false">Cancel</button>
-        <button class="btn btn-primary" :disabled="busy" @click="addCategory">Add category</button>
-      </template>
+    <Modal v-if="compact && editorOpen" :title="editorTitle"
+      :subtitle="selectedId ? `${categoryNames.get(form.category_id) || 'Uncategorised'} · Edit service` : 'Set up a new service'"
+      size="workspace" :close-on-backdrop="!dirty" @close="closeEditor">
+      <ServiceEditor v-model="form" v-model:preview-qty="previewQty" :service-id="selectedId"
+        :categories="catalog.categories" :attach-parents="activeServices" :currency="session.currency"
+        :preview="preview" :busy="busy" :dirty="dirty" @save="save"
+        @add-category="catModal = { open: true, name: '', error: '' }" @retire="retireOpen = true" />
     </Modal>
 
-    <ConfirmDialog v-if="retireOpen" danger :busy="busy"
-      :title="`Remove “${form.name}”?`"
-      message="It stops being sellable immediately. Existing orders keep their price snapshots, and you can rebuild it later."
-      confirm-label="Remove service"
-      @confirm="retire" @close="retireOpen = false" />
+    <Modal v-if="catModal.open" title="New category" subtitle="Categories group related services throughout eWash." @close="catModal.open = false">
+      <FormField label="Category name" :error="catModal.error" hint="Used in this builder, order intake, and reports."><input v-model="catModal.name" type="text" placeholder="e.g. Curtains & Drapes" @keyup.enter="addCategory" /></FormField>
+      <template #footer><BaseButton variant="ghost" :disabled="busy" @click="catModal.open = false">Cancel</BaseButton><BaseButton :loading="busy" @click="addCategory">Add category</BaseButton></template>
+    </Modal>
+
+    <ConfirmDialog v-if="pendingAction" title="Discard unsaved changes?" message="Your edits to this service have not been saved. Discard them and continue?" confirm-label="Discard changes" danger @confirm="confirmDiscard" @close="pendingAction = null" />
+    <ConfirmDialog v-if="retireOpen" :title="`Remove “${form.name}”?`" message="It will stop appearing on new orders immediately. Existing order prices remain unchanged." confirm-label="Remove service" danger :busy="busy" @confirm="retire" @close="retireOpen = false" />
   </div>
 </template>
 
 <style scoped>
-/* numbered sections */
-.sect { border-top: 1px dashed var(--line); padding-top: 14px; margin-top: 16px; }
-.sect.first { border-top: 0; padding-top: 0; margin-top: 0; }
-.sect-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.sect-head h4 {
-  margin: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
-  color: var(--muted); display: flex; align-items: center; gap: 8px;
-}
-.sect-num {
-  width: 18px; height: 18px; border-radius: 50%; background: var(--brand-light);
-  color: var(--brand-dark); font-size: 10.5px; font-weight: 800; display: grid; place-items: center;
-}
-.push-right { margin-left: auto; }
-.sect-hint { color: var(--muted); font-size: 11.5px; margin: 0 0 8px; }
-
-/* collapsible add-on section */
-.sect-details > summary { cursor: pointer; list-style: none; margin-bottom: 0; }
-.sect-details[open] > summary { margin-bottom: 8px; }
-.sect-details > summary::-webkit-details-marker { display: none; }
-.count-chip { color: var(--brand); background: var(--brand-light); border-radius: 999px; padding: 2px 8px; font-size: 9.5px; font-weight: 700; }
-.caret {
-  margin-left: auto; width: 8px; height: 8px; flex-shrink: 0;
-  border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
-  transform: rotate(45deg); transition: transform 0.15s; margin-top: -4px;
-}
-.sect-details[open] .caret { transform: rotate(-135deg); margin-top: 4px; }
-
-/* sub-lists inside Pricing (sizes, quantity ranges) */
-.sub-head { display: flex; align-items: baseline; gap: 8px; margin: 12px 0 6px; font-size: 12.5px; font-weight: 700; flex-wrap: wrap; }
-.sub-head small { color: var(--muted); font-weight: 400; font-size: 11px; }
-.grid-rows { display: grid; gap: 6px 8px; align-items: center; margin-bottom: 8px; }
-.grid-rows.cols-2 { grid-template-columns: 2fr 1fr 30px; }
-.grid-rows.cols-3 { grid-template-columns: 1fr 1fr 1fr 30px; }
-.gr-h { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
-.row-rm {
-  width: 30px; height: 30px; border: 1px solid #f2c4bf; color: var(--red); background: #fff;
-  border-radius: 7px; cursor: pointer; display: grid; place-items: center;
-}
-.row-rm:hover { background: #fdf1f0; }
-
-/* pricing model selected check */
-.model-check { margin-left: auto; width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; background: var(--brand); color: #fff; }
-
-/* attach rows */
-.attach-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; flex-wrap: wrap; }
-.attach-row:hover { background: #f6faf9; }
-.attach-name { font-size: 13px; cursor: pointer; }
-.attach-check { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
-.attach-check input { width: auto; }
-.ov-input { max-width: 250px; margin-left: auto; }
-
-/* price preview */
-.pv { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-.pv-qty { flex: 0 0 110px; }
-.pv-qty input { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.25); color: #e2e8f0; }
-.pv-cap { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9fb8b3; margin-bottom: 3px; }
-.pv-main { flex: 1; min-width: 150px; }
-.pv-extra { font-size: 12.5px; display: flex; flex-direction: column; gap: 4px; text-align: right; }
-.warn { color: #fbbf24; font-size: 11.5px; }
-.teal { color: #7ed7c9; }
-.actions { display: flex; gap: 10px; margin-top: 16px; }
-
-/* on desktop the editor sits beside the list; the mobile chrome stays hidden */
-.edit-chip { display: none; }
-.editor-close { display: none; }
-
+.builder-page { min-width: 0; }.builder-workspace { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 14px; align-items: stretch; height: calc(100vh - 174px); min-height: 560px; }
+.directory-panel, .editor-panel { min-height: 0; margin: 0; overflow: hidden; }.directory-panel { display: flex; flex-direction: column; }.editor-panel { display: flex; flex-direction: column; }
+.directory-tools { padding: 0 14px 10px; border-bottom: 1px solid var(--line); }.search-box { position: relative; }.search-box svg { position: absolute; z-index: 1; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); }.search-box input { padding-left: 31px; }
+.filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 7px; }.directory-body { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 12px 0; }.directory-panel :deep(.pager) { flex: 0 0 auto; padding: 9px 12px 12px; border-top: 1px solid var(--line); }
+.service-list { display: grid; gap: 6px; }.service-card { width: 100%; min-width: 0; padding: 9px; border: 1px solid transparent; border-radius: var(--radius-md); background: transparent; color: var(--ink); font-family: inherit; text-align: left; cursor: pointer; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; }.service-card:hover { background: var(--surface-subtle); }.service-card.selected { border-color: #bcd8d4; background: var(--brand-light); }
+.service-icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: var(--radius-sm); background: var(--surface-muted); color: var(--brand); }.service-card.selected .service-icon { background: var(--card); }.service-copy, .service-rate { min-width: 0; }.service-copy b, .service-copy small, .service-rate b, .service-rate small { display: block; }.service-copy b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; }.service-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 9px; }.service-rate { text-align: right; }.service-rate b { color: var(--brand-dark); font-size: 9.5px; }.service-rate small { color: var(--red); font-size: 8.5px; }.service-rate svg { color: var(--muted); }
+.editor-panel :deep(.panel-head) { flex: 0 0 auto; }.editor-panel :deep(.service-editor) { flex: 1; overflow-y: auto; padding-right: 2px; }
 @media (max-width: 980px) {
-  .edit-chip {
-    display: inline-flex; align-items: center; gap: 4px; margin-left: 8px;
-    color: var(--brand); background: var(--brand-light); border-radius: 999px;
-    padding: 2px 9px; font-size: 10.5px; font-weight: 700; flex-shrink: 0;
-  }
-  /* the editor becomes a tap-to-open full-screen sheet */
-  .editor-host { display: none; }
-  .editor-host.open {
-    display: block; position: fixed; inset: 0; z-index: 85;
-    overflow-y: auto; padding: 12px; background: rgba(10, 28, 26, 0.45);
-    -webkit-overflow-scrolling: touch;
-  }
-  .editor-host.open > :deep(.panel) { max-width: 560px; margin: 0 auto 24px; }
-  .editor-close {
-    display: grid; place-items: center; border: none; background: #f2f6f5;
-    color: var(--muted); width: 30px; height: 30px; border-radius: 8px;
-    cursor: pointer; font-size: 13px;
-  }
+  .builder-workspace { display: block; height: auto; min-height: 0; }.directory-panel { min-height: calc(100vh - 190px); }.directory-body { max-height: none; overflow: visible; }.service-card { min-height: 54px; }.service-rate svg { display: inline; }
 }
 @media (max-width: 640px) {
-  .pv-extra { text-align: left; }
-  .ov-input { margin-left: 0; max-width: 100%; }
+  .section-head { align-items: flex-start; }.section-head :deep(.btn) { width: 100%; justify-content: center; }.directory-panel { min-height: calc(100vh - 240px); }.filter-row { grid-template-columns: 1fr; }
 }
 </style>

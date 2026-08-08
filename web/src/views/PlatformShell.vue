@@ -43,7 +43,7 @@ onMounted(async () => {
     </aside>
     <section class="main">
       <header>
-        <button class="burger" aria-label="Open menu" @click="drawer = true">☰</button>
+        <button class="burger" aria-label="Open menu" @click="drawer = true"><AppIcon name="menu" :size="20" /></button>
         <div><small>Platform administration</small><h1>{{ route.meta.title || 'Control Centre' }}</h1></div>
         <div class="profile">
           <Avatar :name="session.user?.name || 'Platform'" :size="36" />
@@ -81,7 +81,7 @@ header > div:first-of-type { margin-right: auto; }header small { display: block;
 .profile-text b { font: 600 12.5px var(--font-ui); color: var(--ink); }
 .profile-text small { color: var(--muted); font-size: 10.5px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .role-pill { padding: 2px 9px; border-radius: 999px; background: var(--brand-light, #e4f4f1); color: var(--brand-dark, #0c5550); font: 700 9.5px var(--font-ui); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
-main { padding: 22px 26px; }.burger { display: none; border: 0; background: none; font-size: 20px; }.backdrop,.mobile-nav { display: none; }
-@media(max-width:980px){aside{position:fixed;z-index:60;transform:translateX(-100%);transition:.2s}aside.open{transform:none}.backdrop{display:block;position:fixed;inset:0;z-index:55;background:#0a1c1a73}.burger{display:block}main{padding:16px 14px}}
+main { padding: 22px 26px; }.burger { display: none; place-items: center; border: 0; background: none; color: var(--ink); }.backdrop,.mobile-nav { display: none; }
+@media(max-width:980px){aside{position:fixed;z-index:60;transform:translateX(-100%);transition:.2s}aside.open{transform:none}.backdrop{display:block;position:fixed;inset:0;z-index:55;background:#0a1c1a73}.burger{display:grid}main{padding:16px 14px}}
 @media(max-width:640px){header{height:58px;padding:0 12px}.profile{padding:0;border:0;background:none}.profile-text,.role-pill{display:none}main{padding:14px 12px 84px}.mobile-nav{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;z-index:45;left:10px;right:10px;bottom:calc(8px + env(safe-area-inset-bottom));min-height:62px;padding:7px;background:#fffffff5;border:1px solid var(--line);border-radius:17px;box-shadow:0 12px 36px #0e24242e}.mobile-nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);font-size:9px;text-decoration:none}.mobile-nav a.active{color:var(--brand)}}
 </style>

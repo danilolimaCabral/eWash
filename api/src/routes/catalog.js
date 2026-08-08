@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { eq, and, inArray, asc } from 'drizzle-orm';
+import { eq, and, inArray, asc, desc, like, sql } from 'drizzle-orm';
 import {
   serviceCategories, services, serviceVariants, pricingTiers, addonRules,
 } from '../db/schema.js';
@@ -73,6 +73,46 @@ export function catalogMaps(catalog) {
 catalogRoutes.get('/catalog', async (c) => {
   const includeInactive = c.req.query('all') === '1';
   return c.json(await loadCatalog(c.get('db'), c.get('tenant').id, { includeInactive }));
+});
+
+// Builder directory: intentionally separate from /catalog because the editor
+// needs the complete pricing graph while the visible service list must remain
+// searchable and server-paginated.
+catalogRoutes.get('/services', requirePolicy('catalog.edit'), async (c) => {
+  const db = c.get('db');
+  const tenantId = c.get('tenant').id;
+  const limit = Math.max(1, Math.min(parseInt(c.req.query('limit') || '20', 10) || 20, 50));
+  const offset = Math.max(0, parseInt(c.req.query('offset') || '0', 10) || 0);
+  const q = String(c.req.query('q') || '').trim().slice(0, 120);
+  const categoryId = c.req.query('category_id');
+  const status = c.req.query('status') || 'active';
+  if (!['active', 'retired', 'all'].includes(status)) bad('Invalid service status');
+
+  const conds = [eq(services.tenantId, tenantId)];
+  if (status === 'active') conds.push(eq(services.active, 1));
+  if (status === 'retired') conds.push(eq(services.active, 0));
+  if (categoryId) conds.push(eq(services.categoryId, categoryId));
+  if (q) conds.push(like(services.name, `%${q}%`));
+  const where = and(...conds);
+
+  const [rows, [{ count }]] = await Promise.all([
+    db.select({
+      id: services.id,
+      name: services.name,
+      categoryId: services.categoryId,
+      categoryName: serviceCategories.name,
+      pricingModel: services.pricingModel,
+      baseRateCents: services.baseRateCents,
+      unit: services.unit,
+      active: services.active,
+    }).from(services)
+      .innerJoin(serviceCategories, eq(serviceCategories.id, services.categoryId))
+      .where(where)
+      .orderBy(desc(services.active), asc(serviceCategories.sortOrder), asc(services.name))
+      .limit(limit).offset(offset),
+    db.select({ count: sql`count(*)` }).from(services).where(where),
+  ]);
+  return c.json({ rows, total: Number(count || 0), limit, offset });
 });
 
 catalogRoutes.post('/categories', requirePolicy('catalog.edit'), async (c) => {

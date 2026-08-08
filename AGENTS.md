@@ -2,8 +2,9 @@
 
 These rules are **strict and binding** for any AI agent (Claude, or otherwise)
 working in this repository. They exist because this is a production-grade
-application used by real businesses. Read `CLAUDE.md` for architecture and
-`instructions.md` for the mandatory workflow.
+application used by real businesses. Read `CLAUDE.md` for architecture,
+`instructions.md` for the mandatory workflow, and `UX_UI.md` before touching
+any user interface.
 
 ## 1. Never recreate what already exists
 
@@ -38,9 +39,10 @@ copies of anything is one too many.
 
 ## 3. UI standards: sleek, clean, compact
 
-- Maintain the existing design language: teal palette, Manrope headings,
-  DM Sans body, 9–14px radii, soft shadows, generous-but-tight 12–16px gaps.
-  New screens must be indistinguishable in feel from existing ones.
+- Maintain the existing design language defined by the tokens in
+  `web/src/style.css`: teal palette, shared UI typeface, 8–16px radii, soft
+  shadows, and generous-but-tight 12–16px gaps. New screens must be
+  indistinguishable in feel from existing ones.
 - **Compact — no wasted space.** Dense tables, tight cards, no oversized hero
   sections, no decorative filler. Every pixel earns its place.
 - **Pagination is mandatory on every listing** (tables and long lists):

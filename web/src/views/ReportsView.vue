@@ -10,6 +10,7 @@ import DatePicker from '../components/DatePicker.vue';
 import DataTable from '../components/DataTable.vue';
 import Skeleton from '../components/Skeleton.vue';
 import Tabs from '../components/Tabs.vue';
+import AppSelect from '../components/AppSelect.vue';
 
 const session = useSession();
 const toast = useToast();
@@ -133,9 +134,9 @@ const auditDetail = (row) => {
         <p>Owner/Admin only · revenue mix, daily register &amp; audit trail</p>
       </div>
       <div class="head-actions">
-        <select v-model="month" style="width: 160px;" @change="load">
+        <AppSelect v-model="month" compact style="width: 160px;" @change="load">
           <option v-for="m in months" :key="m" :value="m">{{ monthLabel(m) }}</option>
-        </select>
+        </AppSelect>
       </div>
     </div>
 

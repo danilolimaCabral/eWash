@@ -9,7 +9,7 @@ defineEmits(['close']);
 </script>
 
 <template>
-  <Modal title="Help & support" @close="$emit('close')">
+  <Modal title="Help & support" subtitle="Contact eWash or find product information" @close="$emit('close')">
     <div class="sys-card">
       <span class="sys-mark"><AppIcon name="shirt" :size="20" /></span>
       <div>

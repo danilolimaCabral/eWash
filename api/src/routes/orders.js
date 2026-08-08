@@ -374,6 +374,7 @@ orderRoutes.post('/orders/:id/advance', requirePolicy('orders.advance'), async (
   assertBranchAccess(c, detail.branchId);
   if (detail.status === 'void') bad('Order is void');
   if (detail.status === 'delivered') bad('Order is already closed');
+  if (!detail.confirmedAt) bad('Confirm this order before moving it through the pipeline');
 
   const idx = PIPELINE.indexOf(detail.status);
   let to = body.to || PIPELINE[idx + 1];

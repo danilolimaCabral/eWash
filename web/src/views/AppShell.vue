@@ -2,18 +2,24 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSession } from '../stores/session.js';
+import { useToast } from '../stores/toast.js';
+import { api } from '../api.js';
 import { SUPPORT_EMAIL } from '../config.js';
 import { useIdleLock } from '../composables/useIdleLock.js';
 import AppIcon from '../components/AppIcon.vue';
 import Avatar from '../components/Avatar.vue';
 import LockScreen from '../components/LockScreen.vue';
 import SupportModal from '../components/SupportModal.vue';
+import AccountSettingsModal from '../components/AccountSettingsModal.vue';
 
 const session = useSession();
+const toast = useToast();
 const route = useRoute();
 const router = useRouter();
 const drawerOpen = ref(false);
 const supportOpen = ref(false);
+const accountOpen = ref(false);
+const accountBusy = ref(false);
 useIdleLock(); // auto-lock after inactivity — unlock requires the password
 
 const NAV = [
@@ -54,6 +60,22 @@ async function logout() {
   await session.logout();
   router.push({ name: 'login' });
 }
+
+async function accountAction(request, { close = false } = {}) {
+  accountBusy.value = true;
+  try {
+    const result = await request();
+    await session.loadMe();
+    toast.success(result?.message || 'Account updated');
+    if (close) accountOpen.value = false;
+  } catch (error) { toast.error(error.message); }
+  finally { accountBusy.value = false; }
+}
+
+const saveProfile = (profile) => accountAction(() => api.patch('/account', profile), { close: true });
+const requestEmail = (email) => accountAction(() => api.post('/account/email-change', { email }));
+const changePassword = (payload) => accountAction(() => api.post('/account/change-password', payload), { close: true });
+const setupPassword = () => accountAction(() => api.post('/account/password-setup'), { close: true });
 
 watch(() => route.name, () => { drawerOpen.value = false; });
 
@@ -101,13 +123,13 @@ onMounted(async () => {
         </button>
         <div class="heading">
           <p>{{ todayLabel }}</p>
-          <h1>{{ greeting }}, {{ session.user?.name?.split(' ')[0] }} <span>👋</span></h1>
+          <h1>{{ greeting }}, {{ session.user?.name?.split(' ')[0] }} <AppIcon name="wave" :size="17" /></h1>
         </div>
         <div class="branch-chip"><AppIcon name="branch" :size="14" />{{ branchName }}</div>
-        <div class="profile">
+        <button class="profile" type="button" aria-label="Open account settings" @click="accountOpen = true">
           <Avatar :name="session.user?.name || '?'" :size="34" />
           <div class="profile-text"><strong>{{ session.user?.name }}</strong><small>{{ session.role?.name }}</small></div>
-        </div>
+        </button>
       </header>
       <div class="content">
         <router-view />
@@ -127,6 +149,9 @@ onMounted(async () => {
   </div>
   <div v-else class="boot">Loading eWash…</div>
   <SupportModal v-if="supportOpen" @close="supportOpen = false" />
+  <AccountSettingsModal v-if="accountOpen" :user="session.user" :busy="accountBusy"
+    @close="accountOpen = false" @save-profile="saveProfile" @request-email="requestEmail"
+    @change-password="changePassword" @setup-password="setupPassword" />
   <LockScreen v-if="session.isAuthed && session.locked" />
 </template>
 
@@ -175,11 +200,13 @@ onMounted(async () => {
 .heading { margin-right: auto; min-width: 0; }
 .heading p { color: #8b969a; font-size: 10.5px; font-weight: 500; margin: 0 0 2px; }
 .heading h1 { font: 700 17px var(--font-ui); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.heading h1 svg { display: inline-block; vertical-align: -3px; margin-left: 2px; color: var(--brand); }
 .branch-chip {
   display: flex; align-items: center; gap: 7px; height: 36px; padding: 0 13px; border-radius: 9px;
   border: 1px solid #dde4e3; background: #fff; color: #566467; font-size: 11.5px; font-weight: 600; white-space: nowrap;
 }
-.profile { display: flex; align-items: center; gap: 9px; }
+.profile { display: flex; align-items: center; gap: 9px; padding: 3px 7px 3px 3px; border: 1px solid transparent; border-radius: var(--radius-md); background: transparent; color: var(--ink); font-family: inherit; text-align: left; cursor: pointer; }
+.profile:hover { border-color: var(--line); background: var(--surface-subtle); }
 .profile-text strong { font-size: 11px; display: block; }
 .profile-text small { color: #8a9699; font-size: 9px; }
 

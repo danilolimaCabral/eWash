@@ -1,9 +1,9 @@
 # CLAUDE.md — eWash
 
-Read this first, then `AGENTS.md` (rules that govern every contribution) and
-`instructions.md` (the mandatory plan → review → implement workflow). All three
-are binding. **Never start writing code before completing the workflow in
-`instructions.md`.**
+Read this first, then `AGENTS.md` (rules that govern every contribution),
+`instructions.md` (the mandatory plan → review → implement workflow), and
+`UX_UI.md` for every interface change. All are binding. **Never start writing
+code before completing the workflow in `instructions.md`.**
 
 ## What this project is
 

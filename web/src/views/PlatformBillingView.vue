@@ -6,6 +6,8 @@ import DatePicker from '../components/DatePicker.vue';
 import Modal from '../components/Modal.vue';
 import Panel from '../components/Panel.vue';
 import StatusBadge from '../components/StatusBadge.vue';
+import AppIcon from '../components/AppIcon.vue';
+import AppSelect from '../components/AppSelect.vue';
 import { platformApi } from '../platformApi.js';
 import { dateOnly, money } from '../utils/format.js';
 
@@ -185,7 +187,7 @@ onMounted(async () => {
 
   <Panel title="Platform billing" subtitle="Subscriptions, invoices and manually recorded collections">
     <template #actions>
-      <select v-model="status" class="filter" @change="load(0)"><option value="">All invoices</option><option>draft</option><option>issued</option><option>partially_paid</option><option>paid</option><option>overdue</option><option>void</option></select>
+      <AppSelect v-model="status" compact class="filter" @change="load(0)"><option value="">All invoices</option><option>draft</option><option>issued</option><option>partially_paid</option><option>paid</option><option>overdue</option><option>void</option></AppSelect>
       <button class="btn btn-primary btn-sm" @click="openCreate">+ New invoice</button>
     </template>
     <p v-if="error" class="error-text">{{ error }}</p>
@@ -198,32 +200,32 @@ onMounted(async () => {
     </DataTable>
   </Panel>
 
-  <Modal v-if="planEdit" :title="`Edit plan · ${planEdit.name}`" @close="planEdit = null">
+  <Modal v-if="planEdit" :title="`Edit plan · ${planEdit.name}`" subtitle="Update trial length, availability, and term pricing." @close="planEdit = null">
     <div class="form-grid">
       <FormField label="Plan name"><input v-model="planEdit.name" type="text" /></FormField>
       <FormField label="Trial days"><input v-model.number="planEdit.trial_days" type="number" min="0" max="90" /></FormField>
     </div>
-    <FormField label="Status"><select v-model="planEdit.active"><option :value="true">Active</option><option :value="false">Inactive</option></select></FormField>
+    <FormField label="Status"><AppSelect v-model="planEdit.active"><option :value="true">Active</option><option :value="false">Inactive</option></AppSelect></FormField>
     <div class="terms-head"><b>Term pricing</b><small class="muted">Price per month when paying for the whole term upfront</small></div>
     <div v-for="(price, i) in planEdit.prices" :key="i" class="term-row">
       <FormField label="Months"><input v-model.number="price.term_months" type="number" min="1" max="24" /></FormField>
       <FormField label="KES / month"><input v-model.number="price.price_kes" type="number" min="0" step="1" /></FormField>
       <span class="term-total muted small">= {{ price.term_months && price.price_kes ? money(price.term_months * price.price_kes * 100, 'KES') : '—' }}</span>
-      <button class="term-remove" title="Remove term" @click="planEdit.prices.splice(i, 1)">✕</button>
+      <button class="term-remove" title="Remove term" aria-label="Remove term" @click="planEdit.prices.splice(i, 1)"><AppIcon name="x" :size="13" /></button>
     </div>
     <button class="btn btn-ghost btn-sm" @click="addTerm">+ Add term</button>
     <p v-if="planErrors" class="error-text">{{ planErrors }}</p>
     <template #footer><button class="btn btn-outline" @click="planEdit = null">Cancel</button><button class="btn btn-primary" @click="savePlan">Save plan</button></template>
   </Modal>
 
-  <Modal v-if="createOpen" title="Create tenant invoice" @close="createOpen = false">
+  <Modal v-if="createOpen" title="Create tenant invoice" subtitle="Generate charges from a subscription or enter a manual line." @close="createOpen = false">
     <div class="mode-switch">
       <button :class="{ active: invoiceMode === 'plan' }" @click="invoiceMode = 'plan'">From subscription plan</button>
       <button :class="{ active: invoiceMode === 'manual' }" @click="invoiceMode = 'manual'">Manual line</button>
     </div>
     <div class="form-grid">
       <FormField label="Tenant" :error="invoiceErrors.tenant_id">
-        <select v-model="invoice.tenant_id" @change="invoiceMode === 'plan' ? loadSubPreview() : (invoiceErrors.tenant_id = '')"><option disabled value="">Select tenant</option><option v-for="tenant in tenants" :key="tenant.id" :value="tenant.id">{{ tenant.name }}</option></select>
+        <AppSelect v-model="invoice.tenant_id" @change="invoiceMode === 'plan' ? loadSubPreview() : (invoiceErrors.tenant_id = '')"><option disabled value="">Select tenant</option><option v-for="tenant in tenants" :key="tenant.id" :value="tenant.id">{{ tenant.name }}</option></AppSelect>
       </FormField>
       <FormField label="Due date" :hint="invoiceMode === 'plan' ? 'Defaults to period start + 7 days' : ''"><DatePicker v-model="invoice.due_at" /></FormField>
     </div>
@@ -248,11 +250,11 @@ onMounted(async () => {
     <template #footer><button class="btn btn-outline" @click="createOpen = false">Cancel</button><button class="btn btn-primary" @click="createInvoice">{{ invoiceMode === 'plan' ? 'Generate invoice' : 'Save draft' }}</button></template>
   </Modal>
 
-  <Modal v-if="selected" :title="`Record payment · ${selected.number}`" @close="selected = null">
+  <Modal v-if="selected" :title="`Record payment · ${selected.number}`" subtitle="Apply a received payment to this platform invoice." @close="selected = null">
     <div class="form-grid">
       <FormField label="Amount (KES)"><input v-model="payment.amount" type="number" min="1" step="1" /></FormField>
       <FormField label="Payment date"><DatePicker v-model="payment.paid_at" /></FormField>
-      <FormField label="Method"><select v-model="payment.method"><option value="mpesa_manual">M-Pesa code (manual)</option><option value="bank">Bank transfer</option><option value="cash">Cash</option></select></FormField>
+      <FormField label="Method"><AppSelect v-model="payment.method"><option value="mpesa_manual">M-Pesa code (manual)</option><option value="bank">Bank transfer</option><option value="cash">Cash</option></AppSelect></FormField>
       <FormField label="Reference"><input v-model="payment.reference" type="text" placeholder="M-Pesa code or bank reference" /></FormField>
     </div>
     <template #footer><button class="btn btn-outline" @click="selected = null">Cancel</button><button class="btn btn-primary" :disabled="!payment.amount" @click="recordPayment">Record payment</button></template>
@@ -260,7 +262,7 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.filter{height:34px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:#fff}.invoice-link{color:var(--brand-dark);font-weight:700;text-decoration:none}.invoice-link:hover{text-decoration:underline}small{display:block;color:var(--muted);font-size:9px}.row-actions{display:flex;gap:6px;margin-top:3px}.row-actions button{padding:0;border:0;background:none;color:var(--brand);font:600 10px var(--font-ui);cursor:pointer}.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}textarea{width:100%;resize:vertical}
+.filter{width:auto;min-width:150px}.invoice-link{color:var(--brand-dark);font-weight:700;text-decoration:none}.invoice-link:hover{text-decoration:underline}small{display:block;color:var(--muted);font-size:9px}.row-actions{display:flex;gap:6px;margin-top:3px}.row-actions button{padding:0;border:0;background:none;color:var(--brand);font:600 10px var(--font-ui);cursor:pointer}.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}textarea{width:100%;resize:vertical}
 .plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .plan-card{border:1px solid var(--line);border-radius:11px;padding:13px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 .plan-head{display:flex;justify-content:space-between;align-items:center;width:100%}
@@ -270,7 +272,7 @@ onMounted(async () => {
 .terms-head{margin:14px 0 8px}.terms-head small{font-size:10.5px}
 .term-row{display:grid;grid-template-columns:1fr 1fr auto auto;gap:10px;align-items:center;margin-bottom:2px}
 .term-total{white-space:nowrap;padding-top:8px}
-.term-remove{border:0;background:none;color:var(--muted);cursor:pointer;font-size:12px;padding:8px 2px 0}
+.term-remove{display:grid;place-items:center;border:0;background:none;color:var(--muted);cursor:pointer;padding:8px 2px 0}
 .term-remove:hover{color:var(--red)}
 .mode-switch{display:flex;gap:4px;background:#f0f5f4;border-radius:9px;padding:4px;margin-bottom:14px}
 .mode-switch button{flex:1;border:0;background:none;padding:8px;font:700 12px var(--font-ui);color:var(--muted);border-radius:7px;cursor:pointer}

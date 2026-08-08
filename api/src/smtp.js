@@ -114,7 +114,7 @@ function renderEmail({ preheader, heading, name, lead, url, button, footnote }) 
         <!-- brand header -->
         <tr><td class="head-pad" style="background:#0e2424;border-radius:16px 16px 0 0;padding:22px 32px;">
           <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-            <td style="width:40px;height:40px;background:#77d2c3;border-radius:11px;text-align:center;vertical-align:middle;font-family:${FONT_HEAD};font-size:20px;line-height:40px;">🧺</td>
+            <td style="width:40px;height:40px;background:#77d2c3;border-radius:11px;text-align:center;vertical-align:middle;font-family:${FONT_HEAD};font-size:14px;font-weight:800;color:#0c4d49;line-height:40px;">eW</td>
             <td style="padding-left:12px;">
               <span style="font-family:${FONT_HEAD};font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">e<span style="color:#77d2c3;">Wash</span></span><br>
               <span style="font-family:${FONT_BODY};font-size:11px;color:#9db8b4;">Laundry Management SaaS</span>
@@ -196,15 +196,33 @@ export async function sendActivationEmail(env, { to, name, activationUrl }) {
   await sendEmail(env, {
     to,
     subject: 'Activate your eWash account',
-    text: `Hello ${who},\n\nKaribu to eWash! Activate your account using this link:\n${activationUrl}\n\nThis link expires in 24 hours and can be used once. If you did not sign up, ignore this email.`,
+    text: `Hello ${who},\n\nWelcome to eWash! Activate your account using this link:\n${activationUrl}\n\nThis link expires in 24 hours and can be used once. If you did not sign up, ignore this email.`,
     html: renderEmail({
       preheader: 'One click left — activate your eWash account and go live.',
-      heading: 'Karibu! Activate your account',
+      heading: 'Welcome! Activate your account',
       name: who,
       lead: 'Your laundry is set up and waiting — a ready-made Kenyan catalog included. Confirm your email to go live and sign in.',
       url: activationUrl,
       button: 'Activate my account',
       footnote: 'This link expires in 24 hours and can be used once. If you did not sign up for eWash, you can safely ignore this email.',
+    }),
+  });
+}
+
+export async function sendEmailChangeVerificationEmail(env, { to, name, verificationUrl }) {
+  const who = safeName(name);
+  await sendEmail(env, {
+    to,
+    subject: 'Verify your new eWash email address',
+    text: `Hello ${who},\n\nVerify this email address for your eWash account using this link:\n${verificationUrl}\n\nThis link expires in 60 minutes and can be used once. If you did not request this change, ignore this email.`,
+    html: renderEmail({
+      preheader: 'Verify your new email address for eWash.',
+      heading: 'Verify your new email address',
+      name: who,
+      lead: 'A request was made to use this email address for your eWash account. Confirm it using the button below; your current sign-in email remains active until then.',
+      url: verificationUrl,
+      button: 'Verify email address',
+      footnote: 'This link expires in 60 minutes and can be used once. If you did not request this change, ignore this email and your account will remain unchanged.',
     }),
   });
 }

@@ -1,18 +1,88 @@
 import { Hono } from 'hono';
-import { eq, and, inArray, sql } from 'drizzle-orm';
-import { users, roles, rolePolicies, userPolicyOverrides, branches, orders } from '../db/schema.js';
+import { eq, and, inArray, ne, sql } from 'drizzle-orm';
+import { users, roles, rolePolicies, userPolicyOverrides, branches, orders, sessions } from '../db/schema.js';
 import { requirePolicy } from '../middleware.js';
-import { uid, bad, notFound, audit, forbidden, ApiError } from '../util.js';
-import { INVITED_PASSWORD } from '../auth.js';
-import { issueStaffInvite, appOrigin } from '../passwordReset.js';
+import { uid, now, bad, notFound, audit, forbidden, ApiError } from '../util.js';
+import { INVITED_PASSWORD, hasUsablePassword, hashPassword, verifyPassword } from '../auth.js';
+import { issueStaffInvite, issuePasswordReset, appOrigin } from '../passwordReset.js';
 import { enforceRateLimit, clientIp } from '../ratelimit.js';
 import { POLICY_KEYS, effectivePolicies } from '../policies.js';
 import { presenceQuery, presenceMap } from '../session.js';
-import { cleanStr, validEmail, LIMITS } from '../security.js';
+import { cleanStr, validEmail, checkPassword, LIMITS } from '../security.js';
 import { cacheDelete, authCacheKey } from '../cache.js';
 import { isTenantWide, scopedBranchId } from '../branchAccess.js';
+import { requestEmailChange } from '../account.js';
 
 export const userRoutes = new Hono();
+
+userRoutes.patch('/account', async (c) => {
+  const b = await c.req.json();
+  const db = c.get('db');
+  const user = c.get('user');
+  const updates = {};
+  if (Object.hasOwn(b, 'name')) {
+    const name = cleanStr(b.name, LIMITS.name, 'Name');
+    if (!name) bad('Name is required');
+    updates.name = name;
+  }
+  if (Object.hasOwn(b, 'phone')) updates.phone = cleanStr(b.phone, LIMITS.phone, 'Phone') || null;
+  if (!Object.keys(updates).length) bad('No profile changes supplied');
+  await db.update(users).set(updates).where(eq(users.id, user.id));
+  await audit(db, user.tenantId, user.id, 'user.profile_update', 'users', user.id, {
+    fields: Object.keys(updates),
+  });
+  cacheDelete(authCacheKey(user.id));
+  return c.json({ ok: true });
+});
+
+userRoutes.post('/account/email-change', async (c) => {
+  const db = c.get('db');
+  const user = c.get('user');
+  await enforceRateLimit(db, `email-change:user:${user.id}`, 3, 3600,
+    'Too many email-change requests — please try again later');
+  const { targetEmail } = await requestEmailChange(
+    db, c.env, user, (await c.req.json()).email, appOrigin(c), clientIp(c),
+  );
+  await audit(db, user.tenantId, user.id, 'user.email_change_request', 'users', user.id, {
+    target_email: targetEmail,
+  });
+  cacheDelete(authCacheKey(user.id));
+  return c.json({ message: `Verification sent to ${targetEmail}. Your current email remains active until confirmed.` });
+});
+
+userRoutes.post('/account/change-password', async (c) => {
+  const db = c.get('db');
+  const user = c.get('user');
+  if (!hasUsablePassword(user.passwordHash)) bad('This account does not have a password yet');
+  await enforceRateLimit(db, `password-change:user:${user.id}`, 5, 900,
+    'Too many password attempts — please wait 15 minutes');
+  const { current_password: currentPassword, new_password: newPassword } = await c.req.json();
+  if (!(await verifyPassword(currentPassword, user.passwordHash))) {
+    throw new ApiError(401, 'Current password is incorrect');
+  }
+  checkPassword(newPassword);
+  await db.update(users).set({ passwordHash: await hashPassword(newPassword) }).where(eq(users.id, user.id));
+  await db.update(sessions).set({ revokedAt: now() }).where(and(
+    eq(sessions.userId, user.id), ne(sessions.id, c.get('sessionId')),
+  ));
+  cacheDelete(authCacheKey(user.id));
+  await audit(db, user.tenantId, user.id, 'password.change', 'users', user.id, {
+    other_sessions_revoked: true,
+  });
+  return c.json({ message: 'Password updated. Your other sessions have been signed out.' });
+});
+
+userRoutes.post('/account/password-setup', async (c) => {
+  const db = c.get('db');
+  const user = c.get('user');
+  if (hasUsablePassword(user.passwordHash)) bad('This account already has a password');
+  await enforceRateLimit(db, `password-setup:user:${user.id}`, 3, 3600,
+    'Too many setup requests — please try again later');
+  const sent = await issuePasswordReset(db, c.env, user, appOrigin(c), clientIp(c));
+  if (!sent) throw new ApiError(502, 'The password setup email could not be sent — please try again shortly');
+  await audit(db, user.tenantId, user.id, 'password.setup_request', 'users', user.id, {});
+  return c.json({ message: `A secure password setup link was sent to ${user.email}.` });
+});
 
 userRoutes.get('/roles', async (c) => {
   const db = c.get('db');
@@ -52,6 +122,7 @@ userRoutes.get('/users', requirePolicy('users.manage'), async (c) => {
   const [userRows, roleRows, overrides, policyRows, presence] = await db.batch([
     db.select({
       id: users.id, name: users.name, email: users.email, phone: users.phone,
+      pendingEmail: users.pendingEmail,
       status: users.status, branchId: users.branchId, roleId: users.roleId, accessScope: users.accessScope,
       passwordHash: users.passwordHash,
     }).from(users)
@@ -183,6 +254,20 @@ userRoutes.patch('/users/:id', requirePolicy('users.manage'), async (c) => {
   if (!isTenantWide(c) && target.branchId !== actor.branchId) notFound('User not found');
 
   const changes = {};
+  const identityUpdates = {};
+  if (Object.hasOwn(b, 'name')) {
+    const name = cleanStr(b.name, LIMITS.name, 'Name');
+    if (!name) bad('Name is required');
+    identityUpdates.name = name;
+    changes.name = name;
+  }
+  if (Object.hasOwn(b, 'phone')) {
+    identityUpdates.phone = cleanStr(b.phone, LIMITS.phone, 'Phone') || null;
+    changes.phone = identityUpdates.phone;
+  }
+  if (Object.keys(identityUpdates).length) {
+    await db.update(users).set(identityUpdates).where(eq(users.id, target.id));
+  }
   if (b.role_id && b.role_id !== target.roleId) {
     const [role] = await db.select().from(roles)
       .where(and(eq(roles.tenantId, tenant.id), eq(roles.id, b.role_id)));
@@ -234,6 +319,46 @@ userRoutes.patch('/users/:id', requirePolicy('users.manage'), async (c) => {
   await audit(db, tenant.id, actor.id, 'user.update', 'users', target.id, { name: target.name, ...changes });
   cacheDelete(authCacheKey(target.id)); // permissions changed — drop cached auth context
   return c.json({ ok: true });
+});
+
+userRoutes.post('/users/:id/email-change', requirePolicy('users.manage'), async (c) => {
+  const db = c.get('db');
+  const tenant = c.get('tenant');
+  const actor = c.get('user');
+  const [target] = await db.select().from(users)
+    .where(and(eq(users.tenantId, tenant.id), eq(users.id, c.req.param('id'))));
+  if (!target || (!isTenantWide(c) && target.branchId !== actor.branchId)) notFound('User not found');
+  await enforceRateLimit(db, `admin-email-change:tenant:${tenant.id}`, 20, 3600,
+    'Too many email-change requests — please try again later');
+  const { targetEmail } = await requestEmailChange(
+    db, c.env, target, (await c.req.json()).email, appOrigin(c), clientIp(c),
+  );
+  await audit(db, tenant.id, actor.id, 'user.email_change_request', 'users', target.id, {
+    target_email: targetEmail,
+  });
+  cacheDelete(authCacheKey(target.id));
+  return c.json({ message: `Verification sent to ${targetEmail}. The current login email remains active until confirmed.` });
+});
+
+userRoutes.post('/users/:id/reset-password', requirePolicy('users.manage'), async (c) => {
+  const db = c.get('db');
+  const tenant = c.get('tenant');
+  const actor = c.get('user');
+  const [target] = await db.select().from(users)
+    .where(and(eq(users.tenantId, tenant.id), eq(users.id, c.req.param('id'))));
+  if (!target || (!isTenantWide(c) && target.branchId !== actor.branchId)) notFound('User not found');
+  if (target.id === actor.id) bad('Use Account settings to change your own password');
+  if (target.status !== 'active' || target.passwordHash === INVITED_PASSWORD) {
+    bad('Only active users can receive a password reset link');
+  }
+  await enforceRateLimit(db, `admin-password-reset:tenant:${tenant.id}`, 20, 3600,
+    'Too many password reset requests — please try again later');
+  await enforceRateLimit(db, `admin-password-reset:user:${target.id}`, 3, 3600,
+    'A reset link was recently sent to this user');
+  const sent = await issuePasswordReset(db, c.env, target, appOrigin(c), clientIp(c));
+  if (!sent) throw new ApiError(502, 'The password reset email could not be sent — please try again shortly');
+  await audit(db, tenant.id, actor.id, 'password.reset_request', 'users', target.id, {});
+  return c.json({ message: `A secure one-time reset link was sent to ${target.email}.` });
 });
 
 userRoutes.get('/branches', async (c) => {

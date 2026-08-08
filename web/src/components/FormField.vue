@@ -22,7 +22,7 @@ defineProps({
 .ff { min-width: 0; }
 .hint { display: block; color: var(--muted); font-size: 10.5px; margin-top: 3px; }
 .field-error { display: block; color: var(--red); font-size: 11px; font-weight: 600; margin-top: 3px; }
-.ff.invalid :deep(input), .ff.invalid :deep(select) {
+.ff.invalid :deep(input), .ff.invalid :deep(select), .ff.invalid :deep(.app-select select) {
   border-color: var(--red);
   outline-color: #f2c4bf;
 }

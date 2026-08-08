@@ -9,6 +9,7 @@ import Modal from '../components/Modal.vue';
 import Panel from '../components/Panel.vue';
 import DatePicker from '../components/DatePicker.vue';
 import StatusBadge from '../components/StatusBadge.vue';
+import AppSelect from '../components/AppSelect.vue';
 import { platformApi } from '../platformApi.js';
 import { dateOnly, money, monthLabel, recentMonths } from '../utils/format.js';
 
@@ -85,14 +86,14 @@ onMounted(() => load());
 
     <Panel title="Income by period" :subtitle="scope === 'all' ? 'Monthly totals across the platform — newest first' : `Daily totals · ${scopeLabel}`">
       <template #actions>
-        <select v-model="scope" class="filter" @change="load(0)">
+        <AppSelect v-model="scope" compact class="filter" @change="load(0)">
           <option value="all">All time</option>
           <option value="month">Month</option>
           <option value="day">Specific day</option>
-        </select>
-        <select v-if="scope === 'month'" v-model="month" class="filter" @change="load(0)">
+        </AppSelect>
+        <AppSelect v-if="scope === 'month'" v-model="month" compact class="filter" @change="load(0)">
           <option v-for="m in months" :key="m" :value="m">{{ monthLabel(m) }}</option>
-        </select>
+        </AppSelect>
         <DatePicker v-if="scope === 'day'" v-model="day" class="filter-dp" @change="load(0)" />
       </template>
       <EmptyState v-if="!data.breakdown.rows.length" icon="finance" title="No billing activity"
@@ -109,7 +110,7 @@ onMounted(() => load());
       </template>
     </Panel>
 
-    <Modal v-if="drill" :title="`Invoices · ${drillLabel(drill.period)}`" wide @close="drill = null">
+    <Modal v-if="drill" :title="`Invoices · ${drillLabel(drill.period)}`" subtitle="Invoices contributing to this accounting period" wide @close="drill = null">
       <p class="muted small drill-hint">Every invoice involved in this period's income — issued in it, or paid (in part or full) during it.</p>
       <DataTable :columns="drillColumns" :page="{ rows: drill.rows, total: drill.total, limit: drillLimit, offset: drill.offset }" @page="(o) => openDrill(drill.period, o)">
         <template #cell-number="{ row }">
@@ -128,7 +129,7 @@ onMounted(() => load());
 
 <style scoped>
 .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
-.filter { height: 34px; border: 1px solid var(--line); border-radius: 8px; padding: 0 8px; background: #fff; font: inherit; }
+.filter { width: auto; min-width: 150px; }
 .filter-dp { width: 155px; }
 .collected { color: var(--brand-dark); }
 .note { margin-top: 10px; }
