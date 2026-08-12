@@ -29,7 +29,7 @@ const historyForm = ref({
   order_date: new Date().toLocaleDateString('sv-SE'),
   fulfilled_date: new Date().toLocaleDateString('sv-SE'),
   handoff_type: 'pickup', collected_by_name: '',
-  payment_method: 'mpesa_manual', payment_amount: 0, payment_ref: '',
+  payment_method: 'pix_manual', payment_amount: 0, payment_ref: '',
 });
 
 // add-line form state
@@ -41,7 +41,7 @@ const pickedAddons = ref([]);
 const svc = computed(() => catalog.value.services.find((s) => s.id === svcId.value));
 const qtyLabel = computed(() =>
   svc.value?.pricingModel === 'PER_KG' || svc.value?.unit === 'kg' ? 'Weight (kg)'
-  : svc.value?.pricingModel === 'FLAT' ? 'Bags' : 'Quantity');
+  : svc.value?.pricingModel === 'FLAT' ? 'Bags' : 'Quantidade');
 const addonOptions = computed(() =>
   (svc.value?.addonRules || []).map((r) => {
     const a = catalog.value.services.find((x) => x.id === r.addonServiceId);
@@ -113,7 +113,7 @@ const smsPreview = computed(() => {
     return `${l.serviceName}${l.variantLabel ? ` (${l.variantLabel})` : ''} ${q}: ${money(l.lineTotalCents, session.currency)}`
       + l.addons.map((a) => ` +${a.addonName}: ${money(a.totalCents, session.currency)}`).join('');
   }).join('; ');
-  return `eWash: Hello ${name}, your order has been assessed: ${items}. Total ${money(preview.value.totalCents, session.currency)}. Pay by M-Pesa or cash when you pick up. Karibu!`;
+  return `LavTr: Hello ${name}, your order has been assessed: ${items}. Total ${money(preview.value.totalCents, session.currency)}. Pague via Pix ou em dinheiro ao retirar. Obrigado!`;
 });
 
 async function sendQuote() {
@@ -177,9 +177,9 @@ function clearAll() {
         <FormField label="Fulfilled / revenue date"><DatePicker v-model="historyForm.fulfilled_date" /></FormField>
         <FormField label="Handoff"><select v-model="historyForm.handoff_type"><option value="pickup">Picked up</option><option value="delivery">Delivered</option></select></FormField>
         <FormField label="Collected / delivered by"><input v-model="historyForm.collected_by_name" type="text" placeholder="Defaults to customer" /></FormField>
-        <FormField label="Payment method"><select v-model="historyForm.payment_method"><option value="mpesa_manual">Manual M-Pesa</option><option value="cash">Cash</option></select></FormField>
+        <FormField label="Payment method"><select v-model="historyForm.payment_method"><option value="pix_manual">Pix (manual)</option><option value="cash">Dinheiro</option></select></FormField>
         <FormField :label="`Payment amount (${session.currency})`"><input v-model.number="historyForm.payment_amount" type="number" min="0" /></FormField>
-        <FormField v-if="historyForm.payment_method === 'mpesa_manual' && historyForm.payment_amount > 0" label="M-Pesa code"><input v-model="historyForm.payment_ref" type="text" /></FormField>
+        <FormField v-if="historyForm.payment_method === 'pix_manual' && historyForm.payment_amount > 0" label="Código Pix"><input v-model="historyForm.payment_ref" type="text" /></FormField>
       </div>
     </Panel>
 
@@ -280,7 +280,7 @@ function clearAll() {
       <div v-if="smsPreview || sentOrder" class="phone">
         <div class="small muted" style="text-align:center; margin-bottom:8px;">CUSTOMER'S PHONE</div>
         <div class="sms">
-          <template v-if="sentOrder"><b>eWash:</b> Hello {{ sentOrder.customer.name.split(' ')[0] }}, order <b>{{ sentOrder.code }}</b> assessed. Total <b>{{ money(sentOrder.totalCents, session.currency) }}</b>. Pay by M-Pesa or cash when you pick up. Karibu!</template>
+          <template v-if="sentOrder"><b>LavTr:</b> Hello {{ sentOrder.customer.name.split(' ')[0] }}, order <b>{{ sentOrder.code }}</b> assessed. Total <b>{{ money(sentOrder.totalCents, session.currency) }}</b>. Pague via Pix ou em dinheiro ao retirar. Obrigado!</template>
           <template v-else>{{ smsPreview }}</template>
         </div>
         <div class="mpesa">

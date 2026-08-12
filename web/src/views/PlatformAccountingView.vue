@@ -24,10 +24,10 @@ const limit = 12;
 const columns = [
   { key: 'period', label: 'Period' },
   { key: 'invoicedCents', label: 'Invoiced', align: 'right' },
-  { key: 'collectedCents', label: 'Collected', align: 'right' },
-  { key: 'activeCount', label: 'Active', align: 'right' },
+  { key: 'collectedCents', label: 'Coletado', align: 'right' },
+  { key: 'activeCount', label: 'Ativo', align: 'right' },
   { key: 'closedCount', label: 'Closed', align: 'right' },
-  { key: 'totalCount', label: 'Invoices', align: 'right' },
+  { key: 'totalCount', label: 'Faturas', align: 'right' },
   { key: 'actions', label: '', align: 'right' },
 ];
 
@@ -39,7 +39,7 @@ const drillColumns = [
   { key: 'tenantName', label: 'Tenant' },
   { key: 'status', label: 'Status' },
   { key: 'totalCents', label: 'Total', align: 'right' },
-  { key: 'paidCents', label: 'Paid', align: 'right' },
+  { key: 'paidCents', label: 'Pago', align: 'right' },
   { key: 'dueAt', label: 'Due' },
 ];
 const drillLimit = 8;

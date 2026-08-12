@@ -20,9 +20,9 @@ const createOpen = ref(false);
 const selected = ref(null);
 const error = ref('');
 const invoiceMode = ref('plan'); // plan | manual
-const invoice = ref({ tenant_id: '', description: 'Monthly eWash subscription', quantity: 1, amount: '', tax: 0, due_at: '', notes: '' });
+const invoice = ref({ tenant_id: '', description: 'Monthly LavTr subscription', quantity: 1, amount: '', tax: 0, due_at: '', notes: '' });
 const invoiceErrors = ref({});
-const payment = ref({ amount: '', method: 'mpesa_manual', reference: '', paid_at: new Date().toISOString().slice(0, 10) });
+const payment = ref({ amount: '', method: 'pix_manual', reference: '', paid_at: new Date().toISOString().slice(0, 10) });
 const subPreview = ref(null); // { planName, termMonths, perMonthCents, periodStart, periodEnd, custom }
 const planEdit = ref(null); // { id, name, trial_days, active, prices: [{term_months, price_kes}] }
 const planErrors = ref('');
@@ -79,7 +79,7 @@ const termSummary = (plan) => plan.prices.map((p) => `${p.termMonths}mo ${money(
 // ---- Invoice creation ----
 function openCreate() {
   invoiceMode.value = 'plan';
-  invoice.value = { tenant_id: '', description: 'Monthly eWash subscription', quantity: 1, amount: '', tax: 0, due_at: '', notes: '' };
+  invoice.value = { tenant_id: '', description: 'Monthly LavTr subscription', quantity: 1, amount: '', tax: 0, due_at: '', notes: '' };
   invoiceErrors.value = {};
   subPreview.value = null;
   createOpen.value = true;
@@ -252,8 +252,8 @@ onMounted(async () => {
     <div class="form-grid">
       <FormField label="Amount (KES)"><input v-model="payment.amount" type="number" min="1" step="1" /></FormField>
       <FormField label="Payment date"><DatePicker v-model="payment.paid_at" /></FormField>
-      <FormField label="Method"><select v-model="payment.method"><option value="mpesa_manual">M-Pesa code (manual)</option><option value="bank">Bank transfer</option><option value="cash">Cash</option></select></FormField>
-      <FormField label="Reference"><input v-model="payment.reference" type="text" placeholder="M-Pesa code or bank reference" /></FormField>
+      <FormField label="Method"><select v-model="payment.method"><option value="pix_manual">Código Pix (manual)</option><option value="bank">Transferência bancária</option><option value="cash">Dinheiro</option></select></FormField>
+      <FormField label="Referência"><input v-model="payment.reference" type="text" placeholder="Código Pix ou referência bancária" /></FormField>
     </div>
     <template #footer><button class="btn btn-outline" @click="selected = null">Cancel</button><button class="btn btn-primary" :disabled="!payment.amount" @click="recordPayment">Record payment</button></template>
   </Modal>

@@ -21,10 +21,10 @@ const auditLog = ref(null); // null = first load (skeleton)
 
 const tab = ref('revenue');
 const tabs = computed(() => [
-  { key: 'revenue', label: 'Revenue by category', icon: 'chart' },
+  { key: 'revenue', label: 'Receita por categoria', icon: 'chart' },
   { key: 'compare', label: 'This month vs last', icon: 'finance' },
-  { key: 'register', label: 'Daily register', icon: 'cash' },
-  { key: 'audit', label: 'Audit log', icon: 'history', count: auditLog.value?.length ?? undefined },
+  { key: 'register', label: 'Caixa diário', icon: 'cash' },
+  { key: 'audit', label: 'Registro de auditoria', icon: 'history', count: auditLog.value?.length ?? undefined },
 ]);
 
 async function load() {
@@ -58,10 +58,10 @@ const cmpRows = computed(() => {
   const c = compare.value; if (!c) return [];
   const p = c.previous || {};
   return [
-    { label: 'Money earned', cur: c.netCents, prev: p.netCents, isMoney: true },
-    { label: 'Money spent', cur: c.expensesCents, prev: p.expensesCents, isMoney: true, downIsGood: true },
+    { label: 'Receita ganha', cur: c.netCents, prev: p.netCents, isMoney: true },
+    { label: 'Despesas', cur: c.expensesCents, prev: p.expensesCents, isMoney: true, downIsGood: true },
     { label: 'Profit', cur: c.profitCents, prev: p.profitCents, isMoney: true },
-    { label: 'Finished orders', cur: c.closedOrders, prev: p.closedOrders, isMoney: false },
+    { label: 'Pedidos concluídos', cur: c.closedOrders, prev: p.closedOrders, isMoney: false },
   ];
 });
 
@@ -94,13 +94,13 @@ const catBarWidth = (c) => {
 
 const regColumns = [
   { key: 'attendant', label: 'Attendant' },
-  { key: 'orders', label: 'Orders', align: 'right' },
-  { key: 'cash', label: 'Cash', align: 'right' },
-  { key: 'mpesa', label: 'M-Pesa', align: 'right' },
+  { key: 'orders', label: 'Pedidos', align: 'right' },
+  { key: 'cash', label: 'Dinheiro', align: 'right' },
+  { key: 'pix', label: 'M-Pesa', align: 'right' },
   { key: 'total', label: 'Total', align: 'right' },
 ];
 const auditColumns = [
-  { key: 'at', label: 'When' },
+  { key: 'at', label: 'Quando' },
   { key: 'userName', label: 'Who' },
   { key: 'action', label: 'Action' },
   { key: 'detail', label: 'Detail' },

@@ -11,11 +11,11 @@ const router = useRouter();
 const drawer = ref(false);
 const nav = computed(() => [
   { name: 'platform-dashboard', label: 'Overview', icon: 'grid', policy: 'platform.dashboard.view' },
-  { name: 'platform-tenants', label: 'Tenants', icon: 'branch', policy: 'platform.tenants.view' },
-  { name: 'platform-revenue', label: 'Revenue', icon: 'chart', policy: 'platform.billing.view' },
-  { name: 'platform-accounting', label: 'Accounting', icon: 'scale', policy: 'platform.billing.view' },
-  { name: 'platform-billing', label: 'Billing', icon: 'finance', policy: 'platform.billing.view' },
-  { name: 'platform-audit', label: 'Audit log', icon: 'history', policy: 'platform.audit.view' },
+  { name: 'platform-tenants', label: 'Lojas', icon: 'branch', policy: 'platform.tenants.view' },
+  { name: 'platform-revenue', label: 'Receita', icon: 'chart', policy: 'platform.billing.view' },
+  { name: 'platform-accounting', label: 'Contabilidade', icon: 'scale', policy: 'platform.billing.view' },
+  { name: 'platform-billing', label: 'Cobrança', icon: 'finance', policy: 'platform.billing.view' },
+  { name: 'platform-audit', label: 'Registro de auditoria', icon: 'history', policy: 'platform.audit.view' },
 ].filter((item) => session.can(item.policy)));
 
 async function logout() {

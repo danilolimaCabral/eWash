@@ -1,6 +1,6 @@
 import { auditLog } from './db/schema.js';
 
-export const SUPPORT_EMAIL = 'info@qesuite.com';
+export const SUPPORT_EMAIL = 'contato@lavatr.app';
 
 export const uid = () => crypto.randomUUID();
 
@@ -21,8 +21,10 @@ export const bad = (msg) => { throw new ApiError(400, msg); };
 export const notFound = (msg = 'Not found') => { throw new ApiError(404, msg); };
 export const forbidden = (msg = 'You do not have permission to do this') => { throw new ApiError(403, msg); };
 
-export function fmtMoney(cents, currency = 'KES') {
-  return `${currency} ${Math.round(cents / 100).toLocaleString('en-KE')}`;
+export function fmtMoney(cents, currency = 'BRL') {
+  const value = Math.round(cents) / 100;
+  if (currency === 'BRL') return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${currency} ${value.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export async function audit(db, tenantId, userId, action, entity, entityId, payload) {

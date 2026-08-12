@@ -1,4 +1,4 @@
-// eWash API — a single Cloudflare Worker serves both the REST API (/api/*)
+// LavTr API — a single Cloudflare Worker serves both the REST API (/api/*)
 // and the built Vue SPA (static assets with SPA fallback). One service, one deploy.
 import { Hono } from 'hono';
 import { secureHeaders } from 'hono/secure-headers';
@@ -10,7 +10,7 @@ import { googleRoutes } from './routes/google.js';
 import { catalogRoutes } from './routes/catalog.js';
 import { customerRoutes } from './routes/customers.js';
 import { orderRoutes } from './routes/orders.js';
-import { paymentRoutes, mpesaCallbackRoute } from './routes/payments.js';
+import { paymentRoutes, pixCallbackRoute } from './routes/payments.js';
 import { financeRoutes, postDueRecurring } from './routes/finance.js';
 import { reportRoutes } from './routes/reports.js';
 import { userRoutes } from './routes/users.js';
@@ -54,7 +54,7 @@ app.use('/api/*', async (c, next) => {
 });
 
 app.get('/api/health', (c) => {
-  const body = { ok: true, service: 'eWash', at: new Date().toISOString() };
+  const body = { ok: true, service: 'LavTr', at: new Date().toISOString() };
   // Dev-only config readout: which env keys are LOADED (booleans only — never
   // the values). Suppressed in production so it can't leak configuration shape.
   if (c.env.ENVIRONMENT !== 'production') {
@@ -82,7 +82,7 @@ app.get('/api/health', (c) => {
 app.route('/api/auth', authRoutes);
 app.route('/api/auth', googleRoutes);
 app.route('/api/platform/auth', platformAuthRoutes);
-app.route('/api', mpesaCallbackRoute);
+app.route('/api', pixCallbackRoute);
 
 const platformApi = new Hono();
 platformApi.use('*', platformAuthRequired);

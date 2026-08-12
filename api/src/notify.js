@@ -6,18 +6,18 @@ import { uid, now, fmtMoney } from './util.js';
 import { notifications } from './db/schema.js';
 
 // Customer messages are branded with the tenant's own business name via the
-// {business} merge field — never with the eWash platform name.
+// {business} merge field — never with the LavTr platform name.
 export const DEFAULT_TEMPLATES = {
   quote_ready:
-    '{business}: Hello {customer}, order {order_code} assessed: {items}. Total {total}. Pay by M-Pesa or cash when you pick up. Karibu!',
+    '{business}: Olá {customer}, pedido {order_code} avaliado: {items}. Total {total}. Pague via Pix ou em dinheiro ao retirar. Obrigado!',
   payment_received:
-    '{business}: Payment of {amount} received for order {order_code}. Balance: {balance}. Asante!',
+    '{business}: Pagamento de {amount} recebido para o pedido {order_code}. Saldo: {balance}. Obrigado!',
   order_ready:
-    '{business}: Hello {customer}, your order {order_code} is ready for pickup. {balance_note}Karibu!',
+    '{business}: Olá {customer}, seu pedido {order_code} está pronto para retirada. {balance_note}Obrigado!',
   order_delivered:
-    '{business}: Order {order_code} delivered/collected. Thank you for choosing us, {customer}!',
+    '{business}: Pedido {order_code} entregue/retirado. Obrigado por nos escolher, {customer}!',
   payment_reminder:
-    '{business}: Friendly reminder — order {order_code} is ready and has a balance of {balance}. Pay via M-Pesa to collect. Asante!',
+    '{business}: Lembrete — o pedido {order_code} está pronto e possui saldo de {balance}. Pague via Pix para retirar. Obrigado!',
 };
 
 export function renderTemplate(tenant, key, fields) {

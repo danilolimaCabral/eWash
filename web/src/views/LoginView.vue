@@ -46,7 +46,7 @@ async function submit() {
       session.setTokens(pair);
       session.unlock();
       await session.loadMe();
-      toast.success('Karibu! Your laundry is set up with a template catalog — adjust prices in the Service Builder.');
+      toast.success('Bem-vindo(a)! Sua lavanderia foi configurada com um catálogo modelo — ajuste os preços no Construtor de Serviços.');
     } else {
       // registration does not sign in — the account activates via email
       const result = await session.register({ ...form.value });
@@ -169,7 +169,7 @@ onMounted(async () => {
           {{ busy
             ? (mode === 'login' ? 'Signing in…' : mode === 'forgot' ? 'Sending…' : 'Setting things up…')
             : mode === 'forgot' ? 'Send reset link'
-            : mode === 'login' ? 'Sign in'
+            : mode === 'login' ? 'Entrar'
             : mode === 'google-complete' ? 'Finish setup — go live in minutes'
             : 'Create my laundry — go live in minutes' }}
         </button>

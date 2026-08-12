@@ -40,8 +40,8 @@ const branchForm = ref({ id: '', name: '', location: '', active: true, reason: '
 
 const columns = [
   { key: 'name', label: 'Business' }, { key: 'plan', label: 'Plan' },
-  { key: 'branches', label: 'Branches', align: 'right' }, { key: 'users', label: 'Users', align: 'right' },
-  { key: 'outstanding', label: 'Outstanding', align: 'right' }, { key: 'status', label: 'Status' },
+  { key: 'branches', label: 'Filiais', align: 'right' }, { key: 'users', label: 'Users', align: 'right' },
+  { key: 'outstanding', label: 'Pendente', align: 'right' }, { key: 'status', label: 'Status' },
   { key: 'createdAt', label: 'Joined' },
 ];
 
@@ -88,13 +88,13 @@ async function saveBranch() {
   try {
     if (branchModal.value === 'create') {
       await platformApi.post(`/tenants/${selected.value.id}/branches`, branchForm.value);
-      toast.success('Branch created');
+      toast.success('Filial criada');
     } else {
       await platformApi.patch(`/tenants/${selected.value.id}/branches/${branchForm.value.id}`, {
         name: branchForm.value.name, location: branchForm.value.location,
         active: branchForm.value.active, reason: branchForm.value.reason,
       });
-      toast.success('Branch updated');
+      toast.success('Filial atualizada');
     }
     branchModal.value = '';
     await loadBranches(branchOffset.value);
@@ -209,8 +209,8 @@ onMounted(async () => {
 
   <Modal v-if="detail" :title="detail.tenant.name" wide @close="detail = null">
     <Tabs v-model="detailTab" :tabs="[
-      { key: 'overview', label: 'Overview' }, { key: 'branches', label: 'Branches', count: branchData.total }, { key: 'subscription', label: 'Subscription' },
-      { key: 'invoices', label: 'Invoices', count: detail.invoices.length }, { key: 'users', label: 'Members', count: memberData.total },
+      { key: 'overview', label: 'Overview' }, { key: 'branches', label: 'Filiais', count: branchData.total }, { key: 'subscription', label: 'Subscription' },
+      { key: 'invoices', label: 'Faturas', count: detail.invoices.length }, { key: 'users', label: 'Members', count: memberData.total },
     ]" />
     <div v-if="detailTab === 'overview'" class="detail-grid">
       <div><span>Status</span><StatusBadge :status="detail.tenant.status" kind="generic" /></div>
@@ -269,7 +269,7 @@ onMounted(async () => {
     </template>
   </Modal>
 
-  <Modal v-if="action.open" :title="action.status === 'cancelled' ? 'Cancel tenancy' : action.status === 'suspended' ? 'Suspend tenant' : 'Reactivate tenant'" @close="action.open = false">
+  <Modal v-if="action.open" :title="action.status === 'cancelled' ? 'Cancel tenancy' : action.status === 'suspended' ? 'Suspender loja' : 'Reativar loja'" @close="action.open = false">
     <p class="muted">This action is immediate and will be recorded in the platform audit log.</p>
     <FormField label="Reason"><textarea v-model="action.reason" rows="3" required /></FormField>
     <template #footer><button class="btn btn-outline" @click="action.open = false">Back</button><button class="btn btn-primary" :disabled="!action.reason.trim()" @click="changeStatus">Confirm</button></template>

@@ -1,4 +1,4 @@
-// eWash data model (Drizzle ORM, SQLite/D1).
+// LavTr data model (Drizzle ORM, SQLite/D1).
 // Every row is tenant-scoped directly or through its parent. Money is integer cents.
 // Order price fields on order_items / order_item_addons are snapshots taken at
 // order creation — later catalog edits never mutate existing orders.
@@ -12,7 +12,7 @@ export const tenants = sqliteTable('tenants', {
   id: id(),
   name: text('name').notNull(),
   plan: text('plan').notNull().default('starter'),
-  currency: text('currency').notNull().default('KES'),
+  currency: text('currency').notNull().default('BRL'),
   status: text('status').notNull().default('active'),
   billingEmail: text('billing_email'),
   trialEndsAt: text('trial_ends_at'),
@@ -20,7 +20,7 @@ export const tenants = sqliteTable('tenants', {
   suspendedAt: text('suspended_at'),
   cancelledAt: text('cancelled_at'),
   cancellationReason: text('cancellation_reason'),
-  codePrefix: text('code_prefix').notNull().default('WK'),
+  codePrefix: text('code_prefix').notNull().default('LV'),
   orderSeq: integer('order_seq').notNull().default(100),
   settings: text('settings').notNull().default('{}'),
   createdAt: createdAt(),
@@ -220,9 +220,9 @@ export const payments = sqliteTable('payments', {
   id: id(),
   tenantId: text('tenant_id').notNull().references(() => tenants.id),
   orderId: text('order_id').notNull().references(() => orders.id),
-  method: text('method', { enum: ['mpesa_stk', 'mpesa_manual', 'cash'] }).notNull(),
+  method: text('method', { enum: ['pix', 'pix_manual', 'card', 'cash'] }).notNull(),
   amountCents: integer('amount_cents').notNull(),
-  mpesaRef: text('mpesa_ref'),
+  pixRef: text('pix_ref'),
   status: text('status', { enum: ['pending', 'completed', 'failed', 'refunded'] }).notNull().default('pending'),
   receivedBy: text('received_by').notNull().references(() => users.id),
   at: text('at').notNull().default(sql`(datetime('now'))`),
@@ -326,7 +326,7 @@ export const expenses = sqliteTable('expenses', {
   categoryId: text('category_id').notNull().references(() => expenseCategories.id),
   providerId: text('provider_id').references(() => serviceProviders.id),
   amountCents: integer('amount_cents').notNull(),
-  paidVia: text('paid_via', { enum: ['cash', 'mpesa'] }).notNull().default('cash'),
+  paidVia: text('paid_via', { enum: ['cash', 'pix', 'card'] }).notNull().default('cash'),
   expenseDate: text('expense_date').notNull(),
   recurring: integer('recurring').notNull().default(0),
   recurringSourceId: text('recurring_source_id'), // set on auto-posted copies
@@ -380,7 +380,7 @@ export const plans = sqliteTable('plans', {
   name: text('name').notNull(),
   interval: text('interval', { enum: ['monthly'] }).notNull().default('monthly'),
   priceCents: integer('price_cents').notNull().default(0),
-  currency: text('currency').notNull().default('KES'),
+  currency: text('currency').notNull().default('BRL'),
   trialDays: integer('trial_days').notNull().default(14),
   active: integer('active').notNull().default(1),
   features: text('features').notNull().default('{}'),
@@ -422,7 +422,7 @@ export const billingInvoices = sqliteTable('billing_invoices', {
   subscriptionId: text('subscription_id').references(() => tenantSubscriptions.id),
   number: text('number').notNull().unique(),
   status: text('status', { enum: ['draft', 'issued', 'partially_paid', 'paid', 'void', 'overdue'] }).notNull().default('draft'),
-  currency: text('currency').notNull().default('KES'),
+  currency: text('currency').notNull().default('BRL'),
   periodStart: text('period_start'),
   periodEnd: text('period_end'),
   issuedAt: text('issued_at'),
@@ -452,7 +452,7 @@ export const billingPayments = sqliteTable('billing_payments', {
   tenantId: text('tenant_id').notNull().references(() => tenants.id),
   invoiceId: text('invoice_id').notNull().references(() => billingInvoices.id),
   amountCents: integer('amount_cents').notNull(),
-  method: text('method', { enum: ['cash', 'bank', 'mpesa_manual'] }).notNull(),
+  method: text('method', { enum: ['cash', 'bank', 'pix_manual'] }).notNull(),
   reference: text('reference'),
   paidAt: text('paid_at').notNull(),
   recordedBy: text('recorded_by').notNull().references(() => platformUsers.id),

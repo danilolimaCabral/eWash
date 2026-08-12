@@ -99,7 +99,7 @@ async function handOver() {
 </script>
 
 <template>
-  <Modal :title="order ? `Collect — tag ${order.code}` : 'Collect'" @close="$emit('close')">
+  <Modal :title="order ? `Collect — tag ${order.code}` : 'Coletar'" @close="$emit('close')">
     <div v-if="order">
       <div class="collect-head">
         <div class="tag-chip"><AppIcon name="tag" :size="14" />{{ order.code }}</div>
@@ -175,7 +175,7 @@ async function handOver() {
               <option value="delivery">Taken for delivery</option>
             </select>
           </FormField>
-          <FormField :label="handoffType === 'pickup' ? 'Collected by' : 'Taken for delivery by'"
+          <FormField :label="handoffType === 'pickup' ? 'Coletado por' : 'Taken for delivery by'"
             hint="Select the customer or type another person’s name.">
             <ComboBox v-model="collectedByName" :items="customerOption" :allow-create="false"
               placeholder="Type or select a name…" @select="selectPerson" />

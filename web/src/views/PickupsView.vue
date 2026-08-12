@@ -67,7 +67,7 @@ const filteredReady = computed(() => {
 
 const tabs = computed(() => [
   { key: 'ready', label: 'Ready for pickup', icon: 'bell', count: orders.value?.length ?? undefined },
-  { key: 'history', label: 'Pickup history', icon: 'history', count: history.value?.total ?? undefined },
+  { key: 'history', label: 'Histórico de coletas', icon: 'history', count: history.value?.total ?? undefined },
 ]);
 
 const readyColumns = [
@@ -75,7 +75,7 @@ const readyColumns = [
   { key: 'customer', label: 'Customer' },
   { key: 'items', label: 'Items' },
   { key: 'balance', label: 'Balance', align: 'right' },
-  { key: 'waiting', label: 'Ready since' },
+  { key: 'waiting', label: 'Pronto desde' },
   { key: 'action', label: '', align: 'right' },
 ];
 const historyColumns = [
@@ -83,7 +83,7 @@ const historyColumns = [
   { key: 'customer', label: 'Customer' },
   { key: 'items', label: 'Items' },
   { key: 'total', label: 'Total / paid', align: 'right' },
-  { key: 'handoff', label: 'Handed over' },
+  { key: 'handoff', label: 'Entregue' },
   { key: 'action', label: '', align: 'right' },
 ];
 </script>
@@ -145,7 +145,7 @@ const historyColumns = [
             </template>
             <template #cell-handoff="{ row }">
               <span class="handoff-chip" :class="row.handoffType === 'delivery' ? 'delivery' : 'pickup'">
-                {{ row.handoffType === 'delivery' ? 'Delivered' : 'Collected' }}
+                {{ row.handoffType === 'delivery' ? 'Delivered' : 'Coletado' }}
               </span>
               <small class="muted block">
                 <template v-if="row.collectedByName">by {{ row.collectedByName }} · </template>{{ dateTime(row.collectedAt || row.closedAt) }}

@@ -1,6 +1,6 @@
 const BASE = '/api/platform';
-const TOKEN_KEY = 'ewash_platform_token';
-const REFRESH_KEY = 'ewash_platform_refresh';
+const TOKEN_KEY = 'lavtr_platform_token';
+const REFRESH_KEY = 'lavtr_platform_refresh';
 
 export const platformTokenStore = {
   get token() { return localStorage.getItem(TOKEN_KEY); },

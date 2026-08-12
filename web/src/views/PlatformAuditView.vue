@@ -11,7 +11,7 @@ const offset = ref(0);
 const limit = 10;
 const columns = [
   { key: 'at', label: 'Time' }, { key: 'actorName', label: 'Administrator' },
-  { key: 'action', label: 'Action' }, { key: 'tenantName', label: 'Tenant' }, { key: 'reason', label: 'Reason' },
+  { key: 'action', label: 'Action' }, { key: 'tenantName', label: 'Tenant' }, { key: 'reason', label: 'Motivo' },
 ];
 async function load(nextOffset = 0) {
   offset.value = nextOffset;

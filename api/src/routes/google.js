@@ -21,7 +21,7 @@ import { issueSession } from '../session.js';
 
 export const googleRoutes = new Hono();
 
-const COOKIE = 'ewash_gauth';
+const COOKIE = 'lavtr_gauth';
 
 const b64url = (buf) =>
   btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');

@@ -5,7 +5,7 @@ export const POLICIES = [
   ['orders.discount', 'Apply manual discounts (capped)'],
   ['orders.void', 'Void / cancel orders'],
   ['orders.advance', 'Move orders through the pipeline'],
-  ['payments.receive', 'Take payments (cash / M-Pesa)'],
+  ['payments.receive', 'Receber pagamentos (dinheiro / Pix)'],
   ['payments.refund', 'Issue refunds'],
   ['catalog.edit', 'Edit services & pricing'],
   ['expenses.create', 'Record expenses'],

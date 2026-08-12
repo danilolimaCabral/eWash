@@ -1,23 +1,22 @@
-export const SUPPORT_EMAIL = 'info@qesuite.com';
+export const SUPPORT_EMAIL = 'contato@lavatr.app';
 
 // Shown in the "Need help?" support popup (SupportModal). Edit freely —
 // everything here is display-only.
 export const SYSTEM_INFO = {
-  name: 'eWash',
-  tagline: 'Laundry Management SaaS',
+  name: 'LavTr',
+  tagline: 'Sistema de Gestão para Lavanderias',
   version: 'v1.0',
-  operator: 'QESuite',
+  operator: 'LavTr — Lavanderias Inteligentes',
 };
 
 export const SUPPORT_CONTACTS = [
-  { label: 'Email support', value: SUPPORT_EMAIL, href: `mailto:${SUPPORT_EMAIL}`, icon: 'mail' },
-  { label: 'Call / WhatsApp', value: '+254 700 000 000', href: 'tel:+254700000000', icon: 'phone' },
-  { label: 'Website', value: 'qesuite.com', href: 'https://qesuite.com', icon: 'globe' },
+  { label: 'E-mail', value: SUPPORT_EMAIL, href: `mailto:${SUPPORT_EMAIL}`, icon: 'mail' },
+  { label: 'WhatsApp / Telefone', value: '+55 11 90000-0000', href: 'tel:+5511900000000', icon: 'phone' },
+  { label: 'Website', value: 'lavatr.app', href: 'https://lavatr.app', icon: 'globe' },
 ];
 
 export const SUPPORT_SOCIALS = [
-  { name: 'X (Twitter)', handle: '@qesuite', url: 'https://x.com/qesuite' },
-  { name: 'Instagram', handle: '@qesuite', url: 'https://instagram.com/qesuite' },
-  { name: 'Facebook', handle: 'QESuite', url: 'https://facebook.com/qesuite' },
-  { name: 'LinkedIn', handle: 'QESuite', url: 'https://linkedin.com/company/qesuite' },
+  { name: 'Instagram', handle: '@lavtr.app', url: 'https://instagram.com/lavtr.app' },
+  { name: 'Facebook', handle: 'LavTr', url: 'https://facebook.com/lavtr.app' },
+  { name: 'WhatsApp', handle: '+55 11 90000-0000', url: 'https://wa.me/5511900000000' },
 ];

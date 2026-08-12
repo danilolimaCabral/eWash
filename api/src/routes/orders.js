@@ -125,8 +125,8 @@ orderRoutes.post('/orders', requirePolicy('orders.create'), async (c) => {
       validDate(body.payment.date);
       // validate the whole payment up front — nothing may fail after order
       // rows start being written
-      if (body.payment.method !== 'cash' && !cleanStr(body.payment.mpesa_ref, 40, 'M-Pesa code')) {
-        bad('M-Pesa code is required');
+      if (body.payment.method !== 'cash' && !cleanStr(body.payment.pix_ref, 40, 'Código Pix')) {
+        bad('Código Pix é obrigatório');
       }
     }
   }
@@ -241,12 +241,12 @@ orderRoutes.post('/orders', requirePolicy('orders.create'), async (c) => {
   if (historical && body.payment?.amount_cents > 0) {
     const amount = Math.round(body.payment.amount_cents);
     if (amount > priced.totalCents) bad('Historical payment exceeds the order total');
-    const method = body.payment.method === 'cash' ? 'cash' : 'mpesa_manual';
-    const ref = cleanStr(body.payment.mpesa_ref, 40, 'M-Pesa code');
-    if (method === 'mpesa_manual' && !ref) bad('M-Pesa code is required');
+    const method = body.payment.method === 'cash' ? 'cash' : 'pix_manual';
+    const ref = cleanStr(body.payment.pix_ref, 40, 'Código Pix');
+    if (method === 'pix_manual' && !ref) bad('Código Pix é obrigatório');
     await db.insert(payments).values({
       id: uid(), tenantId: tenant.id, orderId, method, amountCents: amount,
-      mpesaRef: ref || null, status: 'completed', receivedBy: user.id,
+      pixRef: ref || null, status: 'completed', receivedBy: user.id,
       at: `${body.payment.date} 12:00:00`,
     });
   }

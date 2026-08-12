@@ -27,7 +27,7 @@ const columns = [
       <KpiCard label="Suspended" :value="String(data.suspended || 0)" icon="alert" icon-tone="orange" />
       <KpiCard label="Outstanding" :value="money(data.outstandingCents)" icon="finance" icon-tone="violet" />
     </div>
-    <Panel title="Recently registered" subtitle="Newest businesses on eWash">
+    <Panel title="Recently registered" subtitle="Newest businesses on LavTr">
       <DataTable :columns="columns" :rows="data.recent">
         <template #cell-status="{ row }"><StatusBadge :status="row.status" kind="generic" /></template>
         <template #cell-createdAt="{ row }">{{ dateOnly(row.createdAt) }}</template>

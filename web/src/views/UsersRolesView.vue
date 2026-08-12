@@ -131,7 +131,7 @@ async function saveBranch() {
   try {
     if (branchForm.value.id) await api.patch(`/branches/${branchForm.value.id}`, branchForm.value);
     else await api.post('/branches', branchForm.value);
-    toast.success(branchForm.value.id ? 'Branch updated' : 'Branch created');
+    toast.success(branchForm.value.id ? 'Filial atualizada' : 'Filial criada');
     branchForm.value = { id: '', name: '', location: '', active: true };
     await load();
   } catch (e) { toast.error(e.message); }
@@ -194,7 +194,7 @@ async function saveBranch() {
               <div class="identity-line">
                 <h3>{{ selected.name }}</h3>
                 <span class="status-chip" :class="{ disabled: selected.status === 'disabled', invited: selected.status === 'pending' }">
-                  {{ selected.status === 'active' ? 'Active' : selected.status === 'pending' ? 'Invited' : 'Deactivated' }}
+                  {{ selected.status === 'active' ? 'Ativo' : selected.status === 'pending' ? 'Invited' : 'Deactivated' }}
                 </span>
               </div>
               <p>{{ selected.email }}<template v-if="selected.phone"> · {{ selected.phone }}</template></p>
@@ -284,7 +284,7 @@ async function saveBranch() {
         <div class="branch-list">
           <button v-for="branch in branches" :key="branch.id" @click="editBranch(branch)">
             <span><b>{{ branch.name }}</b><small>{{ branch.location || 'No location' }}</small></span>
-            <em>{{ branch.active ? 'Active' : 'Deactivated' }}</em>
+            <em>{{ branch.active ? 'Ativo' : 'Deactivated' }}</em>
           </button>
         </div>
         <div class="branch-form">

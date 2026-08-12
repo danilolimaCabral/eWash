@@ -32,7 +32,7 @@ async function submit() {
 <template>
   <div class="reset-wrap">
     <div class="reset-card">
-      <div class="reset-brand"><span><AppIcon name="shirt" :size="22" /></span><div><b>eWash</b><small>Laundry Management System</small></div></div>
+      <div class="reset-brand"><span><AppIcon name="shirt" :size="22" /></span><div><b>LavTr</b><small>Laundry Management System</small></div></div>
       <template v-if="done">
         <div class="success"><AppIcon name="checkCircle" :size="30" /><h2>Password updated</h2><p>All previous sessions have been signed out.</p></div>
         <button class="btn btn-primary full" @click="router.push({ name: 'login' })">Continue to sign in</button>
@@ -44,7 +44,7 @@ async function submit() {
         <FormField label="Confirm password"><input v-model="confirmPassword" type="password" autocomplete="new-password" required minlength="8" /></FormField>
         <p v-if="!token" class="error-text">This reset link is incomplete.</p>
         <p v-if="error" class="error-text">{{ error }}</p>
-        <button class="btn btn-primary full" :disabled="busy || !token">{{ busy ? 'Updating…' : 'Reset password' }}</button>
+        <button class="btn btn-primary full" :disabled="busy || !token">{{ busy ? 'Updating…' : 'Redefinir senha' }}</button>
       </form>
     </div>
   </div>

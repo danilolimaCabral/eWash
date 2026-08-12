@@ -20,15 +20,15 @@ const NAV = [
   { label: 'Workspace', items: [
     { name: 'dashboard', label: 'Overview', icon: 'grid' },
     { name: 'new-order', label: 'New Order', icon: 'plus', policy: 'orders.create' },
-    { name: 'orders', label: 'Orders', icon: 'orders' },
-    { name: 'pickups', label: 'Pickups', icon: 'checkCircle', policy: 'payments.receive' },
-    { name: 'customers', label: 'Customers', icon: 'customers' },
+    { name: 'orders', label: 'Pedidos', icon: 'orders' },
+    { name: 'pickups', label: 'Coletas', icon: 'checkCircle', policy: 'payments.receive' },
+    { name: 'customers', label: 'Clientes', icon: 'customers' },
   ]},
   { label: 'Manage', items: [
-    { name: 'builder', label: 'Service Builder', icon: 'builder', policy: 'catalog.edit' },
+    { name: 'builder', label: 'Construtor de Serviços', icon: 'builder', policy: 'catalog.edit' },
     { name: 'finance', label: 'Finance / P&L', icon: 'finance', policy: 'finance.view' },
     { name: 'users', label: 'Users & Roles', icon: 'shield', policy: 'users.manage' },
-    { name: 'reports', label: 'Reports', icon: 'chart', policy: 'finance.view' },
+    { name: 'reports', label: 'Relatórios', icon: 'chart', policy: 'finance.view' },
   ]},
 ];
 
@@ -44,7 +44,7 @@ const mobileNav = computed(() => {
 
 const greeting = computed(() => {
   const h = new Date().getHours();
-  return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  return h < 12 ? 'Bom dia' : h < 17 ? 'Boa tarde' : 'Boa noite';
 });
 const todayLabel = new Date().toLocaleDateString('en-KE', { weekday: 'long', day: 'numeric', month: 'long' });
 const branchName = computed(() =>
@@ -125,7 +125,7 @@ onMounted(async () => {
       </nav>
     </div>
   </div>
-  <div v-else class="boot">Loading eWash…</div>
+  <div v-else class="boot">Loading LavTr…</div>
   <SupportModal v-if="supportOpen" @close="supportOpen = false" />
   <LockScreen v-if="session.isAuthed && session.locked" />
 </template>

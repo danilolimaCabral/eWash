@@ -17,7 +17,7 @@ const randomToken = () => {
 };
 
 export const appOrigin = (c) =>
-  (new URL(c.req.url).origin || c.env.APP_URL || 'https://ewash.qesuite.com').replace(/\/+$/, '');
+  (new URL(c.req.url).origin || c.env.APP_URL || 'https://lavtr.qesuite.com').replace(/\/+$/, '');
 
 async function issueEmailToken(db, { user, purpose, ttlMinutes, requestedIp }) {
   const rawToken = randomToken();

@@ -4,8 +4,8 @@
 // session is truly revoked or expired.
 const BASE = '/api';
 
-const TOKEN_KEY = 'ewash_token';
-const REFRESH_KEY = 'ewash_refresh';
+const TOKEN_KEY = 'lavtr_token';
+const REFRESH_KEY = 'lavtr_refresh';
 
 let onUnauthorized = () => {};
 export const setUnauthorizedHandler = (fn) => { onUnauthorized = fn; };

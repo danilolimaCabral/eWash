@@ -1,4 +1,4 @@
-// Tenant onboarding: seed role templates, a typical Kenyan laundry template
+// Tenant onboarding: seed role templates, a typical Brazilian laundry template
 // catalog (the activation key — spec §3), and default expense categories.
 import { uid } from './util.js';
 import { ROLE_TEMPLATES } from './policies.js';
@@ -8,8 +8,8 @@ import {
 } from './db/schema.js';
 
 export const EXPENSE_CATEGORIES = [
-  'Detergents & supplies', 'Water', 'Electricity', 'Rent',
-  'Salaries & wages', 'Delivery/fuel', 'Equipment & repairs', 'Other',
+  'Detergentes e suprimentos', 'Água', 'Energia elétrica', 'Aluguel',
+  'Salários e encargos', 'Delivery/combustível', 'Equipamentos e manutenção', 'Outros',
 ];
 
 export async function seedTenant(db, tenantId) {
@@ -33,7 +33,7 @@ export async function seedTenant(db, tenantId) {
 
   // --- template catalog ---
   const catIds = {};
-  const cats = ['Washing', 'Ironing', 'Dry Cleaning', 'Special Items', 'Household'];
+  const cats = ['Lavagem', 'Passadoria', 'Tinturaria a Seco', 'Itens Especiais', 'Cama, Mesa e Banho'];
   await db.insert(serviceCategories).values(
     cats.map((name, i) => {
       const cid = uid();
@@ -55,33 +55,33 @@ export async function seedTenant(db, tenantId) {
     active: 1,
   });
 
-  const washKg = svc('Washing', 'Wash & Fold (per kg)', 'PER_KG', 150, { min: 500 });
-  const iron = svc('Ironing', 'Ironing', 'PER_KG', 70);
-  const stain = svc('Washing', 'Stain Treatment', 'PER_ITEM', 100);
-  const duvet = svc('Household', 'Duvet Wash', 'PER_ITEM', 800);
-  const suit = svc('Dry Cleaning', 'Suit Dry Clean', 'PER_ITEM', 500);
-  const bag = svc('Washing', 'Bag Wash (any weight)', 'FLAT', 1200);
-  const bedding = svc('Household', 'Bedding Bundle', 'TIERED', 800, { unit: 'kg' });
+  const washKg = svc('Lavagem', 'Lavagem por quilo (kg)', 'PER_KG', 8, { min: 5 });
+  const iron = svc('Passadoria', 'Passadoria', 'PER_KG', 6);
+  const stain = svc('Lavagem', 'Tratamento de manchas', 'PER_ITEM', 10);
+  const duvet = svc('Cama, Mesa e Banho', 'Lavagem de edredom', 'PER_ITEM', 45);
+  const suit = svc('Tinturaria a Seco', 'Terno à seco', 'PER_ITEM', 45);
+  const bag = svc('Lavagem', 'Lavagem de saco completo (qualquer peso)', 'FLAT', 60);
+  const bedding = svc('Cama, Mesa e Banho', 'Kit de roupa de cama', 'TIERED', 45, { unit: 'kg' });
   await db.insert(services).values([washKg, iron, stain, duvet, suit, bag, bedding]);
 
   await db.insert(serviceVariants).values([
-    { id: uid(), serviceId: duvet.id, attribute: 'size', label: 'Single', priceCents: 60000, sortOrder: 0 },
-    { id: uid(), serviceId: duvet.id, attribute: 'size', label: 'Double', priceCents: 80000, sortOrder: 1 },
-    { id: uid(), serviceId: duvet.id, attribute: 'size', label: 'King', priceCents: 100000, sortOrder: 2 },
+    { id: uid(), serviceId: duvet.id, attribute: 'size', label: 'Casal', priceCents: 4500, sortOrder: 0 },
+    { id: uid(), serviceId: duvet.id, attribute: 'size', label: 'Queen', priceCents: 6000, sortOrder: 1 },
+    { id: uid(), serviceId: duvet.id, attribute: 'size', label: 'King', priceCents: 8000, sortOrder: 2 },
   ]);
 
   await db.insert(pricingTiers).values([
-    // Wash & Fold volume break: 10+ kg drops to 130/kg
-    { id: uid(), serviceId: washKg.id, minQty: 10, maxQty: null, rateCents: 13000, bandPriceCents: null },
-    // Bedding Bundle bands: 1–5 kg 800 flat, 6–10 kg 1,400 flat, 10+ kg 2,200 flat
-    { id: uid(), serviceId: bedding.id, minQty: 0, maxQty: 5, rateCents: null, bandPriceCents: 80000 },
-    { id: uid(), serviceId: bedding.id, minQty: 5.01, maxQty: 10, rateCents: null, bandPriceCents: 140000 },
-    { id: uid(), serviceId: bedding.id, minQty: 10.01, maxQty: null, rateCents: null, bandPriceCents: 220000 },
+    // Lavagem por quilo: 10+ kg cai para R$ 7/kg
+    { id: uid(), serviceId: washKg.id, minQty: 10, maxQty: null, rateCents: 700, bandPriceCents: null },
+    // Kit de roupa de cama por faixas: até 5 kg R$ 45, 5–10 kg R$ 75, 10+ kg R$ 120
+    { id: uid(), serviceId: bedding.id, minQty: 0, maxQty: 5, rateCents: null, bandPriceCents: 4500 },
+    { id: uid(), serviceId: bedding.id, minQty: 5.01, maxQty: 10, rateCents: null, bandPriceCents: 7500 },
+    { id: uid(), serviceId: bedding.id, minQty: 10.01, maxQty: null, rateCents: null, bandPriceCents: 12000 },
   ]);
 
   await db.insert(addonRules).values([
-    // Ironing rides on a wash line at a bundled 50/kg (standalone 70/kg), inherits kg
-    { id: uid(), tenantId, parentServiceId: washKg.id, addonServiceId: iron.id, overrideRateCents: 5000, inheritQty: 1 },
+    // Passadoria junto da lavagem sai por R$ 4/kg (avulsa R$ 6/kg), herda o peso
+    { id: uid(), tenantId, parentServiceId: washKg.id, addonServiceId: iron.id, overrideRateCents: 400, inheritQty: 1 },
     { id: uid(), tenantId, parentServiceId: washKg.id, addonServiceId: stain.id, overrideRateCents: null, inheritQty: 0 },
     { id: uid(), tenantId, parentServiceId: duvet.id, addonServiceId: stain.id, overrideRateCents: null, inheritQty: 1 },
   ]);

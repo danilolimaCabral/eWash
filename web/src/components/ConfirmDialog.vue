@@ -9,8 +9,8 @@ import BaseButton from './BaseButton.vue';
 defineProps({
   title: { type: String, required: true },
   message: { type: String, default: '' },
-  confirmLabel: { type: String, default: 'Confirm' },
-  cancelLabel: { type: String, default: 'Cancel' },
+  confirmLabel: { type: String, default: 'Confirmar' },
+  cancelLabel: { type: String, default: 'Cancelar' },
   danger: { type: Boolean, default: false },
   busy: { type: Boolean, default: false },
 });

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { api, tokenStore } from '../api.js';
 
-const LOCK_KEY = 'ewash_locked';
+const LOCK_KEY = 'lavtr_locked';
 
 export const useSession = defineStore('session', {
   state: () => ({
@@ -16,7 +16,7 @@ export const useSession = defineStore('session', {
     tenant: (s) => s.me?.tenant || null,
     role: (s) => s.me?.role || null,
     branches: (s) => s.me?.branches || [],
-    currency: (s) => s.me?.tenant?.currency || 'KES',
+    currency: (s) => s.me?.tenant?.currency || 'BRL',
     policyCatalog: (s) => s.me?.policyCatalog || [],
     can: (s) => (key) => (s.me?.policies || []).includes(key),
   },

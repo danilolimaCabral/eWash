@@ -64,7 +64,7 @@ const voidOpen = ref(false);
 const voidOrder = () => run(async () => {
   await api.post(`/orders/${order.value.id}/void`, { reason: 'voided from order view' });
   voidOpen.value = false;
-}, 'Order voided');
+}, 'Pedido cancelado');
 
 function openPay() {
   payForm.value = { open: true, method: 'mpesa_manual', amount: order.value.balanceCents / 100, mpesa_ref: '' };
@@ -148,7 +148,7 @@ const applyDiscount = () => run(async () => {
       <div v-if="order.collectedAt" class="handoff-record">
         <AppIcon :name="order.handoffType === 'delivery' ? 'send' : 'checkCircle'" :size="17" />
         <div>
-          <b>{{ order.handoffType === 'delivery' ? 'Taken for delivery' : 'Collected' }} by {{ order.collectedByName }}</b>
+          <b>{{ order.handoffType === 'delivery' ? 'Taken for delivery' : 'Coletado' }} by {{ order.collectedByName }}</b>
           <small>{{ dateTime(order.collectedAt) }}</small>
         </div>
       </div>

@@ -29,8 +29,8 @@ async function redeem(body) {
   session.unlock();
   await session.loadMe();
   toast.success(invite.value
-    ? `Karibu to ${invite.value.business}! You're all set.`
-    : 'Karibu! Your laundry is live — adjust prices anytime in the Service Builder.');
+    ? `Bem-vindo(a) à ${invite.value.business}! Tudo pronto.`
+    : 'Bem-vindo(a)! Sua lavanderia está no ar — ajuste os preços a qualquer momento no Construtor de Serviços.');
   router.replace({ name: 'dashboard' });
 }
 
@@ -71,7 +71,7 @@ onMounted(async () => {
 <template>
   <div class="activate-wrap">
     <div class="activate-card">
-      <div class="activate-brand"><span><AppIcon name="shirt" :size="22" /></span><div><b>eWash</b><small>Laundry Management System</small></div></div>
+      <div class="activate-brand"><span><AppIcon name="shirt" :size="22" /></span><div><b>LavTr</b><small>Laundry Management System</small></div></div>
 
       <div v-if="state === 'loading'" class="pending">
         <span class="spin" aria-hidden="true" />
@@ -81,7 +81,7 @@ onMounted(async () => {
 
       <form v-else-if="state === 'set-password'" @submit.prevent="acceptInvite">
         <h2>Join {{ invite.business }}</h2>
-        <p class="muted lead">Karibu {{ invite.name }} — choose the password you'll sign in with as <b>{{ invite.email }}</b>.</p>
+        <p class="muted lead">Bem-vindo(a), {{ invite.name }} — escolha a senha com que você entrará como <b>{{ invite.email }}</b>.</p>
         <FormField label="Password" hint="At least 8 characters"><input v-model="password" type="password" autocomplete="new-password" required minlength="8" /></FormField>
         <FormField label="Confirm password"><input v-model="confirmPassword" type="password" autocomplete="new-password" required minlength="8" /></FormField>
         <p v-if="error" class="error-text">{{ error }}</p>

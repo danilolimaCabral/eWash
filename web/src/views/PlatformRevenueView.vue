@@ -19,9 +19,9 @@ const columns = [
   { key: 'rank', label: '#', align: 'right' },
   { key: 'name', label: 'Tenant' },
   { key: 'plan', label: 'Plan' },
-  { key: 'closedOrders', label: 'Orders', align: 'right' },
-  { key: 'grossCents', label: 'Revenue', align: 'right' },
-  { key: 'collectedCents', label: 'Collected', align: 'right' },
+  { key: 'closedOrders', label: 'Pedidos', align: 'right' },
+  { key: 'grossCents', label: 'Receita', align: 'right' },
+  { key: 'collectedCents', label: 'Coletado', align: 'right' },
   { key: 'status', label: 'Status' },
 ];
 
@@ -45,13 +45,13 @@ onMounted(() => load());
     <div class="kpis">
       <KpiCard label="Tenant revenue" :value="money(data.grossCents)" icon="chart" icon-tone="green"
         :delta="month ? monthLabel(month) : 'all time'" />
-      <KpiCard label="Collected (cash + M-Pesa)" :value="money(data.collectedCents)" icon="finance" icon-tone="blue"
+      <KpiCard label="Recebido (dinheiro + Pix)" :value="money(data.collectedCents)" icon="finance" icon-tone="blue"
         :delta="month ? monthLabel(month) : 'all time'" />
       <KpiCard label="Closed orders" :value="String(data.closedOrders)" icon="orders" icon-tone="violet" />
       <KpiCard label="Businesses" :value="String(data.total)" icon="branch" icon-tone="orange" />
     </div>
 
-    <Panel title="Revenue by tenant" subtitle="Operational income each business earns through eWash — ranked highest first">
+    <Panel title="Revenue by tenant" subtitle="Operational income each business earns through LavTr — ranked highest first">
       <template #actions>
         <select v-model="month" class="filter" @change="load(0)">
           <option value="">All time</option>

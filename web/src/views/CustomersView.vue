@@ -52,7 +52,7 @@ async function saveCustomer() {
     await api.post('/customers', addForm.value);
     addOpen.value = false;
     addForm.value = { name: '', phone: '', notes: '' };
-    toast.success('Customer created');
+    toast.success('Cliente criado');
     await load();
   } catch (e) { toast.error(e.message); }
   finally { busy.value = false; }
@@ -84,9 +84,9 @@ async function saveCredit() {
 const columns = [
   { key: 'name', label: 'Name' },
   { key: 'phone', label: 'Phone' },
-  { key: 'orderCount', label: 'Orders', align: 'right' },
-  { key: 'ltv', label: 'Lifetime value', align: 'right' },
-  { key: 'last', label: 'Last order' },
+  { key: 'orderCount', label: 'Pedidos', align: 'right' },
+  { key: 'ltv', label: 'Valor acumulado', align: 'right' },
+  { key: 'last', label: 'Último pedido' },
 ];
 </script>
 

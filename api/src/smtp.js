@@ -44,8 +44,8 @@ async function sendEmail(env, { to, subject, text, html }) {
     await response(expected);
   };
 
-  const fromName = env.EMAIL_FROM_NAME || 'eWash Laundry System';
-  const boundary = `ewash-${crypto.randomUUID()}`;
+  const fromName = env.EMAIL_FROM_NAME || 'LavTr Laundry System';
+  const boundary = `lavtr-${crypto.randomUUID()}`;
   const message = [
     `From: ${fromName} <${username}>`,
     `To: ${to}`,
@@ -69,7 +69,7 @@ async function sendEmail(env, { to, subject, text, html }) {
 
   try {
     await response([220]);
-    await command('EHLO ewash.qesuite.com', [250]);
+    await command('EHLO lavtr.qesuite.com', [250]);
     await command(`AUTH PLAIN ${b64(`\0${username}\0${password}`)}`, [235]);
     await command(`MAIL FROM:<${username}>`, [250]);
     await command(`RCPT TO:<${to}>`, [250, 251]);
@@ -141,7 +141,7 @@ function renderEmail({ preheader, heading, name, lead, url, button, footnote }) 
         <!-- footer -->
         <tr><td style="background:#e4f4f1;border-radius:0 0 16px 16px;padding:18px 32px;">
           <p style="margin:0;font-family:${FONT_BODY};font-size:11.5px;color:#4d6360;line-height:1.6;">
-            Sent by <b style="font-family:${FONT_HEAD};color:#0c5550;">eWash</b> — laundry operations made simple.<br>
+            Sent by <b style="font-family:${FONT_HEAD};color:#0c5550;">LavTr</b> — laundry operations made simple.<br>
             Need help? <a href="mailto:info@qesuite.com" style="color:#126d67;font-weight:600;">info@qesuite.com</a>
           </p>
         </td></tr>
@@ -157,13 +157,13 @@ export async function sendPasswordResetEmail(env, { to, name, resetUrl }) {
   const who = safeName(name);
   await sendEmail(env, {
     to,
-    subject: 'Reset your eWash password',
-    text: `Hello ${who},\n\nReset your eWash password using this link:\n${resetUrl}\n\nThis link expires in 30 minutes and can be used once. If you did not request this, ignore this email.`,
+    subject: 'Reset your LavTr password',
+    text: `Hello ${who},\n\nReset your LavTr password using this link:\n${resetUrl}\n\nThis link expires in 30 minutes and can be used once. If you did not request this, ignore this email.`,
     html: renderEmail({
-      preheader: 'Choose a new eWash password — this link expires in 30 minutes.',
+      preheader: 'Choose a new LavTr password — this link expires in 30 minutes.',
       heading: 'Reset your password',
       name: who,
-      lead: 'We received a request to reset your eWash password. Use the button below to choose a new one.',
+      lead: 'We received a request to reset your LavTr password. Use the button below to choose a new one.',
       url: resetUrl,
       button: 'Reset password',
       footnote: 'This link expires in 30 minutes and can be used once. If you did not request it, you can safely ignore this email — your password will not change.',
@@ -177,13 +177,13 @@ export async function sendStaffInviteEmail(env, { to, name, business, inviter, i
   const by = safeName(inviter);
   await sendEmail(env, {
     to,
-    subject: `You're invited to join ${org} on eWash`,
-    text: `Hello ${who},\n\n${by} has invited you to join ${org} on eWash. Accept the invitation and choose your password using this link:\n${inviteUrl}\n\nThis link expires in 72 hours and can be used once. If you were not expecting this, ignore this email.`,
+    subject: `You're invited to join ${org} on LavTr`,
+    text: `Hello ${who},\n\n${by} has invited you to join ${org} on LavTr. Accept the invitation and choose your password using this link:\n${inviteUrl}\n\nThis link expires in 72 hours and can be used once. If you were not expecting this, ignore this email.`,
     html: renderEmail({
-      preheader: `${by} invited you to join ${org} on eWash — set your password to get started.`,
-      heading: `Join ${org} on eWash`,
+      preheader: `${by} invited you to join ${org} on LavTr — set your password to get started.`,
+      heading: `Join ${org} on LavTr`,
       name: who,
-      lead: `<b>${by}</b> has invited you to join <b>${org}</b>'s team on eWash. Accept the invitation and choose your password to start working with orders, customers and payments.`,
+      lead: `<b>${by}</b> has invited you to join <b>${org}</b>'s team on LavTr. Accept the invitation and choose your password to start working with orders, customers and payments.`,
       url: inviteUrl,
       button: 'Accept invitation',
       footnote: 'This link expires in 72 hours and can be used once. If you were not expecting this invitation, you can safely ignore this email.',
@@ -195,16 +195,16 @@ export async function sendActivationEmail(env, { to, name, activationUrl }) {
   const who = safeName(name);
   await sendEmail(env, {
     to,
-    subject: 'Activate your eWash account',
-    text: `Hello ${who},\n\nKaribu to eWash! Activate your account using this link:\n${activationUrl}\n\nThis link expires in 24 hours and can be used once. If you did not sign up, ignore this email.`,
+    subject: 'Activate your LavTr account',
+    text: `Hello ${who},\n\nKaribu to LavTr! Activate your account using this link:\n${activationUrl}\n\nThis link expires in 24 hours and can be used once. If you did not sign up, ignore this email.`,
     html: renderEmail({
-      preheader: 'One click left — activate your eWash account and go live.',
+      preheader: 'One click left — activate your LavTr account and go live.',
       heading: 'Karibu! Activate your account',
       name: who,
       lead: 'Your laundry is set up and waiting — a ready-made Kenyan catalog included. Confirm your email to go live and sign in.',
       url: activationUrl,
       button: 'Activate my account',
-      footnote: 'This link expires in 24 hours and can be used once. If you did not sign up for eWash, you can safely ignore this email.',
+      footnote: 'This link expires in 24 hours and can be used once. If you did not sign up for LavTr, you can safely ignore this email.',
     }),
   });
 }

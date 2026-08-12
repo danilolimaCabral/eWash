@@ -93,12 +93,12 @@ const columns = [
   <div>
     <div class="section-head">
       <div>
-        <h2>Today's overview</h2>
-        <p>Here's what's happening at {{ session.tenant?.name }}.</p>
+        <h2>Visão de hoje</h2>
+        <p>Veja o que está acontecendo em {{ session.tenant?.name }}.</p>
       </div>
       <div class="head-actions">
         <button v-if="session.can('orders.create')" class="btn btn-primary" @click="router.push({ name: 'new-order' })">
-          <AppIcon name="plus" :size="15" /> New order
+          <AppIcon name="plus" :size="15" /> Novo pedido
         </button>
       </div>
     </div>

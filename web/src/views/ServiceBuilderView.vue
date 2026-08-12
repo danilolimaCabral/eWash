@@ -212,7 +212,7 @@ async function addCategory() {
         </button>
       </div>
 
-      <Panel :title="selectedId ? 'Edit service' : 'New service'">
+      <Panel :title="selectedId ? 'Editar serviço' : 'New service'">
         <section class="sect first">
           <div class="sect-head">
             <h4><span class="sect-num">1</span> Basics</h4>

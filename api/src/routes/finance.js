@@ -89,7 +89,7 @@ financeRoutes.post('/expenses', requirePolicy('expenses.create'), async (c) => {
     id: uid(), tenantId: tenant.id, branchId, categoryId: cat.id,
     providerId: b.provider_id || null,
     amountCents: amount,
-    paidVia: b.paid_via === 'mpesa' ? 'mpesa' : 'cash',
+    paidVia: b.paid_via === 'pix' ? 'pix' : b.paid_via === 'card' ? 'card' : 'cash',
     expenseDate: b.expense_date || today(),
     recurring: b.recurring ? 1 : 0,
     note: b.note || null,
@@ -118,7 +118,7 @@ financeRoutes.put('/expenses/:id', requirePolicy('finance.manage'), async (c) =>
   validDate(b.expense_date);
   const patch = {
     categoryId: b.category_id, providerId: b.provider_id || null, amountCents: amount,
-    paidVia: b.paid_via === 'mpesa' ? 'mpesa' : 'cash',
+    paidVia: b.paid_via === 'pix' ? 'pix' : b.paid_via === 'card' ? 'card' : 'cash',
     expenseDate: b.expense_date, note: cleanStr(b.note, LIMITS.note, 'Note') || null,
     updatedAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
   };
@@ -191,7 +191,7 @@ financeRoutes.put('/service-providers/:id', requirePolicy('finance.manage'), asy
   return c.json({ ok: true });
 });
 
-// The business's own eWash subscription invoices (created by the platform).
+// The business's own LavTr subscription invoices (created by the platform).
 // Read-only for tenants; drafts stay platform-internal until issued.
 financeRoutes.get('/billing/invoices', requirePolicy('finance.view'), async (c) => {
   const db = c.get('db');

@@ -47,7 +47,7 @@ async function bootstrapOwner(db, env, email, password) {
 
 // Default per-month rates by term — commit longer, pay less per month.
 // Pure first-run defaults: every value is editable via PATCH /plans/:id.
-const DEFAULT_MONTHLY_CENTS = { starter: 1500_00, growth: 3500_00, enterprise: 7500_00 };
+const DEFAULT_MONTHLY_CENTS = { starter: 99_00, growth: 199_00, enterprise: 349_00 };
 const DEFAULT_TERM_DISCOUNTS = [[1, 0], [3, 0.07], [6, 0.13], [12, 0.20]];
 
 async function ensurePlans(db) {
@@ -55,8 +55,8 @@ async function ensurePlans(db) {
   if (!existing.length) {
     await db.insert(plans).values([
       { id: uid(), code: 'starter', name: 'Starter', priceCents: DEFAULT_MONTHLY_CENTS.starter, trialDays: 14 },
-      { id: uid(), code: 'growth', name: 'Growth', priceCents: DEFAULT_MONTHLY_CENTS.growth, trialDays: 14 },
-      { id: uid(), code: 'enterprise', name: 'Enterprise', priceCents: DEFAULT_MONTHLY_CENTS.enterprise, trialDays: 14 },
+      { id: uid(), code: 'growth', name: 'Pro', priceCents: DEFAULT_MONTHLY_CENTS.growth, trialDays: 14 },
+      { id: uid(), code: 'enterprise', name: 'Premium', priceCents: DEFAULT_MONTHLY_CENTS.enterprise, trialDays: 14 },
     ]);
   }
   // backfill term prices for any plan that has none (also covers pre-existing DBs)
@@ -69,7 +69,7 @@ async function ensurePlans(db) {
     const monthly = p.priceCents || DEFAULT_MONTHLY_CENTS[p.code] || 1500_00;
     return DEFAULT_TERM_DISCOUNTS.map(([term, discount]) => ({
       id: uid(), planId: p.id, termMonths: term,
-      priceCents: Math.round((monthly * (1 - discount)) / 100) * 100, // whole shillings
+      priceCents: Math.round(monthly * (1 - discount) * 100), // whole reais
     }));
   });
   if (rows.length) await db.insert(planPrices).values(rows);
@@ -864,7 +864,7 @@ platformRoutes.patch('/invoices/:id', requirePlatformPolicy('platform.billing.ma
 const SUBSCRIPTION_EXPENSE_CATEGORY = 'Subscriptions & software';
 
 async function postSubscriptionExpense(db, invoice, paidDate, method) {
-  const note = `eWash subscription — invoice ${invoice.number}`;
+  const note = `LavTr subscription — invoice ${invoice.number}`;
   const [dup] = await db.select({ id: expenses.id }).from(expenses).where(and(
     eq(expenses.tenantId, invoice.tenantId), eq(expenses.note, note), eq(expenses.status, 'active'),
   ));

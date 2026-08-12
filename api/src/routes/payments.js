@@ -22,7 +22,7 @@ async function notifyReceipt(c, db, tenant, detail, amountCents) {
   });
 }
 
-// Record a payment. Cash and manual M-Pesa codes complete immediately;
+// Record a payment. Cash and manual Pix codes complete immediately;
 // an STK push stays `pending` until the Daraja callback lands. Partial
 // payments (deposits) are first-class — spec §5.
 paymentRoutes.post('/orders/:id/payments', requirePolicy('payments.receive'), async (c) => {
@@ -31,14 +31,14 @@ paymentRoutes.post('/orders/:id/payments', requirePolicy('payments.receive'), as
   const user = c.get('user');
   const body = await c.req.json();
   const method = body.method;
-  if (!['cash', 'mpesa_stk', 'mpesa_manual'].includes(method)) bad('Invalid payment method');
-  if (method === 'mpesa_stk') bad('M-Pesa STK push is coming soon. Use a manual M-Pesa code or cash.');
+  if (!['cash', 'pix', 'pix_manual', 'card'].includes(method)) bad('Método de pagamento inválido');
+  if (method === 'pix') bad('Pagamento Pix automático está em breve. Use um código Pix manual ou dinheiro.');
   const amount = Math.round(body.amount_cents || 0);
   if (!(amount > 0)) bad('Payment amount must be positive');
   const { checkMoney, cleanStr } = await import('../security.js');
   checkMoney(amount, 'Payment amount');
-  body.mpesa_ref = cleanStr(body.mpesa_ref, 40, 'M-Pesa code');
-  if (method === 'mpesa_manual' && !body.mpesa_ref) bad('M-Pesa transaction code is required');
+  body.pix_ref = cleanStr(body.pix_ref, 40, 'Código Pix');
+  if (method === 'pix_manual' && !body.pix_ref) bad('Código da transação Pix é obrigatório');
 
   const detail = await loadOrderDetail(db, tenant.id, c.req.param('id'));
   if (!detail) notFound('Order not found');
@@ -47,11 +47,11 @@ paymentRoutes.post('/orders/:id/payments', requirePolicy('payments.receive'), as
   if (amount > detail.balanceCents) bad(`Amount exceeds balance (${fmtMoney(detail.balanceCents, tenant.currency)})`);
 
   const id = uid();
-  const completesNow = method !== 'mpesa_stk';
+  const completesNow = method !== 'pix';
   await db.insert(payments).values({
     id, tenantId: tenant.id, orderId: detail.id, method,
     amountCents: amount,
-    mpesaRef: body.mpesa_ref || null,
+    pixRef: body.pix_ref || null,
     status: completesNow ? 'completed' : 'pending',
     receivedBy: user.id,
   });
@@ -67,11 +67,11 @@ paymentRoutes.post('/orders/:id/payments', requirePolicy('payments.receive'), as
 
 // Shared settlement path for a pending STK payment — used by the real Daraja
 // callback and the policy-guarded sandbox simulator. Idempotent (spec §11).
-async function settleStkPayment(db, env, payment, { success, mpesaRef }) {
+async function settlePixPayment(db, env, payment, { success, pixRef }) {
   if (payment.status !== 'pending') return { ok: true, idempotent: true, status: payment.status };
   await db.update(payments).set({
     status: success ? 'completed' : 'failed',
-    mpesaRef: mpesaRef || payment.mpesaRef,
+    pixRef: pixRef || payment.pixRef,
     at: now(),
   }).where(eq(payments.id, payment.id));
   await recomputePaymentStatus(db, payment.orderId);
@@ -96,9 +96,9 @@ async function settleStkPayment(db, env, payment, { success, mpesaRef }) {
 // Daraja callback — mounted PUBLICLY (Safaricom calls it without our JWT) but
 // gated by a shared-secret token in the URL: without it anyone on the internet
 // could mark payments as paid. Register the result URL with Safaricom as
-// /api/payments/mpesa/callback/<MPESA_CALLBACK_SECRET>.
-export const mpesaCallbackRoute = new Hono();
-mpesaCallbackRoute.post('/payments/mpesa/callback/:token', async (c) => {
+// /api/payments/pix/callback/<PIX_CALLBACK_SECRET>.
+export const pixCallbackRoute = new Hono();
+pixCallbackRoute.post('/payments/pix/callback/:token', async (c) => {
   const { getDb } = await import('../db/index.js');
   const { safeEqual } = await import('../security.js');
   const { ApiError } = await import('../util.js');
@@ -114,11 +114,11 @@ mpesaCallbackRoute.post('/payments/mpesa/callback/:token', async (c) => {
   const success = body.success !== false && (body.ResultCode === undefined || body.ResultCode === 0);
   return c.json(await settleStkPayment(db, c.env, payment, {
     success,
-    mpesaRef: body.mpesa_ref || body.MpesaReceiptNumber,
+    pixRef: body.pix_ref || body.pixE2EId,
   }));
 });
 
-// Sandbox: simulate the customer entering their M-Pesa PIN. Authenticated,
+// Sandbox: simulate the customer approving the Pix payment. Authenticated,
 // tenant-scoped and policy-guarded — unlike the real callback, this cannot be
 // reached anonymously.
 paymentRoutes.post('/payments/:id/simulate', requirePolicy('payments.receive'), async (c) => {
@@ -127,7 +127,7 @@ paymentRoutes.post('/payments/:id/simulate', requirePolicy('payments.receive'), 
   const [payment] = await db.select().from(payments)
     .where(and(eq(payments.tenantId, tenant.id), eq(payments.id, c.req.param('id'))));
   if (!payment) notFound('Payment not found');
-  if (payment.method !== 'mpesa_stk') bad('Only STK payments can be simulated');
+  if (payment.method !== 'pix') bad('Only Pix payments can be simulated');
   const detail = await loadOrderDetail(db, tenant.id, payment.orderId);
   if (!detail) notFound('Order not found');
   assertBranchAccess(c, detail.branchId);

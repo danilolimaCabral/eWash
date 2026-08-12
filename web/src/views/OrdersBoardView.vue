@@ -72,7 +72,7 @@ async function advance(order) {
       <div class="head-actions">
         <input v-model="q" type="search" placeholder="Search code, name, phone…" style="width: 220px;" />
         <button class="btn btn-ghost" @click="showClosed = !showClosed; load()">
-          {{ showClosed ? 'Hide closed' : 'Show closed' }}
+          {{ showClosed ? 'Ocultar fechadas' : 'Mostrar fechadas' }}
         </button>
       </div>
     </div>

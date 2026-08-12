@@ -53,7 +53,7 @@ authRoutes.post('/register', async (c) => {
   await db.insert(tenants).values({
     id: tenantId,
     name: b.business_name.trim(),
-    codePrefix: (b.code_prefix || b.business_name.trim().slice(0, 2)).toUpperCase().replace(/[^A-Z]/g, '') || 'WK',
+    codePrefix: (b.code_prefix || b.business_name.trim().slice(0, 2)).toUpperCase().replace(/[^A-Z]/g, '') || 'LV',
     orderSeq: 0, // tags count from 0001
   });
 
@@ -123,7 +123,7 @@ authRoutes.post('/activate/inspect', async (c) => {
     mode: row.purpose === 'invite' ? 'set_password' : 'activate',
     name: user.name,
     email: user.email,
-    business: tenant?.name || 'eWash',
+    business: tenant?.name || 'LavTr',
   });
 });
 
