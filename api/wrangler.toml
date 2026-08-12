@@ -1,5 +1,5 @@
-# Cloudflare requires lowercase infra names; the product brand is "eWash".
-name = "ewash"
+# LavTr — SaaS multi-tenant de lavanderia com delivery (adaptação brasileira, base eWash MIT)
+name = "lavtr"
 main = "src/index.js"
 compatibility_date = "2026-06-01"
 
@@ -12,27 +12,27 @@ run_worker_first = ["/api/*"]
 
 [[d1_databases]]
 binding = "DB"
-database_name = "ewash"
-database_id = "03efc56b-600c-4a97-bbd9-3d05810e0bbe"
+database_name = "lavtr"
+database_id = "" # preenchido por `bun run deploy` (wrangler d1 create lavtr)
 migrations_dir = "migrations"
 
-# Secrets (JWT_SECRET, MPESA_CALLBACK_SECRET, SMS_API_KEY, SMS_PARTNER_ID,
-# SMS_SHORTCODE) are NOT set here: locally they come from api/.dev.vars
-# (gitignored); in production `bun run deploy` auto-creates them as worker
-# secrets (or `wrangler secret put <KEY>`). ENVIRONMENT defaults to production
-# for deploys; api/.dev.vars overrides it to development for local runs.
+# Secrets (JWT_SECRET, PIX_CALLBACK_SECRET, SMTP_PASSWORD, GOOGLE_CLIENT_SECRET,
+# SMS_API_KEY) são criados como worker secrets pelo `bun run deploy`
+# (ou via `wrangler secret put <KEY>`). Localmente vêm de api/.dev.vars.
 [vars]
 ENVIRONMENT = "production"
-APP_URL = "https://ewash.qesuite.com"
-# TextSMS Kenya gateway (SMS goes out only when the SMS_* secrets are set)
-SMS_BASE_URL = "https://sms.textsms.co.ke/api/services/sendsms/"
+APP_URL = "https://lavtr.example.com" # substituir pelo domínio real
+# Moeda e locale padrão do Brasil
+APP_LOCALE = "pt-BR"
+APP_CURRENCY = "BRL"
+# Email: credenciais entram como secret (SMTP_USERNAME/SMTP_PASSWORD)
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = "465"
-SMTP_USERNAME = "notificationsqesuite@gmail.com"
-EMAIL_FROM_NAME = "eWash Laundry System"
-# public OAuth client id (the secret is a worker secret / .dev.vars entry)
-GOOGLE_CLIENT_ID = "1072526180713-31bjrvajg36ihif92c4kh0bnkdcl0r91.apps.googleusercontent.com"
+EMAIL_FROM_NAME = "LavTr Sistema de Lavanderia"
+# Google OAuth: criar client id próprio em console.cloud.google.com
+# GOOGLE_CLIENT_ID = ""
+# SMS (opcional): definir SMS_BASE_URL/secret com gateway brasileiro se necessário
 
 [triggers]
-# Daily: post due recurring expenses, uncollected-order reminders
-crons = ["0 6 * * *"]
+# Diariamente (9h BR): despesa recorrente devida e lembrete de pedidos não coletados
+crons = ["0 9 * * *"]

@@ -1,27 +1,27 @@
 // Granular policy catalog (spec §7.1). Roles are templates over these keys;
 // per-user overrides (grant/deny) beat the role — an explicit deny always wins.
 export const POLICIES = [
-  ['orders.create', 'Create & assess orders'],
-  ['orders.discount', 'Apply manual discounts (capped)'],
-  ['orders.void', 'Void / cancel orders'],
-  ['orders.advance', 'Move orders through the pipeline'],
+  ['orders.create', 'Criar e avaliar pedidos'],
+  ['orders.discount', 'Aplicar descontos manuais (limitado)'],
+  ['orders.void', 'Cancelar pedidos'],
+  ['orders.advance', 'Avançar pedidos no fluxo de produção'],
   ['payments.receive', 'Receber pagamentos (dinheiro / Pix)'],
-  ['payments.refund', 'Issue refunds'],
-  ['catalog.edit', 'Edit services & pricing'],
-  ['expenses.create', 'Record expenses'],
-  ['finance.view', 'View P&L, reports & registers'],
-  ['finance.manage', 'Manage expenses, credit, providers & historical records'],
-  ['users.manage', 'Manage users, roles & policies'],
-  ['branches.manage', 'Manage branches and branch assignments'],
+  ['payments.refund', 'Emitir reembolsos'],
+  ['catalog.edit', 'Editar serviços e preços'],
+  ['expenses.create', 'Registrar despesas'],
+  ['finance.view', 'Ver lucro/prejuízo, relatórios e registros'],
+  ['finance.manage', 'Gerenciar despesas, crédito, fornecedores e históricos'],
+  ['users.manage', 'Gerenciar usuários, papéis e permissões'],
+  ['branches.manage', 'Gerenciar filiais e atribuições'],
 ];
 
 export const POLICY_KEYS = POLICIES.map(([k]) => k);
 
 export const ROLE_TEMPLATES = {
-  'Owner/Admin': POLICY_KEYS,
-  Attendant: ['orders.create', 'orders.discount', 'orders.advance', 'payments.receive', 'expenses.create'],
-  Operator: ['orders.advance'],
-  Rider: ['orders.advance', 'payments.receive'],
+  'Dono/Admin': POLICY_KEYS,
+  Atendente: ['orders.create', 'orders.discount', 'orders.advance', 'payments.receive', 'expenses.create'],
+  Operador: ['orders.advance'],
+  Entregador: ['orders.advance', 'payments.receive'],
 };
 
 export function effectivePolicies(rolePolicyKeys, overrides) {

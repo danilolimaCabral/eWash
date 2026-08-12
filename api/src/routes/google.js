@@ -209,7 +209,7 @@ googleRoutes.post('/google/complete', async (c) => {
     id: userId,
     tenantId,
     branchId,
-    roleId: roleIds['Owner/Admin'],
+    roleId: roleIds['Dono/Admin'],
     accessScope: 'tenant',
     name: displayName,
     phone: phone || null,

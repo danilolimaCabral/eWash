@@ -446,7 +446,7 @@ platformRoutes.post('/tenants/:id/members', requirePlatformPolicy('platform.tena
   const temporaryPassword = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))));
   const member = {
     id: uid(), tenantId, branchId: body.branch_id || null, roleId: role.id,
-    accessScope: body.access_scope === 'tenant' || role.name === 'Owner/Admin' ? 'tenant' : 'branch',
+    accessScope: body.access_scope === 'tenant' || role.name === 'Dono/Admin' ? 'tenant' : 'branch',
     name, email, phone: phone || null, passwordHash: await hashPassword(temporaryPassword), status: 'active',
   };
   if (member.accessScope === 'branch' && !member.branchId) bad('Branch-scoped users require a branch');
@@ -494,13 +494,13 @@ platformRoutes.patch('/tenants/:tenantId/members/:userId', requirePlatformPolicy
     if (body.access_scope === 'branch' && !(body.branch_id || member.branchId)) bad('Branch-scoped users require a branch');
     patch.accessScope = body.access_scope;
   }
-  const removingOwner = member.roleName === 'Owner/Admin'
-    && (patch.status === 'disabled' || (nextRole && nextRole.name !== 'Owner/Admin'));
+  const removingOwner = member.roleName === 'Dono/Admin'
+    && (patch.status === 'disabled' || (nextRole && nextRole.name !== 'Dono/Admin'));
   if (removingOwner) {
     const [owners] = await db.select({ count: sql`count(*)` }).from(users)
       .innerJoin(roles, eq(roles.id, users.roleId))
-      .where(and(eq(users.tenantId, tenantId), eq(users.status, 'active'), eq(roles.name, 'Owner/Admin')));
-    if (Number(owners?.count || 0) <= 1) bad('The final active Owner/Admin cannot be deactivated or reassigned');
+      .where(and(eq(users.tenantId, tenantId), eq(users.status, 'active'), eq(roles.name, 'Dono/Admin')));
+    if (Number(owners?.count || 0) <= 1) bad('O último Dono/Admin ativo não pode ser desativado ou reatribuído');
   }
   if (!Object.keys(patch).length) bad('No changes supplied');
   await db.update(users).set(patch).where(and(eq(users.id, member.id), eq(users.tenantId, tenantId)));

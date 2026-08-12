@@ -16,7 +16,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-DB_NAME="ewash"
+DB_NAME="lavtr"
 TOML="api/wrangler.toml"
 
 step() { echo "▶ $1"; }
@@ -58,9 +58,9 @@ ensure_secret() {
   fi
 }
 ensure_secret JWT_SECRET
-ensure_secret MPESA_CALLBACK_SECRET
-echo "  ↳ register the M-Pesa result URL with Safaricom as:"
-echo "    <your-app-url>/api/payments/mpesa/callback/<MPESA_CALLBACK_SECRET>"
+ensure_secret PIX_CALLBACK_SECRET
+echo "  ↳ callback Pix manual (opcional) ficará em:"
+echo "    <your-app-url>/api/payments/pix/callback/<PIX_CALLBACK_SECRET>"
 # These secrets come from external providers — they cannot be generated here
 ensure_external_secret() {
   local name="$1" feature="$2"
@@ -80,7 +80,7 @@ if [ -n "${app_url:-}" ]; then
   if curl -sf -m 15 "$app_url/api/health" >/dev/null; then
     ok "$app_url responds" "health"
     echo
-    echo "✔ eWash is live: $app_url"
+    echo "✔ LavTr is live: $app_url"
   else
     echo "  ⚠ deployed, but $app_url/api/health not responding yet (secrets propagate within ~1 min — retry: curl $app_url/api/health)"
   fi

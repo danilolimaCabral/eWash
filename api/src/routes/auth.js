@@ -69,7 +69,7 @@ authRoutes.post('/register', async (c) => {
     id: userId,
     tenantId,
     branchId,
-    roleId: roleIds['Owner/Admin'],
+    roleId: roleIds['Dono/Admin'],
     accessScope: 'tenant',
     name: b.name.trim(),
     phone: b.phone || null,
