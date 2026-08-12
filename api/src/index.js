@@ -22,6 +22,7 @@ import { sessions, platformSessions, passwordResetTokens, rateLimits, tenantSubs
 import { now } from './util.js';
 
 const app = new Hono();
+export { app };
 
 app.onError((err, c) => {
   if (err instanceof ApiError) return c.json({ error: err.message }, err.status);
@@ -105,54 +106,68 @@ app.route('/api', api);
 
 app.all('/api/*', (c) => c.json({ error: 'Not found' }, 404));
 
+// Daily job: cancellations automáticas, lançamento de despesas recorrentes e
+// higiene das tabelas de auth. Funciona tanto no Cloudflare Worker (scheduled)
+// quanto em Node/Express (setInterval). Comparadores de data usam strings ISO,
+// compatíveis com SQLite/D1 e MySQL.
+export async function runDailyJobs(env) {
+  const db = getDb(env);
+  const today = now().slice(0, 10);
+  const cutoff35 = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 35);
+    return d.toISOString().slice(0, 19).replace('T', ' ');
+  })();
+  const cutoff1d = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0, 19).replace('T', ' ');
+  })();
+  const cutoffUnix = Math.floor(Date.now() / 1000) - 86400;
+  const cancellations = await db.select({ id: tenants.id }).from(tenants)
+    .where(and(eq(tenants.status, 'active'), lte(tenants.cancelledAt, today)));
+  for (const tenant of cancellations) {
+    await db.update(tenants).set({ status: 'cancelled' }).where(eq(tenants.id, tenant.id));
+    await db.update(tenantSubscriptions).set({ status: 'cancelled', endedAt: now() })
+      .where(and(eq(tenantSubscriptions.tenantId, tenant.id), eq(tenantSubscriptions.cancelAtPeriodEnd, 1)));
+    await db.update(sessions).set({ revokedAt: now() }).where(eq(sessions.tenantId, tenant.id));
+  }
+  const tenantRows = await db.select({ id: tenants.id }).from(tenants).where(eq(tenants.status, 'active'));
+  for (const t of tenantRows) {
+    try {
+      await postDueRecurring(db, t.id);
+    } catch (e) {
+      console.error(`recurring post failed for tenant ${t.id}:`, e);
+    }
+  }
+
+  // Table hygiene: auth artifacts are append-heavy — purge what can no
+  // longer authenticate anything so the hot tables stay small forever.
+  try {
+    await db.batch([
+      db.delete(sessions).where(or(
+        lt(sessions.expiresAt, cutoff35),
+        and(isNotNull(sessions.revokedAt), lt(sessions.revokedAt, cutoff35)),
+      )),
+      db.delete(platformSessions).where(or(
+        lt(platformSessions.expiresAt, cutoff35),
+        and(isNotNull(platformSessions.revokedAt), lt(platformSessions.revokedAt, cutoff35)),
+      )),
+      db.delete(passwordResetTokens).where(or(
+        isNotNull(passwordResetTokens.usedAt),
+        lt(passwordResetTokens.expiresAt, cutoff1d),
+      )),
+      db.delete(rateLimits).where(lt(rateLimits.windowStart, cutoffUnix)),
+    ]);
+  } catch (e) {
+    console.error('auth table hygiene failed:', e);
+  }
+}
+
 export default {
   fetch: app.fetch,
 
-  // Daily: auto-post recurring expenses for every active tenant so the P&L
-  // stays honest even if nobody opens the Finance screen (spec §9.2).
   async scheduled(_event, env, _ctx) {
-    const db = getDb(env);
-    const today = now().slice(0, 10);
-    const cancellations = await db.select({ id: tenants.id }).from(tenants)
-      .where(and(eq(tenants.status, 'active'), lte(tenants.cancelledAt, today)));
-    for (const tenant of cancellations) {
-      await db.update(tenants).set({ status: 'cancelled' }).where(eq(tenants.id, tenant.id));
-      await db.update(tenantSubscriptions).set({ status: 'cancelled', endedAt: now() })
-        .where(and(eq(tenantSubscriptions.tenantId, tenant.id), eq(tenantSubscriptions.cancelAtPeriodEnd, 1)));
-      await db.update(sessions).set({ revokedAt: now() }).where(eq(sessions.tenantId, tenant.id));
-    }
-    const tenantRows = await db.select({ id: tenants.id }).from(tenants).where(eq(tenants.status, 'active'));
-    for (const t of tenantRows) {
-      try {
-        await postDueRecurring(db, t.id);
-      } catch (e) {
-        console.error(`recurring post failed for tenant ${t.id}:`, e);
-      }
-    }
-
-    // Table hygiene: auth artifacts are append-heavy — purge what can no
-    // longer authenticate anything so the hot tables stay small forever.
-    try {
-      await db.batch([
-        // sessions dead for 35+ days (well past any refresh window)
-        db.delete(sessions).where(or(
-          lt(sessions.expiresAt, sql`datetime('now', '-35 days')`),
-          and(isNotNull(sessions.revokedAt), lt(sessions.revokedAt, sql`datetime('now', '-35 days')`)),
-        )),
-        db.delete(platformSessions).where(or(
-          lt(platformSessions.expiresAt, sql`datetime('now', '-35 days')`),
-          and(isNotNull(platformSessions.revokedAt), lt(platformSessions.revokedAt, sql`datetime('now', '-35 days')`)),
-        )),
-        // reset tokens: single-use, 30-minute expiry — a day is generous
-        db.delete(passwordResetTokens).where(or(
-          isNotNull(passwordResetTokens.usedAt),
-          lt(passwordResetTokens.expiresAt, sql`datetime('now', '-1 day')`),
-        )),
-        // rate-limit windows are seconds-to-hours long — a day-old row is inert
-        db.delete(rateLimits).where(lt(rateLimits.windowStart, sql`unixepoch() - 86400`)),
-      ]);
-    } catch (e) {
-      console.error('auth table hygiene failed:', e);
-    }
+    await runDailyJobs(env);
   },
 };

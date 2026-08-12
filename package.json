@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "license": "MIT",
-  "description": "eWash - multi-tenant laundry management SaaS (Vue 3 + Cloudflare Workers + D1)",
+  "description": "LavTr - SaaS multi-tenant de lavanderia com delivery (Vue 3 + Express + libSQL, deploy Railway/Cloudflare)",
   "workspaces": [
     "api",
     "web"
@@ -15,6 +15,7 @@
     "dev:api": "bun run --cwd api dev",
     "dev:web": "bun run --cwd web dev",
     "deploy": "bash scripts/deploy.sh",
+    "start:node": "node api/src/server.js",
     "db:generate": "bun run --cwd api db:generate",
     "db:migrate:local": "bun run --cwd api db:migrate:local",
     "db:migrate:remote": "bun run --cwd api db:migrate:remote"

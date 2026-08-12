@@ -61,13 +61,16 @@ export async function authRequired(c, next) {
     if (!branch) throw new ApiError(403, 'Your account is not assigned to an active branch');
   }
 
-  // presence heartbeat: throttled and off the critical path
-  c.executionCtx.waitUntil(
-    db.update(sessions)
-      .set({ lastSeenAt: now() })
-      .where(sql`${sessions.id} = ${session.id} and ${sessions.lastSeenAt} < datetime('now', '-${sql.raw(String(HEARTBEAT_THROTTLE_SECONDS))} seconds')`)
-      .catch(() => {})
-  );
+  // presence heartbeat: throttled and off the critical path.
+  // waitUntil é Cloudflare-only; em Node a promise roda sem espera (fire-and-forget).
+  const heartbeat = db.update(sessions)
+    .set({ lastSeenAt: now() })
+    .where(sql`${sessions.id} = ${session.id} and ${sessions.lastSeenAt} < datetime('now', '-${sql.raw(String(HEARTBEAT_THROTTLE_SECONDS))} seconds')`)
+    .catch(() => {});
+  let hasExecutionCtx = true;
+  try { if (!c.executionCtx) hasExecutionCtx = false; } catch { hasExecutionCtx = false; }
+  if (hasExecutionCtx) c.executionCtx.waitUntil(heartbeat);
+  else heartbeat;
 
   c.set('db', db);
   c.set('user', ctx.user);

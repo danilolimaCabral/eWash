@@ -1,9 +1,23 @@
 import requests, json
 
-BASE = 'http://localhost:8787/api'
+BASE = 'http://localhost:8080/api'
 
-# login do tenant criado no smoke test anterior
-r = requests.post(f'{BASE}/auth/login', json={'email': 'danilo@teste.com', 'password': 'Senha123!'})
+# registrar novo tenant (registro público — ativação automática em dev)
+import time
+tail = int(time.time()) % 100000
+EMAIL = f'node{tail}@teste.com'
+reg = requests.post(f'{BASE}/auth/register', json={
+    'business_name': 'LavTr Demo', 'branch_name': 'Unidade Centro',
+    'name': 'Danilo Teste', 'email': EMAIL, 'password': 'Senha123!',
+    'phone': '11977776666', 'city': 'São Paulo', 'state': 'SP'})
+print('Registro:', reg.status_code, json.dumps(reg.json(), ensure_ascii=False)[:300])
+# ativar conta (token retornado pelo registro)
+act = reg.json().get('activation_url', '')
+if act:
+    a = requests.post(f'{BASE}/auth/activate', json={'token': act.split('=')[-1]})
+    print('Ativação:', a.status_code, json.dumps(a.json(), ensure_ascii=False)[:200])
+# login do tenant
+r = requests.post(f'{BASE}/auth/login', json={'email': EMAIL, 'password': 'Senha123!'})
 token = r.json()['token']
 H = {'Authorization': f'Bearer {token}'}
 
@@ -14,11 +28,16 @@ print('== Catálogo (seed PT-BR):')
 for svc in SERVICES:
     print(f"  - {svc['name']} | {svc['pricingModel']} | base R$ {svc['baseRateCents']/100:.2f}")
 
-# cliente (já existia do teste anterior; obter id)
+# cliente: criar via POST se a lista estiver vazia
 custs = requests.get(f'{BASE}/customers', headers=H).json()
 custs_rows = custs.get('rows', custs) if isinstance(custs, dict) else custs
-cid = custs_rows[0]['id']
-print('\nCliente:', custs_rows[0]['name'], cid)
+if not custs_rows:
+    cid = requests.post(f'{BASE}/customers', headers=H, json={
+        'name': 'Maria Silva', 'phone': '11988887777', 'city': 'São Paulo'}).json()['id']
+    print('\nCliente criado:', cid)
+else:
+    cid = custs_rows[0]['id']
+    print('\nCliente:', custs_rows[0]['name'], cid)
 
 # branches do tenant
 b = requests.get(f'{BASE}/branches', headers=H).json()

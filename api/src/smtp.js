@@ -1,21 +1,23 @@
-import { connect } from 'cloudflare:sockets';
-
+// LavTr SMTP — funciona tanto no Cloudflare Worker (cloudflare:sockets) quanto em
+// Node.js (Nodemailer, importado dinamicamente).
 const enc = new TextEncoder();
 const b64 = (value) => btoa(value);
 
-async function sendEmail(env, { to, subject, text, html }) {
+function isNode() {
+  return typeof process !== 'undefined' && process.versions?.node;
+}
+
+async function sendEmailCloudflare(env, { to, subject, text, html }) {
+  const { connect } = await import('cloudflare:sockets');
   const username = env.SMTP_USERNAME;
   const password = env.SMTP_PASSWORD;
   if (!username || !password) throw new Error('SMTP is not configured');
-  // defense-in-depth: a recipient with whitespace/control chars could smuggle
-  // SMTP commands or extra headers — refuse outright
   if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(String(to || ''))) {
     throw new Error('Refusing to send: invalid recipient address');
   }
-
   const socket = connect(
     { hostname: env.SMTP_HOST || 'smtp.gmail.com', port: Number(env.SMTP_PORT || 465) },
-    { secureTransport: 'on', allowHalfOpen: false }
+    { secureTransport: 'on', allowHalfOpen: false },
   );
   const reader = socket.readable.getReader();
   const writer = socket.writable.getWriter();
@@ -38,13 +40,11 @@ async function sendEmail(env, { to, subject, text, html }) {
       buffered += decoder.decode(chunk.value, { stream: true });
     }
   }
-
   const command = async (cmdText, expected) => {
     await writer.write(enc.encode(`${cmdText}\r\n`));
     await response(expected);
   };
-
-  const fromName = env.EMAIL_FROM_NAME || 'LavTr Laundry System';
+  const fromName = env.EMAIL_FROM_NAME || 'LavTr Sistema de Lavanderia';
   const boundary = `lavtr-${crypto.randomUUID()}`;
   const message = [
     `From: ${fromName} <${username}>`,
@@ -66,7 +66,6 @@ async function sendEmail(env, { to, subject, text, html }) {
     `--${boundary}--`,
     '',
   ].join('\r\n').replace(/^\./gm, '..');
-
   try {
     await response([220]);
     await command('EHLO lavtr.qesuite.com', [250]);
@@ -81,6 +80,35 @@ async function sendEmail(env, { to, subject, text, html }) {
   }
 }
 
+async function sendEmailNode(env, { to, subject, text, html }) {
+  const nodemailer = await import('nodemailer');
+  const username = env.SMTP_USERNAME;
+  const password = env.SMTP_PASSWORD;
+  if (!username || !password) throw new Error('SMTP is not configured');
+  if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(String(to || ''))) {
+    throw new Error('Refusing to send: invalid recipient address');
+  }
+  const transport = nodemailer.createTransport({
+    host: env.SMTP_HOST || 'smtp.gmail.com',
+    port: Number(env.SMTP_PORT || 465),
+    secure: true,
+    auth: { user: username, pass: password },
+  });
+  await transport.sendMail({
+    from: `"${env.EMAIL_FROM_NAME || 'LavTr Sistema de Lavanderia'}" <${username}>`,
+    to,
+    subject,
+    text,
+    html,
+  });
+  await transport.close();
+}
+
+export async function sendEmail(env, opts) {
+  if (isNode()) return sendEmailNode(env, opts);
+  return sendEmailCloudflare(env, opts);
+}
+
 const safeName = (name) => String(name || 'there').replace(/[<>&]/g, '');
 
 // Shared branded layout for all transactional email: table-based (survives
@@ -91,7 +119,7 @@ const FONT_BODY = "'DM Sans','Segoe UI',system-ui,Arial,sans-serif";
 
 function renderEmail({ preheader, heading, name, lead, url, button, footnote }) {
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -116,8 +144,8 @@ function renderEmail({ preheader, heading, name, lead, url, button, footnote }) 
           <table role="presentation" cellpadding="0" cellspacing="0"><tr>
             <td style="width:40px;height:40px;background:#77d2c3;border-radius:11px;text-align:center;vertical-align:middle;font-family:${FONT_HEAD};font-size:20px;line-height:40px;">🧺</td>
             <td style="padding-left:12px;">
-              <span style="font-family:${FONT_HEAD};font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">e<span style="color:#77d2c3;">Wash</span></span><br>
-              <span style="font-family:${FONT_BODY};font-size:11px;color:#9db8b4;">Laundry Management SaaS</span>
+              <span style="font-family:${FONT_HEAD};font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">Lav<span style="color:#77d2c3;">Tr</span></span><br>
+              <span style="font-family:${FONT_BODY};font-size:11px;color:#9db8b4;">Sistema de Gestão de Lavanderia</span>
             </td>
           </tr></table>
         </td></tr>
@@ -125,14 +153,14 @@ function renderEmail({ preheader, heading, name, lead, url, button, footnote }) 
         <!-- body card -->
         <tr><td class="card-pad" style="background:#ffffff;padding:34px 32px 30px;">
           <h1 style="margin:0 0 14px;font-family:${FONT_HEAD};font-size:21px;font-weight:800;color:#0c5550;letter-spacing:-0.02em;line-height:1.3;">${heading}</h1>
-          <p style="margin:0 0 8px;font-family:${FONT_BODY};font-size:14.5px;color:#172226;line-height:1.6;">Hello ${name},</p>
+          <p style="margin:0 0 8px;font-family:${FONT_BODY};font-size:14.5px;color:#172226;line-height:1.6;">Olá ${name},</p>
           <p style="margin:0 0 24px;font-family:${FONT_BODY};font-size:14.5px;color:#172226;line-height:1.6;">${lead}</p>
           <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;"><tr>
             <td style="background:#126d67;border-radius:10px;">
               <a href="${url}" style="display:inline-block;padding:13px 26px;font-family:${FONT_HEAD};font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">${button}</a>
             </td>
           </tr></table>
-          <p style="margin:0 0 6px;font-family:${FONT_BODY};font-size:12px;color:#7c898e;line-height:1.6;">If the button doesn't work, copy this link into your browser:</p>
+          <p style="margin:0 0 6px;font-family:${FONT_BODY};font-size:12px;color:#7c898e;line-height:1.6;">Se o botão não funcionar, copie este link no seu navegador:</p>
           <p style="margin:0 0 22px;font-family:${FONT_BODY};font-size:12px;line-height:1.6;word-break:break-all;"><a href="${url}" style="color:#126d67;">${url}</a></p>
           <hr style="border:none;border-top:1px solid #e8eeee;margin:0 0 16px;">
           <p style="margin:0;font-family:${FONT_BODY};font-size:12px;color:#7c898e;line-height:1.6;">${footnote}</p>
@@ -141,8 +169,8 @@ function renderEmail({ preheader, heading, name, lead, url, button, footnote }) 
         <!-- footer -->
         <tr><td style="background:#e4f4f1;border-radius:0 0 16px 16px;padding:18px 32px;">
           <p style="margin:0;font-family:${FONT_BODY};font-size:11.5px;color:#4d6360;line-height:1.6;">
-            Sent by <b style="font-family:${FONT_HEAD};color:#0c5550;">LavTr</b> — laundry operations made simple.<br>
-            Need help? <a href="mailto:info@qesuite.com" style="color:#126d67;font-weight:600;">info@qesuite.com</a>
+            Enviado por <b style="font-family:${FONT_HEAD};color:#0c5550;">LavTr</b> — gestão de lavanderia simplificada.<br>
+            Precisa de ajuda? <a href="mailto:contato@lavatr.app" style="color:#126d67;font-weight:600;">contato@lavatr.app</a>
           </p>
         </td></tr>
 
@@ -157,16 +185,16 @@ export async function sendPasswordResetEmail(env, { to, name, resetUrl }) {
   const who = safeName(name);
   await sendEmail(env, {
     to,
-    subject: 'Reset your LavTr password',
-    text: `Hello ${who},\n\nReset your LavTr password using this link:\n${resetUrl}\n\nThis link expires in 30 minutes and can be used once. If you did not request this, ignore this email.`,
+    subject: 'Redefina sua senha do LavTr',
+    text: `Olá ${who},\n\nRedefina sua senha do LavTr usando este link:\n${resetUrl}\n\nEste link expira em 30 minutos e só pode ser usado uma vez. Se você não pediu isso, ignore este e-mail.`,
     html: renderEmail({
-      preheader: 'Choose a new LavTr password — this link expires in 30 minutes.',
-      heading: 'Reset your password',
+      preheader: 'Escolha uma nova senha do LavTr — este link expira em 30 minutos.',
+      heading: 'Redefinir senha',
       name: who,
-      lead: 'We received a request to reset your LavTr password. Use the button below to choose a new one.',
+      lead: 'Recebemos uma solicitação para redefinir sua senha do LavTr. Use o botão abaixo para escolher uma nova.',
       url: resetUrl,
-      button: 'Reset password',
-      footnote: 'This link expires in 30 minutes and can be used once. If you did not request it, you can safely ignore this email — your password will not change.',
+      button: 'Redefinir senha',
+      footnote: 'Este link expira em 30 minutos e só pode ser usado uma vez. Se você não solicitou, pode ignorar com segurança — sua senha não será alterada.',
     }),
   });
 }
@@ -177,16 +205,16 @@ export async function sendStaffInviteEmail(env, { to, name, business, inviter, i
   const by = safeName(inviter);
   await sendEmail(env, {
     to,
-    subject: `You're invited to join ${org} on LavTr`,
-    text: `Hello ${who},\n\n${by} has invited you to join ${org} on LavTr. Accept the invitation and choose your password using this link:\n${inviteUrl}\n\nThis link expires in 72 hours and can be used once. If you were not expecting this, ignore this email.`,
+    subject: `Você foi convidado para ${org} no LavTr`,
+    text: `Olá ${who},\n\n${by} convidou você para ${org} no LavTr. Aceite o convite e escolha sua senha usando este link:\n${inviteUrl}\n\nEste link expira em 72 horas e só pode ser usado uma vez. Se você não esperava isso, ignore este e-mail.`,
     html: renderEmail({
-      preheader: `${by} invited you to join ${org} on LavTr — set your password to get started.`,
-      heading: `Join ${org} on LavTr`,
+      preheader: `${by} convidou você para ${org} no LavTr — defina sua senha para começar.`,
+      heading: `Entre em ${org} no LavTr`,
       name: who,
-      lead: `<b>${by}</b> has invited you to join <b>${org}</b>'s team on LavTr. Accept the invitation and choose your password to start working with orders, customers and payments.`,
+      lead: `<b>${by}</b> convidou você para a equipe de <b>${org}</b> no LavTr. Aceite o convite e escolha sua senha para começar a trabalhar com pedidos, clientes e pagamentos.`,
       url: inviteUrl,
-      button: 'Accept invitation',
-      footnote: 'This link expires in 72 hours and can be used once. If you were not expecting this invitation, you can safely ignore this email.',
+      button: 'Aceitar convite',
+      footnote: 'Este link expira em 72 horas e só pode ser usado uma vez. Se você não esperava este convite, pode ignorar com segurança.',
     }),
   });
 }
@@ -195,16 +223,16 @@ export async function sendActivationEmail(env, { to, name, activationUrl }) {
   const who = safeName(name);
   await sendEmail(env, {
     to,
-    subject: 'Activate your LavTr account',
-    text: `Hello ${who},\n\nKaribu to LavTr! Activate your account using this link:\n${activationUrl}\n\nThis link expires in 24 hours and can be used once. If you did not sign up, ignore this email.`,
+    subject: 'Ative sua conta no LavTr',
+    text: `Olá ${who},\n\nBem-vindo ao LavTr! Ative sua conta usando este link:\n${activationUrl}\n\nEste link expira em 24 horas e só pode ser usado uma vez. Se você não se cadastrou, ignore este e-mail.`,
     html: renderEmail({
-      preheader: 'One click left — activate your LavTr account and go live.',
-      heading: 'Karibu! Activate your account',
+      preheader: 'Falta um clique — ative sua conta no LavTr e entre no ar.',
+      heading: 'Bem-vindo! Ative sua conta',
       name: who,
-      lead: 'Your laundry is set up and waiting — a ready-made Kenyan catalog included. Confirm your email to go live and sign in.',
+      lead: 'Sua lavanderia está configurada e esperando — catálogo brasileiro já incluído. Confirme seu e-mail para entrar no ar e fazer login.',
       url: activationUrl,
-      button: 'Activate my account',
-      footnote: 'This link expires in 24 hours and can be used once. If you did not sign up for LavTr, you can safely ignore this email.',
+      button: 'Ativar minha conta',
+      footnote: 'Este link expira em 24 horas e só pode ser usado uma vez. Se você não se cadastrou no LavTr, pode ignorar com segurança.',
     }),
   });
 }

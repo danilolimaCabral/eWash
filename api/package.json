@@ -11,8 +11,12 @@
     "db:migrate:remote": "wrangler d1 migrations apply ewash --remote"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.4",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.6.0"
+    "hono": "^4.6.0",
+    "mysql2": "^3.23.3",
+    "nodemailer": "^9.0.5",
+    "express": "^5.2.1"
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.0",
