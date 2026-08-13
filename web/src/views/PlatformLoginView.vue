@@ -29,7 +29,7 @@ async function submit() {
 <template>
   <main class="platform-login">
     <form class="auth-card" @submit.prevent="submit">
-      <div class="brand"><span><AppIcon name="shield" :size="22" /></span><div><b>e<em>Wash</em></b><small>Platform Control Centre</small></div></div>
+      <div class="brand"><span><AppIcon name="shield" :size="22" /></span><div><b>LavTr</b><small>Central de Controle da Plataforma</small></div></div>
       <h1>Platform sign in</h1>
       <p>Manage tenants, subscriptions and billing.</p>
       <FormField label="Email"><input v-model="email" type="email" autocomplete="username" required /></FormField>

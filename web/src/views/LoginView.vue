@@ -86,7 +86,7 @@ onMounted(async () => {
       await session.loadMe();
       router.push({ name: 'dashboard' });
     } catch {
-      error.value = 'Google sign-in failed — please try again';
+      error.value = 'Entrar com Google falhou — tente novamente';
     }
     return;
   }
@@ -104,21 +104,21 @@ onMounted(async () => {
     <div class="auth-card">
       <div class="auth-brand">
         <span class="brand-mark"><AppIcon name="shirt" :size="22" /></span>
-        <div><b>e<em>Wash</em></b><small>Laundry Management SaaS</small></div>
+        <div><b>LavTr</b><small>Sistema de Gestão para Lavanderias</small></div>
       </div>
 
       <div v-if="mode === 'login' || mode === 'register'" class="mode-tabs">
-        <button :class="{ active: mode === 'login' }" @click="mode = 'login'">Sign in</button>
-        <button :class="{ active: mode === 'register' }" @click="mode = 'register'">Start your laundry</button>
+        <button :class="{ active: mode === 'login' }" @click="mode = 'login'">Entrar</button>
+        <button :class="{ active: mode === 'register' }" @click="mode = 'register'">Começar minha lavanderia</button>
       </div>
       <div v-else-if="mode !== 'check-email'" class="gc-head">
         <template v-if="mode === 'forgot'">
-          <b>Forgot your password?</b>
-          <p class="muted small">Enter your account email and we’ll send a secure 30-minute reset link.</p>
+          <b>Esqueceu a senha?</b>
+          <p class="muted small">Informe o e-mail da conta e enviaremos um link seguro de redefinição válido por 30 minutos.</p>
         </template>
         <template v-else>
-        <b>Almost there — set up your laundry</b>
-        <p class="muted small">Signed in with Google as <b>{{ form.email }}</b>. Complete your business details to go live.</p>
+        <b>Quase lá — configure sua lavanderia</b>
+        <p class="muted small">Conectado com o Google como <b>{{ form.email }}</b>. Complete os dados da empresa para começar.</p>
         </template>
       </div>
 
@@ -127,38 +127,38 @@ onMounted(async () => {
         <button class="btn google-btn" type="button" :disabled="busy || googleBusy" @click="googleStart">
           <span v-if="googleBusy" class="btn-spin dark" aria-hidden="true" />
           <svg v-else width="17" height="17" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
-          {{ googleBusy ? 'Redirecting to Google…' : mode === 'login' ? 'Continue with Google' : 'Sign up with Google' }}
+          {{ googleBusy ? 'Redirecionando ao Google…' : mode === 'login' ? 'Continuar com Google' : 'Cadastrar com Google' }}
         </button>
-        <div class="divider"><span>or continue with email</span></div>
+        <div class="divider"><span>ou continue com e-mail</span></div>
       </template>
 
       <div v-if="mode === 'check-email'" class="check-email">
         <span class="mail-badge"><AppIcon name="mail" :size="26" /></span>
-        <b>Check your email</b>
-        <p class="muted small">We've sent an activation link to <b>{{ sentTo }}</b>. Open it to finish setup — it expires in 24 hours.</p>
-        <a v-if="devActivationUrl" class="btn btn-primary dev-activate" :href="devActivationUrl">Open activation link (dev)</a>
-        <button type="button" class="back-link" @click="mode = 'login'; error = ''">Back to sign in</button>
+        <b>Confira seu e-mail</b>
+        <p class="muted small">Enviamos um link de ativação para <b>{{ sentTo }}</b>. Abra-o para concluir — ele expira em 24 horas.</p>
+        <a v-if="devActivationUrl" class="btn btn-primary dev-activate" :href="devActivationUrl">Abrir link de ativação (dev)</a>
+        <button type="button" class="back-link" @click="mode = 'login'; error = ''">Voltar ao login</button>
       </div>
 
       <form v-else @submit.prevent="submit">
         <template v-if="mode === 'register' || mode === 'google-complete'">
           <div class="row">
-            <FormField label="Business name"><input v-model="form.business_name" type="text" placeholder="e.g. Kileleshwa Laundry" required /></FormField>
+            <FormField label="Nome da lavanderia"><input v-model="form.business_name" type="text" placeholder="Ex.: Lavanderia Modelo" required /></FormField>
           </div>
           <div class="row">
-            <FormField label="First branch"><input v-model="form.branch_name" type="text" placeholder="e.g. Westlands" required /></FormField>
-            <FormField label="Your name"><input v-model="form.name" type="text" placeholder="Owner / manager" required /></FormField>
+            <FormField label="Primeira unidade"><input v-model="form.branch_name" type="text" placeholder="Ex.: Centro" required /></FormField>
+            <FormField label="Seu nome"><input v-model="form.name" type="text" placeholder="Dono / gerente" required /></FormField>
           </div>
           <div class="row">
-            <FormField label="Phone"><input v-model="form.phone" type="tel" placeholder="07xx xxx xxx" :required="mode === 'google-complete'" /></FormField>
+            <FormField label="Telefone"><input v-model="form.phone" type="tel" placeholder="(11) 9xxxx-xxxx" :required="mode === 'google-complete'" /></FormField>
           </div>
         </template>
         <template v-if="mode !== 'google-complete'">
           <div class="row">
-            <FormField label="Email"><input v-model="form.email" type="email" autocomplete="username" required /></FormField>
+            <FormField label="E-mail"><input v-model="form.email" type="email" autocomplete="username" required /></FormField>
           </div>
           <div v-if="mode !== 'forgot'" class="row">
-            <FormField label="Password" :hint="mode === 'register' ? 'At least 8 characters' : ''">
+            <FormField label="Senha" :hint="mode === 'register' ? 'Mínimo de 8 caracteres' : ''">
               <input v-model="form.password" type="password" :autocomplete="mode === 'login' ? 'current-password' : 'new-password'" required />
             </FormField>
           </div>
@@ -167,16 +167,16 @@ onMounted(async () => {
         <button class="btn btn-primary submit" type="submit" :disabled="busy || googleBusy">
           <span v-if="busy" class="btn-spin" aria-hidden="true" />
           {{ busy
-            ? (mode === 'login' ? 'Signing in…' : mode === 'forgot' ? 'Sending…' : 'Setting things up…')
-            : mode === 'forgot' ? 'Send reset link'
+            ? (mode === 'login' ? 'Entrando…' : mode === 'forgot' ? 'Enviando…' : 'Configurando…')
+            : mode === 'forgot' ? 'Enviar link de redefinição'
             : mode === 'login' ? 'Entrar'
-            : mode === 'google-complete' ? 'Finish setup — go live in minutes'
-            : 'Create my laundry — go live in minutes' }}
+            : mode === 'google-complete' ? 'Concluir — comece em minutos'
+            : 'Criar minha lavanderia — comece em minutos' }}
         </button>
-        <button v-if="mode === 'forgot'" type="button" class="back-link" @click="mode = 'login'">Back to sign in</button>
-        <button v-else-if="mode === 'login'" type="button" class="forgot-link" @click="mode = 'forgot'; error = ''">Forgot password?</button>
+        <button v-if="mode === 'forgot'" type="button" class="back-link" @click="mode = 'login'">Voltar ao login</button>
+        <button v-else-if="mode === 'login'" type="button" class="forgot-link" @click="mode = 'forgot'; error = ''">Esqueceu a senha?</button>
         <p v-if="mode === 'register'" class="muted small note">
-          You get a ready-made Kenyan laundry catalog (per-kg wash, duvets, ironing riders, dry cleaning) — edit anything later in the Service Builder.
+          Você recebe um catálogo modelo de lavanderia brasileira (lavagem por quilo, passadoria, edredons, tinturaria) — edite tudo depois no Construtor de Serviços.
         </p>
       </form>
 

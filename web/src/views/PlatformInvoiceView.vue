@@ -23,7 +23,7 @@ onMounted(async () => {
   <p v-if="error" class="error-text">{{ error }}</p>
   <article v-else-if="detail" class="invoice">
     <header>
-      <div><h1>e<em>Wash</em></h1><p>Laundry Management SaaS</p></div>
+      <div><h1>LavTr</h1><p>Sistema de Gestão para Lavanderias</p></div>
       <div class="invoice-title"><span>INVOICE</span><b>{{ detail.invoice.number }}</b><StatusBadge :status="detail.invoice.status" kind="generic" /></div>
     </header>
     <section class="meta">

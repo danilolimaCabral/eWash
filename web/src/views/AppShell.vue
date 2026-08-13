@@ -71,7 +71,7 @@ onMounted(async () => {
     <aside class="side" :class="{ open: drawerOpen }">
       <div class="brand">
         <span class="brand-mark"><AppIcon name="shirt" :size="20" /></span>
-        <span>e<em>Wash</em><small>{{ session.tenant?.name }}</small></span>
+        <span>LavTr<small>{{ session.tenant?.name }}</small></span>
       </div>
       <template v-for="group in visibleNav" :key="group.label">
         <div class="nav-label">{{ group.label }}</div>
