@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LavTr — Sistema de Gestão para Lavanderias</title>
+<meta name="description" content="Sistema completo para lavanderias: pedidos, pipeline, cobranças, Pix e relatórios. Teste grátis por 14 dias. Planos a partir de R$ 99/mês.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --brand:#0d9488; --brand-dark:#0f766e; --brand-light:#ccfbf1;
+  --ink:#08302f; --ink2:#234240; --muted:#5b7774; --line:#e3eeec; --card:#fff;
+  --bg:#f6fafa; --violet:#7c3aed; --blue:#2563eb; --orange:#f59e0b;
+  --shadow:0 10px 40px rgba(8,48,47,.08); --radius:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:var(--bg);line-height:1.6}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+/* Header */
+header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.hdr{display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px}
+.logo i{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--brand),#2dd4bf);display:flex;align-items:center;justify-content:center;color:#fff;font-style:normal;font-size:17px}
+nav{display:flex;gap:26px;align-items:center}
+nav a{text-decoration:none;color:var(--ink2);font-weight:500;font-size:15px}
+nav a:hover{color:var(--brand)}
+.btn{display:inline-block;padding:11px 22px;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;cursor:pointer;border:none;transition:all .18s}
+.btn-primary{background:var(--brand);color:#fff;box-shadow:0 6px 18px rgba(13,148,136,.32)}
+.btn-primary:hover{background:var(--brand-dark);transform:translateY(-2px);box-shadow:0 10px 24px rgba(13,148,136,.38)}
+.btn-outline{background:#fff;color:var(--brand-dark);border:1.5px solid var(--brand)}
+.btn-outline:hover{background:var(--brand-light)}
+.btn-white{background:#fff;color:var(--brand-dark)}
+.btn-white:hover{transform:translateY(-2px)}
+/* Hero */
+.hero{padding:84px 0 60px;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;top:-220px;right:-220px;width:640px;height:640px;border-radius:50%;background:radial-gradient(circle,rgba(13,148,136,.12),transparent 70%)}
+.hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:center;position:relative}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;background:var(--brand-light);color:var(--brand-dark);font-weight:700;font-size:13px;padding:6px 14px;border-radius:999px;margin-bottom:18px}
+h1{font-size:52px;line-height:1.1;font-weight:900;letter-spacing:-.02em}
+h1 .hl{background:linear-gradient(120deg,var(--brand),#2dd4bf);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.lead{font-size:19px;color:var(--muted);margin:18px 0 30px;max-width:520px}
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap}
+.hero-badges{display:flex;gap:22px;margin-top:30px;color:var(--muted);font-size:14px;font-weight:500}
+.hero-badges b{color:var(--ink)}
+.mock{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:18px;transform:rotate(-1.5deg);position:relative}
+.mock-bar{display:flex;gap:7px;margin-bottom:14px}
+.mock-bar span{width:12px;height:12px;border-radius:50%}
+.mock-bar span:nth-child(1){background:#fca5a5} .mock-bar span:nth-child(2){background:#fcd34d} .mock-bar span:nth-child(3){background:#86efac}
+.mock-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:#fbfdfc}
+.mock-row b{font-size:14px}
+.chip{font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:999px}
+.c-ch{background:#dbeafe;color:#1d4ed8} .c-la{background:#e0e7ff;color:#4338ca} .c-pa{background:#fef3c7;color:#b45309} .c-re{background:#dcfce7;color:#15803d}
+.mock-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}
+.mock-kpi div{background:#fbfdfc;border:1px solid var(--line);border-radius:12px;padding:12px}
+.mock-kpi small{display:block;font-size:11px;color:var(--muted);font-weight:500}
+.mock-kpi b{font-size:19px;color:var(--brand-dark)}
+/* Features */
+section{padding:80px 0}
+.sec-head{text-align:center;max-width:640px;margin:0 auto 48px}
+.sec-head .eyebrow{margin-bottom:14px}
+.sec-head h2{font-size:36px;font-weight:800;letter-spacing:-.01em}
+.sec-head p{color:var(--muted);font-size:17px;margin-top:12px}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.feat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:28px;transition:all .2s}
+.feat:hover{transform:translateY(-5px);box-shadow:var(--shadow);border-color:#99d6d1}
+.feat-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:16px}
+.feat h3{font-size:18px;font-weight:700;margin-bottom:8px}
+.feat p{color:var(--muted);font-size:14.5px}
+/* Pipeline strip */
+.pipe{background:linear-gradient(135deg,#0f766e,#134e4a);color:#fff;border-radius:24px;padding:44px;box-shadow:var(--shadow)}
+.pipe h2{text-align:center;font-size:30px;font-weight:800;margin-bottom:30px}
+.pipe-steps{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.pstep{flex:1;min-width:140px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:18px 14px;text-align:center;backdrop-filter:blur(6px)}
+.pstep .n{display:block;font-size:26px;font-weight:800;color:#5eead4;margin-bottom:4px}
+.pstep b{display:block;font-size:15px}
+.pstep small{color:#9de0da;font-size:12.5px}
+/* Pricing */
+.pricing{background:#fff}
+.price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;align-items:stretch}
+.plan{background:var(--bg);border:1.5px solid var(--line);border-radius:20px;padding:32px 28px;display:flex;flex-direction:column;position:relative}
+.plan.featured{background:linear-gradient(160deg,#f0fdfa,#fff);border-color:var(--brand);box-shadow:0 18px 50px rgba(13,148,136,.18);transform:scale(1.04)}
+.badge-pop{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--brand);color:#fff;font-size:12px;font-weight:700;padding:5px 16px;border-radius:999px;letter-spacing:.04em}
+.plan h3{font-size:20px;font-weight:800}
+.plan .desc{color:var(--muted);font-size:14px;margin:6px 0 18px;min-height:40px}
+.plan .price{font-size:42px;font-weight:900;letter-spacing:-.02em}
+.plan .price small{font-size:15px;font-weight:600;color:var(--muted)}
+.plan ul{list-style:none;margin:22px 0;flex:1}
+.plan li{padding:8px 0 8px 28px;position:relative;font-size:14.5px;color:var(--ink2)}
+.plan li::before{content:"✓";position:absolute;left:2px;color:var(--brand);font-weight:800}
+.plan li.off{color:#9fb3b1} .plan li.off::before{content:"–";color:#9fb3b1}
+.plan .btn{width:100%;text-align:center;margin-top:8px}
+/* FAQ */
+.faq-item{background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:12px;overflow:hidden}
+.faq-q{padding:18px 22px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
+.faq-q::after{content:"+";font-size:22px;color:var(--brand);transition:transform .2s}
+.faq-item.open .faq-q::after{transform:rotate(45deg)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .25s ease;color:var(--muted)}
+.faq-item.open .faq-a{max-height:220px}
+.faq-a div{padding:0 22px 18px}
+/* CTA */
+.cta{text-align:center;background:linear-gradient(135deg,var(--brand),#14b8a6);color:#fff;border-radius:26px;padding:64px 40px;box-shadow:0 20px 60px rgba(13,148,136,.28)}
+.cta h2{font-size:36px;font-weight:900;margin-bottom:14px}
+.cta p{font-size:18px;opacity:.92;margin-bottom:30px}
+.cta .btn-white{font-size:17px;padding:15px 36px}
+/* Footer */
+footer{padding:40px 0;text-align:center;color:var(--muted);font-size:14px;border-top:1px solid var(--line);margin-top:40px}
+footer .logo{justify-content:center;margin-bottom:10px}
+/* Mobile */
+@media(max-width:900px){
+  .hero-grid{grid-template-columns:1fr} .mock{transform:none;max-width:460px;margin:0 auto}
+  h1{font-size:38px} .feat-grid,.price-grid{grid-template-columns:1fr}
+  .plan.featured{transform:none} nav{display:none}
+  .pipe{padding:30px 20px} .pipe-steps{flex-direction:column}
+  .cta{padding:46px 24px} .cta h2{font-size:28px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hdr">
+    <div class="logo"><i>🧺</i> LavTr</div>
+    <nav>
+      <a href="#funcionalidades">Funcionalidades</a>
+      <a href="#como-funciona">Como funciona</a>
+      <a href="#planos">Planos</a>
+      <a href="#faq">Dúvidas</a>
+    </nav>
+    <a class="btn btn-primary" href="https://ewash-production.up.railway.app/login">Entrar / Testar grátis</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">🇧🇷 Feito para lavanderias no Brasil</span>
+      <h1>Sua lavanderia rodando no <span class="hl">automático</span></h1>
+      <p class="lead">Pedidos, pipeline de produção, cobranças via Pix, clientes e relatórios — tudo em um só lugar, do celular ou computador. Comece grátis por 14 dias, sem cartão de crédito.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="https://ewash-production.up.railway.app/login">Começar teste grátis →</a>
+        <a class="btn btn-outline" href="#planos">Ver planos</a>
+      </div>
+      <div class="hero-badges">
+        <span><b>R$ 99</b>/mês o plano inicial</span>
+        <span><b>Pix</b> integrado</span>
+        <span><b>14 dias</b> grátis</span>
+      </div>
+    </div>
+    <div class="mock" aria-hidden="true">
+      <div class="mock-bar"><span></span><span></span><span></span></div>
+      <div class="mock-kpi">
+        <div><small>Pedidos hoje</small><b>12</b></div>
+        <div><small>Faturado hoje</small><b>R$ 842</b></div>
+        <div><small>Prontos</small><b>7</b></div>
+      </div>
+      <div class="mock-row"><b>JP-0104 · Maria Silva</b><span class="chip c-la">Lavando</span></div>
+      <div class="mock-row"><b>JP-0103 · João Souza</b><span class="chip c-pa">Passando</span></div>
+      <div class="mock-row"><b>JP-0102 · Ana Costa</b><span class="chip c-re">Pronto</span></div>
+      <div class="mock-row"><b>JP-0101 · Pedro Lima</b><span class="chip c-ch">Recebido</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="funcionalidades">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Funcionalidades</span>
+      <h2>Tudo que sua lavanderia precisa, nada que atrapalha</h2>
+      <p>Interface simples para sua equipe aprender em minutos, com o rigor de um ERP por baixo.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat">
+        <div class="feat-icon" style="background:#e0f2fe;color:#2563eb">📋</div>
+        <h3>Pedidos e orçamentos</h3>
+        <p>Crie pedidos em segundos com catálogo de serviços editável (por quilo, por peça, por tamanho). O preço é fixado na confirmação do cliente.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon" style="background:#dcfce7;color:#15803d">🔄</div>
+        <h3>Pipeline de produção</h3>
+        <p>Recebido → Lavando → Passando → Pronto → Entregue. A equipe avança cada pedido no painel e o cliente recebe o acompanhamento.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon" style="background:#fef3c7;color:#b45309">💠</div>
+        <h3>Pagamento via Pix</h3>
+        <p>Registre pagamentos Pix ou dinheiro, controle quem deve, gere recibos e veja o caixa diário para fechar as contas com confiança.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon" style="background:#ede9fe;color:#7c3aed">📊</div>
+        <h3>Relatórios e financeiro</h3>
+        <p>Receita por serviço, despesas por categoria, lucro mês a mês e comparação com o mês anterior. Exporte CSV para seu contador.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon" style="background:#fce7f3;color:#db2777">👥</div>
+        <h3>Clientes e fidelidade</h3>
+        <p>Base de clientes com histórico completo, valor acumulado e prazo de pagamento. Saiba exatamente quem é seu melhor cliente.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon" style="background:#ffedd5;color:#ea580c">🔒</div>
+        <h3>Equipe com permissões</h3>
+        <p>Dono, atendente, operador e entregador com acessos controlados. Toda ação importante fica registrada no log de auditoria.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="como-funciona">
+  <div class="wrap">
+    <div class="pipe">
+      <h2>O pedido entra, a produção flui, o dinheiro cai no caixa</h2>
+      <div class="pipe-steps">
+        <div class="pstep"><span class="n">1</span><b>Recebido</b><small>Cliente traz ou você coleta; orçamento na hora</small></div>
+        <div class="pstep"><span class="n">2</span><b>Lavando</b><small>Item entra na produção e segue o fluxo</small></div>
+        <div class="pstep"><span class="n">3</span><b>Passando</b><small>Acompanhe a etapa no painel em tempo real</small></div>
+        <div class="pstep"><span class="n">4</span><b>Pronto</b><small>Aparece na fila de retirada/entrega</small></div>
+        <div class="pstep"><span class="n">5</span><b>Entregue</b><small>Pix registrado, pedido fechado, caixa atualizado</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="planos" class="pricing">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Planos e preços</span>
+      <h2>Escolha o plano ideal para o tamanho da sua lavanderia</h2>
+      <p>14 dias grátis em qualquer plano. Cancele quando quiser. Sem taxa de adesão.</p>
+    </div>
+    <div class="price-grid">
+      <div class="plan">
+        <h3>Starter</h3>
+        <p class="desc">Para lavanderias pequenas começando a se organizar.</p>
+        <div class="price">R$ 99<small>/mês</small></div>
+        <ul>
+          <li>1 unidade (filial)</li>
+          <li>Até 3 usuários</li>
+          <li>Pedidos e pipeline ilimitados</li>
+          <li>Cobrança Pix e dinheiro</li>
+          <li>Relatórios básicos</li>
+          <li class="off">Múltiplas unidades</li>
+        </ul>
+        <a class="btn btn-outline" href="https://ewash-production.up.railway.app/login">Começar grátis</a>
+      </div>
+      <div class="plan featured">
+        <span class="badge-pop">MAIS ESCOLHIDO</span>
+        <h3>Pro</h3>
+        <p class="desc">Para lavanderias que já atendem bem e querem crescer.</p>
+        <div class="price">R$ 199<small>/mês</small></div>
+        <ul>
+          <li>Até 3 unidades</li>
+          <li>Até 10 usuários</li>
+          <li>Permissões por papel (Dono, Atendente, Operador)</li>
+          <li>Relatórios completos + exportação CSV</li>
+          <li>Despesas por categoria e caixa diário</li>
+          <li class="off">API de integrações</li>
+        </ul>
+        <a class="btn btn-primary" href="https://ewash-production.up.railway.app/login">Começar grátis</a>
+      </div>
+      <div class="plan">
+        <h3>Premium</h3>
+        <p class="desc">Para redes de lavanderias e operações com entrega.</p>
+        <div class="price">R$ 349<small>/mês</small></div>
+        <ul>
+          <li>Unidades ilimitadas</li>
+          <li>Usuários ilimitados</li>
+          <li>Módulo de coletas e entregas (delivery)</li>
+          <li>API de integrações</li>
+          <li>Suporte prioritário</li>
+          <li>Onboarding assistido</li>
+        </ul>
+        <a class="btn btn-outline" href="https://ewash-production.up.railway.app/login">Começar grátis</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap" style="max-width:760px">
+    <div class="sec-head">
+      <span class="eyebrow">Dúvidas frequentes</span>
+      <h2>Perguntas comuns</h2>
+    </div>
+    <div class="faq-item" onclick="this.classList.toggle('open')">
+      <div class="faq-q">Preciso de 14 dias mesmo de teste grátis?</div>
+      <div class="faq-a"><div>Sim. Você cria sua conta, recebe um catálogo modelo de lavanderia brasileira e usa o sistema completo por 14 dias sem pagar nada e sem cartão de crédito.</div></div>
+    </div>
+    <div class="faq-item" onclick="this.classList.toggle('open')">
+      <div class="faq-q">Meus dados ficam seguros?</div>
+      <div class="faq-a"><div>Todos os dados são criptografados e ficam em banco próprio de cada lavanderia. Ações importantes (preços, pagamentos, exclusões) são registradas em log de auditoria imutável.</div></div>
+    </div>
+    <div class="faq-item" onclick="this.classList.toggle('open')">
+      <div class="faq-q">Funciona no celular?</div>
+      <div class="faq-a"><div>Sim! O sistema é responsivo e funciona direto do navegador do celular, sem precisar instalar nada. Ideal para o atendente registrar pedidos no balcão.</div></div>
+    </div>
+    <div class="faq-item" onclick="this.classList.toggle('open')">
+      <div class="faq-q">Posso personalizar meus serviços e preços?</div>
+      <div class="faq-a"><div>Totalmente. O Construtor de Serviços permite criar lavagem por quilo, por peça, por tamanho (edredom casal/queen/king), descontos por quantidade e taxas express — com simulador de preço em tempo real.</div></div>
+    </div>
+    <div class="faq-item" onclick="this.classList.toggle('open')">
+      <div class="faq-q">Como funciona o pagamento por Pix?</div>
+      <div class="faq-a"><div>No plano Premium você pode integrar um gateway automático. Nos demais, basta registrar o Pix na hora do pagamento (com o código do comprovante) — o sistema dá baixa no pedido e atualiza o caixa.</div></div>
+    </div>
+    <div class="faq-item" onclick="this.classList.toggle('open')">
+      <div class="faq-q">Posso cancelar a qualquer momento?</div>
+      <div class="faq-a"><div>Sim, sem multa e sem burocracia. Você ainda pode exportar todos os seus dados em CSV antes de sair.</div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="cta">
+      <h2>Sua lavanderia merece um sistema de verdade</h2>
+      <p>Teste grátis por 14 dias. Sem cartão. Sem compromisso. Setup em menos de 5 minutos.</p>
+      <a class="btn btn-white" href="https://ewash-production.up.railway.app/login">Criar minha conta grátis →</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="logo"><i>🧺</i> LavTr</div>
+    LavTr — Sistema de Gestão para Lavanderias · Feito com 💚 para o Brasil
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    const t=document.querySelector(a.getAttribute('href'));
+    if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth'})}
+  });
+});
+</script>
+</body>
+</html>

@@ -136,6 +136,10 @@ server.use('/api{*rest}', (req, res) => {
   });
 });
 
+// Landing page de vendas servida em /site
+const landingPath = join(__dirname, '..', 'public', 'site.html');
+server.get('/site', (_req, res) => { res.sendFile(landingPath); });
+
 // SPA Vue servida estática com fallback para index.html
 const candidate = (p) => join(dirname(__dirname), p, 'web', 'dist');
 const candidates = ['.', '..', '../..'];
