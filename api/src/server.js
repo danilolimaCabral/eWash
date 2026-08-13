@@ -55,6 +55,8 @@ async function fixupSchema() {
         await demo(`policy ${key}`, `INSERT OR IGNORE INTO role_policies (id, role_id, policy_key, allow) VALUES (HEX(RANDOMBLOB(16)), '${donoRoleId}', '${key}', 1)`);
       }
     }
+    // Remove lock de login da conta demo (testes repetidos podem bloquear a demo)
+    await demo('unlock demo login', `DELETE FROM rate_limits WHERE key='login:email:demo@lavatr.app'`);
     // Catálogo demo completo (categorias BR, serviços, variantes, tiers, addons) via seedTenant
     if (!(await has(`SELECT COUNT(*) c FROM service_categories WHERE tenant_id='${T}'`))) {
       try {
