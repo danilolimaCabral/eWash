@@ -11,6 +11,7 @@ RUN pnpm install --prod 2>&1 | tail -5
 # Código e assets pré-compilados
 COPY api/src ./src
 COPY api/migrations ./migrations
+COPY api/public ./public
 COPY web/dist ./web/dist
 # Diretorio do banco SQLite (DATABASE_URL=file:/app/db/lavtr.db)
 RUN mkdir -p /app/db
