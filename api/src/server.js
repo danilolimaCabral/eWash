@@ -63,6 +63,7 @@ server.get('/api/debug/db', async (_req, res) => {
       roles: await cnt("SELECT COUNT(*) c FROM roles"),
       users: await cnt("SELECT COUNT(*) c FROM users"),
       platform_users: await cnt("SELECT COUNT(*) c FROM platform_users"),
+      tables: (await db.execute("SELECT name FROM sqlite_master WHERE type='table'")).rows.map((r)=>r.name),
     };
     db.close();
     res.json({ ok: true, data: result });
