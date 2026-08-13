@@ -4,6 +4,7 @@
 import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { existsSync } from 'node:fs';
 import { app as honoApp, runDailyJobs } from './index.js';
 import { applyMigrations } from './migrate.js';
 
@@ -69,7 +70,14 @@ server.use('/api{*rest}', (req, res) => {
 });
 
 // SPA Vue servida estática com fallback para index.html
-const dist = join(__dirname, '..', '..', 'web', 'dist');
+// Contextos:
+//   Railway: Dockerfile copia api/src -> /app/src, logo __dirname=/app/src, dist=/app/web/dist
+//   Local:   script em api/src, __dirname=.../api/src, dist=.../api/web/dist? Não — o build local usa api/src também.
+// Resolvemos de forma robusta: a pasta web/dist fica no mesmo nivel de src (raiz no Railway) ou um nivel acima (monorepo).
+const candidate = (p) => join(dirname(__dirname), p, 'web', 'dist');
+const candidates = ['.', '..', '../..'];
+const dist = candidates.map((c) => candidate(c)).find((p) => existsSync(join(p, 'index.html')))
+  || join(dirname(__dirname), 'web', 'dist');
 server.use(express.static(dist));
 server.get('{*fallback}', (_req, res) => {
   res.sendFile(join(dist, 'index.html'));
