@@ -4,10 +4,53 @@
 import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createClient } from '@libsql/client';
 import { app as honoApp, runDailyJobs } from './index.js';
 import { applyMigrations } from './migrate.js';
+
+// Fixup de emergência: garante o schema completo (caso migrations tenham falhado no meio,
+// deixando o banco sem tabelas como roles/users) e insere o tenant demo faltante.
+async function fixupSchema() {
+  const db = createClient({ url: String(process.env.DATABASE_URL || '') });
+  try {
+    const init = readFileSync(join(__dirname, '..', 'migrations', '0000_init.sql'), 'utf8');
+    for (const stmt of init.split('--> statement-breakpoint')) {
+      const s = stmt.trim();
+      if (!s || !/^CREATE (TABLE|INDEX)/.test(s)) continue;
+      try {
+        await db.execute(s);
+      } catch (e) {
+        if (!String(e.message).includes('already exists')) throw e;
+      }
+    }
+    const demo = async (label, sql) => {
+      try { await db.execute(sql); console.log(`fixup ok: ${label}`); }
+      catch (e) { console.log(`fixup skip ${label}: ${e.message}`); }
+    };
+    const has = async (q) => (await db.execute(q)).rows[0].c > 0;
+    const T = '00000000-0000-0000-0000-000000000001';
+    const HASH = 'pbkdf2$100000$nus3I4EeDf6vmgSIVslXWg$eHHYGk2KVV-1CwZBQNvWJbw7t151UAsmFNc24rMQAHk';
+    await demo('tenant', `INSERT OR IGNORE INTO tenants (id, name, plan, currency, status, billing_email, code_prefix, settings) VALUES ('${T}', 'Lavanderia Demo', 'pro', 'BRL', 'active', 'demo@lavatr.app', 'LV', '{}')`);
+    await demo('branch 1', `INSERT OR IGNORE INTO branches (id, tenant_id, name, location, active) VALUES ('00000000-0000-0000-0000-000000000001', '${T}', 'Filial Centro', 'Centro', 1)`);
+    await demo('branch 10', `INSERT OR IGNORE INTO branches (id, tenant_id, name, location, active) VALUES ('00000000-0000-0000-0000-000000000010', '${T}', 'Filial Centro', 'Centro', 1)`);
+    const roleIds = ['00000000-0000-0000-0000-000000000021','00000000-0000-0000-0000-000000000022','00000000-0000-0000-0000-000000000023','00000000-0000-0000-0000-000000000024'];
+    const roleNames = ['Dono/Admin','Atendente','Operador','Entregador'];
+    for (let i = 0; i < roleIds.length; i++) {
+      await demo(`role ${roleNames[i]}`, `INSERT OR IGNORE INTO roles (id, tenant_id, name, is_system) VALUES ('${roleIds[i]}', '${T}', '${roleNames[i]}', 1)`);
+    }
+    const donoRoleId = '00000000-0000-0000-0000-000000000021';
+    const branch10Id = '00000000-0000-0000-0000-000000000010';
+    if (!(await has(`SELECT COUNT(*) c FROM users WHERE email='demo@lavatr.app'`))) {
+      await demo('user demo', `INSERT OR IGNORE INTO users (id, tenant_id, branch_id, role_id, access_scope, name, email, phone, password_hash, status) VALUES ('00000000-0000-0000-0000-000000000031', '${T}', '${branch10Id}', '${donoRoleId}', 'tenant', 'Lavanderia Demo', 'demo@lavatr.app', '11999990000', '${HASH}', 'active')`);
+    }
+    console.log('fixup schema complete');
+  } catch (e) {
+    console.error('fixup schema failed (non-fatal):', e.message);
+  } finally {
+    db.close();
+  }
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
@@ -113,6 +156,8 @@ server.listen(PORT, async () => {
   } catch (e) {
     console.error('migration apply failed (non-fatal):', e.message);
   }
+  // Garante schema completo + dados demo mesmo quando migrations falham no meio
+  await fixupSchema();
   // Cron diário (substitui o trigger `scheduled` do Cloudflare Worker)
   setInterval(() => {
     runDailyJobs(env).catch((e) => console.error('daily job failed:', e));
