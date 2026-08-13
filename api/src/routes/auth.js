@@ -86,7 +86,10 @@ authRoutes.post('/register', async (c) => {
   return c.json({
     message: `Almost there! We've emailed an activation link to ${email} — open it to finish setup.`,
     // no inbox in local/dev: surface the link so the flow stays testable
-    ...(c.env.ENVIRONMENT !== 'production' ? { activation_url: activationUrl } : {}),
+    // ALLOW_ACTIVATION_URL: admin-controlled escape hatch (e.g. creating the
+    // first demo account when SMTP is not yet configured in production)
+    ...(c.env.ENVIRONMENT !== 'production' || c.env.ALLOW_ACTIVATION_URL === 'true'
+      ? { activation_url: activationUrl } : {}),
   }, 201);
 });
 
