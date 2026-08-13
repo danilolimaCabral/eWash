@@ -84,7 +84,32 @@ server.get('{*fallback}', (_req, res) => {
 });
 
 server.listen(PORT, async () => {
-  console.log(`LavTr listening on :${PORT} (${env.ENVIRONMENT})`);
+  console.log(`// @lavtr-debug-start
+server.get('/api/debug/db', async (_req, res) => {
+  try {
+    const { createClient } = await import('@libsql/client');
+    const db = createClient({ url: String(process.env.DATABASE_URL || '') });
+    const t = await db.execute("SELECT name FROM _lavtr_migrations ORDER BY name");
+    const migs = t.rows.map((r) => r.name);
+    const cnt = async (q) => (await db.execute(q)).rows[0].c;
+    const result = {
+      url: process.env.DATABASE_URL,
+      migrations: migs,
+      tenants: await cnt("SELECT COUNT(*) c FROM tenants"),
+      branches: await cnt("SELECT COUNT(*) c FROM branches"),
+      roles: await cnt("SELECT COUNT(*) c FROM roles"),
+      users: await cnt("SELECT COUNT(*) c FROM users"),
+      platform_users: await cnt("SELECT COUNT(*) c FROM platform_users"),
+      email: (await db.execute("SELECT email, status FROM users LIMIT 3")).rows,
+    };
+    db.close();
+    res.json({ ok: true, data: result });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e && e.message || e) });
+  }
+});
+// @lavtr-debug-end
+LavTr listening on :${PORT} (${env.ENVIRONMENT})`);
   try {
     if (process.env.RUN_MIGRATIONS !== 'false') {
       await applyMigrations(env);
