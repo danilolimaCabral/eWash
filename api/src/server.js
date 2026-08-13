@@ -6,29 +6,34 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import { createClient } from '@libsql/client';
+import { drizzle } from 'drizzle-orm/libsql';
+import * as schema from './db/schema.js';
 import { app as honoApp, runDailyJobs } from './index.js';
 import { applyMigrations } from './migrate.js';
+import { seedTenant } from './seed.js';
+import { POLICY_KEYS } from './policies.js';
 
 // Fixup de emergência: garante o schema completo (caso migrations tenham falhado no meio,
 // deixando o banco sem tabelas como roles/users) e insere o tenant demo faltante.
 async function fixupSchema() {
-  const db = createClient({ url: String(process.env.DATABASE_URL || '') });
+  const raw = createClient({ url: String(process.env.DATABASE_URL || '') });
+  const db = drizzle(raw, { schema });
   try {
     const init = readFileSync(join(__dirname, '..', 'migrations', '0000_init.sql'), 'utf8');
     for (const stmt of init.split('--> statement-breakpoint')) {
       const s = stmt.trim();
       if (!s || !/^CREATE (TABLE|INDEX)/.test(s)) continue;
       try {
-        await db.execute(s);
+        await raw.execute(s);
       } catch (e) {
         if (!String(e.message).includes('already exists')) throw e;
       }
     }
     const demo = async (label, sql) => {
-      try { await db.execute(sql); console.log(`fixup ok: ${label}`); }
+      try { await raw.execute(sql); console.log(`fixup ok: ${label}`); }
       catch (e) { console.log(`fixup skip ${label}: ${e.message}`); }
     };
-    const has = async (q) => (await db.execute(q)).rows[0].c > 0;
+    const has = async (q) => (await raw.execute(q)).rows[0].c > 0;
     const T = '00000000-0000-0000-0000-000000000001';
     const HASH = 'pbkdf2$100000$nus3I4EeDf6vmgSIVslXWg$eHHYGk2KVV-1CwZBQNvWJbw7t151UAsmFNc24rMQAHk';
     await demo('tenant', `INSERT OR IGNORE INTO tenants (id, name, plan, currency, status, billing_email, code_prefix, settings) VALUES ('${T}', 'Lavanderia Demo', 'pro', 'BRL', 'active', 'demo@lavatr.app', 'LV', '{}')`);
@@ -44,11 +49,26 @@ async function fixupSchema() {
     if (!(await has(`SELECT COUNT(*) c FROM users WHERE email='demo@lavatr.app'`))) {
       await demo('user demo', `INSERT OR IGNORE INTO users (id, tenant_id, branch_id, role_id, access_scope, name, email, phone, password_hash, status) VALUES ('00000000-0000-0000-0000-000000000031', '${T}', '${branch10Id}', '${donoRoleId}', 'tenant', 'Lavanderia Demo', 'demo@lavatr.app', '11999990000', '${HASH}', 'active')`);
     }
+    // Políticas do Dono/Admin demo (o role existe mas nunca recebeu as permissões)
+    if (!(await has(`SELECT COUNT(*) c FROM role_policies WHERE role_id='${donoRoleId}'`))) {
+      for (const key of POLICY_KEYS) {
+        await demo(`policy ${key}`, `INSERT OR IGNORE INTO role_policies (id, role_id, policy_key, allow) VALUES (HEX(RANDOMBLOB(16)), '${donoRoleId}', '${key}', 1)`);
+      }
+    }
+    // Catálogo demo completo (categorias BR, serviços, variantes, tiers, addons) via seedTenant
+    if (!(await has(`SELECT COUNT(*) c FROM service_categories WHERE tenant_id='${T}'`))) {
+      try {
+        await seedTenant(db, T);
+        console.log('fixup ok: catalog seeded');
+      } catch (e) {
+        console.log(`fixup skip catalog seed: ${e.message}`);
+      }
+    }
     console.log('fixup schema complete');
   } catch (e) {
     console.error('fixup schema failed (non-fatal):', e.message);
   } finally {
-    db.close();
+    raw.close();
   }
 }
 
