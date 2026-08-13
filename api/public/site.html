@@ -3,196 +3,231 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LavTr — O sistema que sua lavanderia vai amar usar</title>
-<meta name="description" content="Pedidos, produção, Pix e financeiro num só lugar. O sistema de gestão feito para lavanderias brasileiras. Teste grátis por 14 dias.">
+<title>LavTr — O sistema de gestão para lavanderias do Brasil</title>
+<meta name="description" content="Pedidos, produção, Pix e financeiro num só lugar. O sistema feito para lavanderias brasileiras, com coleta e entrega online. Teste grátis por 14 dias.">
+<meta property="og:title" content="LavTr — Sistema de gestão para lavanderias">
+<meta property="og:description" content="Pedidos, produção, Pix e financeiro num só lugar. Teste grátis por 14 dias.">
+<meta property="og:image" content="/img/og_image.png">
+<link rel="icon" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --ink:#1b1714;            /* tinta quente, quase preta */
-  --ink-soft:#4a413c;
-  --cream:#faf7f2;          /* fundo quente */
-  --cream-2:#f3eee6;
-  --deep:#16453f;           /* verde profundo do LavTr */
-  --deep-2:#0f332e;
+  --ink:#141816;
+  --ink-soft:#57605b;
+  --cream:#faf8f4;
+  --cream-2:#f3efe8;
+  --deep:#0a2e24;
+  --deep-2:#063f31;
+  --teal:#3fbfa0;
+  --teal-2:#1f7d67;
   --terracota:#c4622c;
   --line:#e6dfd4;
-  --gold:#b08a3e;
-  --radius:6px;
+  --radius:14px;
+  --shadow-lg:0 30px 80px -24px rgba(10,46,36,.35);
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:var(--cream);line-height:1.65;-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:var(--cream);line-height:1.6;-webkit-font-smoothing:antialiased}
 img{max-width:100%;display:block}
-.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+.wrap{max-width:1220px;margin:0 auto;padding:0 28px}
 .serif{font-family:'Fraunces',Georgia,serif}
 
 /* ---------- Header ---------- */
-header{position:sticky;top:0;z-index:60;background:rgba(250,247,242,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
-.hdr{display:flex;align-items:center;justify-content:space-between;height:72px}
-.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink)}
-.brandmark{width:40px;height:40px;display:flex;align-items:center;justify-content:center}
-.brand-name{font-family:'Fraunces',serif;font-weight:600;font-size:24px;letter-spacing:-.01em}
-.brand-name small{display:block;font-family:'Inter',sans-serif;font-size:10.5px;font-weight:500;color:var(--ink-soft);letter-spacing:.12em;text-transform:uppercase}
-nav{display:flex;gap:34px;align-items:center}
-nav a{text-decoration:none;color:var(--ink-soft);font-weight:500;font-size:14.5px;letter-spacing:.01em;transition:color .2s}
-nav a:hover{color:var(--deep)}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;border-radius:999px;font-weight:600;font-size:14.5px;text-decoration:none;cursor:pointer;border:none;transition:all .22s ease}
-.btn-primary{background:var(--deep);color:#fff}
-.btn-primary:hover{background:var(--deep-2);transform:translateY(-1px);box-shadow:0 10px 26px rgba(22,69,63,.25)}
-.btn-ghost{background:transparent;color:var(--ink)}
-.btn-ghost:hover{background:var(--cream-2)}
+header{position:sticky;top:0;z-index:60;background:rgba(10,46,36,.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid rgba(250,248,244,.08)}
+.hdr{display:flex;align-items:center;justify-content:space-between;height:70px}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:#fff}
+.brandmark img{width:38px;height:38px;border-radius:11px;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.brand-name{font-family:'Fraunces',serif;font-weight:600;font-size:23px;letter-spacing:-.01em;color:#fff}
+.brand-name small{display:block;font-family:'Inter',sans-serif;font-size:10.5px;font-weight:500;color:rgba(250,248,244,.65);letter-spacing:.12em;text-transform:uppercase}
+nav{display:flex;gap:32px;align-items:center}
+nav a{text-decoration:none;color:rgba(250,248,244,.78);font-weight:500;font-size:14.5px;transition:color .2s}
+nav a:hover{color:#fff}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:999px;font-weight:600;font-size:14.5px;text-decoration:none;cursor:pointer;border:none;transition:all .22s ease;white-space:nowrap}
+.btn-primary{background:#fff;color:var(--deep)}
+.btn-primary:hover{background:var(--cream);transform:translateY(-1px);box-shadow:0 12px 30px rgba(0,0,0,.25)}
+.btn-ghost{background:transparent;color:rgba(250,248,244,.9);border:1px solid rgba(250,248,244,.28)}
+.btn-ghost:hover{background:rgba(250,248,244,.1);border-color:rgba(250,248,244,.45)}
+.btn-dark{background:var(--deep);color:#fff}
+.btn-dark:hover{background:var(--deep-2);transform:translateY(-1px);box-shadow:0 12px 30px rgba(10,46,36,.3)}
 .btn-terracota{background:var(--terracota);color:#fff}
-.btn-terracota:hover{background:#a8511f;transform:translateY(-1px);box-shadow:0 10px 26px rgba(196,98,44,.3)}
+.btn-terracota:hover{background:#a8511f;transform:translateY(-1px);box-shadow:0 12px 30px rgba(196,98,44,.35)}
 
-/* ---------- Hero ---------- */
-.hero{padding:76px 0 0;overflow:hidden}
-.hero-grid{display:grid;grid-template-columns:.95fr 1.05fr;gap:64px;align-items:end}
-.eyebrow{display:inline-flex;align-items:center;gap:10px;color:var(--ink-soft);font-size:13px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;margin-bottom:22px}
-.eyebrow::before{content:"";width:26px;height:1px;background:var(--terracota)}
-h1{font-family:'Fraunces',serif;font-weight:500;font-size:62px;line-height:1.06;letter-spacing:-.015em;margin-bottom:24px}
-h1 em{font-style:italic;font-weight:500;color:var(--deep)}
-.hero p.lead{font-size:18.5px;color:var(--ink-soft);max-width:480px;margin-bottom:34px}
+/* ---------- Dark hero ---------- */
+.hero{background:radial-gradient(1200px 560px at 78% -10%, rgba(63,191,160,.16), transparent 60%),radial-gradient(900px 500px at 8% 30%, rgba(63,191,160,.10), transparent 65%),linear-gradient(180deg,#08231c 0%, #0a2e24 55%, #0b3529 100%);color:#f3efe8;overflow:hidden;position:relative}
+.hero::after{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(250,248,244,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(250,248,244,.028) 1px,transparent 1px);background-size:46px 46px;pointer-events:none;mask-image:radial-gradient(ellipse 80% 70% at 50% 30%, #000 30%, transparent 80%);-webkit-mask-image:radial-gradient(ellipse 80% 70% at 50% 30%, #000 30%, transparent 80%)}
+.hero .wrap{position:relative;z-index:1;padding-top:96px;padding-bottom:76px}
+.hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:72px;align-items:center}
+.badge{display:inline-flex;align-items:center;gap:9px;padding:7px 7px 7px 16px;border-radius:999px;font-size:12.5px;font-weight:600;letter-spacing:.06em;color:rgba(243,239,232,.92);background:rgba(63,191,160,.14);border:1px solid rgba(63,191,160,.35);margin-bottom:24px}
+.badge i{width:8px;height:8px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 4px rgba(63,191,160,.22);display:inline-block;animation:pulse 2.2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+h1{font-family:'Fraunces',serif;font-weight:500;font-size:66px;line-height:1.05;letter-spacing:-.015em;margin-bottom:22px}
+h1 em{font-style:italic;font-weight:500;background:linear-gradient(120deg,#7fe3cb,#3fbfa0 60%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.lead{font-size:18.5px;color:rgba(243,239,232,.72);max-width:500px;margin-bottom:34px}
 .hero-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
-.hero-proof{display:flex;gap:42px;margin-top:44px;padding-top:28px;border-top:1px solid var(--line)}
-.hero-proof div b{display:block;font-family:'Fraunces',serif;font-size:28px;font-weight:500}
-.hero-proof div span{font-size:13px;color:var(--ink-soft)}
-.hero-photo{position:relative}
-.hero-photo img{border-radius:8px;aspect-ratio:4/3;object-fit:cover;box-shadow:0 30px 80px rgba(27,23,20,.18)}
-.hero-tag{position:absolute;bottom:-26px;left:-26px;background:var(--cream);border:1px solid var(--line);border-radius:8px;padding:14px 20px;box-shadow:0 14px 34px rgba(27,23,20,.12);max-width:260px}
-.hero-tag b{display:block;font-family:'Fraunces',serif;font-size:17px;font-weight:500;margin-bottom:2px}
-.hero-tag span{font-size:13px;color:var(--ink-soft)}
+.hero-proof{display:flex;gap:44px;margin-top:46px;padding-top:28px;border-top:1px solid rgba(243,239,232,.14)}
+.hero-proof div b{display:block;font-family:'Fraunces',serif;font-size:30px;font-weight:500;color:#fff;letter-spacing:-.01em}
+.hero-proof div span{font-size:13px;color:rgba(243,239,232,.58)}
 
-/* ---------- Marquee de confiança ---------- */
-.trust{padding:58px 0 40px;text-align:center;border-bottom:1px solid var(--line)}
-.trust p{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
-.trust-row{display:flex;gap:56px;justify-content:center;align-items:center;margin-top:22px;flex-wrap:wrap}
-.trust-row span{font-family:'Fraunces',serif;font-size:21px;font-weight:500;color:var(--ink);opacity:.75}
+/* Mockup do dashboard */
+.hero-visual{position:relative}
+.mockup{position:relative;border-radius:18px;overflow:hidden;box-shadow:0 50px 120px -30px rgba(0,0,0,.55),0 0 0 1px rgba(250,248,244,.10);background:#12372c}
+.mockup img{width:100%;aspect-ratio:4/3;object-fit:cover}
+.mockup .m-bar{display:flex;align-items:center;gap:7px;padding:14px 18px;background:rgba(6,33,25,.85);border-bottom:1px solid rgba(250,248,244,.08)}
+.mockup .m-dot{width:10px;height:10px;border-radius:50%;background:rgba(250,248,244,.5)}
+.mockup .m-dot:first-child{background:#ff5f56}
+.mockup .m-dot:nth-child(2){background:#ffbd2e}
+.mockup .m-dot:nth-child(3){background:#27c93f}
+.mockup .m-title{margin-left:10px;font-size:12.5px;color:rgba(243,239,232,.65);font-weight:500;letter-spacing:.02em}
+.float-chip{position:absolute;background:#fff;color:var(--ink);border-radius:12px;padding:14px 18px;box-shadow:0 20px 50px rgba(0,0,0,.35);display:flex;align-items:center;gap:12px;animation:floaty 5s ease-in-out infinite}
+.float-chip b{display:block;font-size:14px;font-weight:600}
+.float-chip span{font-size:12px;color:var(--ink-soft)}
+.chip-check{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--teal-2),var(--teal));display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;flex:none}
+.chip-pix{top:34%;left:-26px}
+.chip-order{bottom:10%;right:-22px;animation-delay:1.4s}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+
+/* ---------- Trust band ---------- */
+.trust{padding:44px 0;background:#fff;border-bottom:1px solid var(--line)}
+.trust p{text-align:center;font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+.trust-row{display:flex;gap:44px;justify-content:center;align-items:center;margin-top:18px;flex-wrap:wrap}
+.trust-row span{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14px;color:var(--ink)}
+.trust-row i{width:7px;height:7px;border-radius:50%;background:var(--teal);display:inline-block}
 
 /* ---------- Seções ---------- */
-section{padding:100px 0}
-.sec-head{max-width:620px;margin-bottom:64px}
+section{padding:104px 0}
+.sec-head{max-width:640px;margin-bottom:66px}
 .sec-head.center{margin-left:auto;margin-right:auto;text-align:center}
 .sec-head.center .eyebrow{justify-content:center}
-h2{font-family:'Fraunces',serif;font-weight:500;font-size:42px;line-height:1.12;letter-spacing:-.01em;margin-bottom:16px}
-h2 em{font-style:italic;color:var(--deep)}
-.sec-head p{color:var(--ink-soft);font-size:17px}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;color:var(--teal-2);font-size:12.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;margin-bottom:18px;background:rgba(63,191,160,.10);padding:7px 14px;border-radius:999px}
+h2{font-family:'Fraunces',serif;font-weight:500;font-size:44px;line-height:1.1;letter-spacing:-.012em;margin-bottom:16px}
+h2 em{font-style:italic;color:var(--teal-2)}
+.sec-head p{color:var(--ink-soft);font-size:17.5px}
 
-/* ---------- Features editoriais (texto + foto) ---------- */
-.feat{display:grid;grid-template-columns:1fr 1.05fr;gap:64px;align-items:center;margin-bottom:100px}
-.feat:last-child{margin-bottom:0}
-.feat.reverse{direction:rtl} .feat.reverse>*{direction:ltr}
-.feat-img{position:relative}
-.feat-img img{border-radius:8px;aspect-ratio:3/2;object-fit:cover}
-.feat-num{position:absolute;top:-18px;left:-14px;font-family:'Fraunces',serif;font-style:italic;font-size:76px;font-weight:400;color:var(--terracota);opacity:.55;line-height:1}
-.feat h3{font-family:'Fraunces',serif;font-size:32px;font-weight:500;margin-bottom:16px;letter-spacing:-.01em}
-.feat p{color:var(--ink-soft);font-size:16px;margin-bottom:20px}
-.feat ul{list-style:none}
-.feat li{padding:7px 0 7px 26px;position:relative;color:var(--ink);font-size:15px}
-.feat li::before{content:"";position:absolute;left:0;top:16px;width:14px;height:1px;background:var(--terracota)}
+/* ---------- Bento features ---------- */
+.bento{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:auto auto;gap:22px}
+.bcard{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:34px 30px;position:relative;overflow:hidden;transition:all .28s ease}
+.bcard:hover{border-color:rgba(63,191,160,.45);box-shadow:0 24px 60px -26px rgba(10,46,36,.25);transform:translateY(-4px)}
+.bcard.tall{grid-row:span 2;display:flex;flex-direction:column}
+.bcard img{width:100%;border-radius:10px;aspect-ratio:16/10;object-fit:cover;margin-bottom:22px}
+.bcard h3{font-family:'Fraunces',serif;font-size:23px;font-weight:500;margin-bottom:10px;letter-spacing:-.01em}
+.bcard p{color:var(--ink-soft);font-size:14.5px}
+.bcard ul{list-style:none;margin-top:16px}
+.bcard li{padding:7px 0 7px 24px;position:relative;font-size:14px;color:var(--ink)}
+.bcard li::before{content:"✓";position:absolute;left:0;top:8px;color:var(--teal-2);font-weight:700;font-size:13px}
+.bnum{position:absolute;top:24px;right:26px;font-family:'Fraunces',serif;font-style:italic;font-size:56px;font-weight:400;background:linear-gradient(135deg,var(--teal-2),var(--teal));-webkit-background-clip:text;background-clip:text;color:transparent;opacity:.85;line-height:1}
 
 /* ---------- Pipeline ---------- */
-.pipeline{background:var(--deep);color:#f3eee6}
+.pipeline{background:linear-gradient(180deg,#08231c,#0a2e24);color:#f3efe8;position:relative}
+.pipeline::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(243,239,232,.05) 1px,transparent 1px);background-size:28px 28px;pointer-events:none}
+.pipeline .wrap{position:relative;z-index:1}
 .pipeline .sec-head{color:inherit}
-.pipeline .sec-head p{color:#b9d5cf}
-.pipeline .eyebrow{color:#9fc3bc} .pipeline .eyebrow::before{background:#d8a47a}
-.pipe{display:flex;justify-content:space-between;gap:0;position:relative;max-width:900px;margin:0 auto}
-.pipe::before{content:"";position:absolute;top:22px;left:30px;right:30px;height:1px;background:rgba(243,238,230,.3)}
-.pstep{flex:1;text-align:center;padding:0 10px;position:relative}
-.pstep i{display:flex;width:44px;height:44px;border-radius:50%;background:var(--cream);color:var(--deep);align-items:center;justify-content:center;margin:0 auto 18px;font-family:'Fraunces',serif;font-style:italic;font-weight:600;font-size:19px;position:relative}
-.pstep b{display:block;font-family:'Fraunces',serif;font-size:19px;font-weight:500;margin-bottom:6px}
-.pstep small{display:block;color:#b9d5cf;font-size:13px}
+.pipeline .sec-head p{color:rgba(243,239,232,.62)}
+.pipe{display:flex;justify-content:space-between;gap:0;position:relative;max-width:940px;margin:0 auto}
+.pipe::before{content:"";position:absolute;top:22px;left:40px;right:40px;height:1px;background:rgba(243,239,232,.25)}
+.pstep{flex:1;text-align:center;padding:0 8px;position:relative}
+.pstep i{display:flex;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#1a6a55,#3fbfa0);align-items:center;justify-content:center;margin:0 auto 18px;font-family:'Fraunces',serif;font-style:italic;font-weight:600;font-size:18px;color:#fff;position:relative;box-shadow:0 0 0 6px rgba(10,46,36,.6),0 8px 20px rgba(0,0,0,.25)}
+.pstep b{display:block;font-family:'Fraunces',serif;font-size:19px;font-weight:500;margin-bottom:5px;color:#fff}
+.pstep small{display:block;color:rgba(243,239,232,.58);font-size:12.5px}
 
-/* ---------- Fotos intercaladas (prova visual) ---------- */
+/* ---------- Fotos intercaladas ---------- */
 .visual{padding:0;overflow:hidden}
 .visual-band{display:grid;grid-template-columns:1fr 1fr 1fr}
-.visual-band img{aspect-ratio:3/2.2;object-fit:cover}
-
-/* ---------- Planos ---------- */
-.pricing{background:var(--cream-2)}
-.price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;align-items:stretch}
-.plan{background:var(--cream);border:1px solid var(--line);border-radius:10px;padding:36px 30px;display:flex;flex-direction:column;position:relative;transition:all .25s}
-.plan:hover{box-shadow:0 20px 50px rgba(27,23,20,.08);transform:translateY(-3px)}
-.plan.featured{background:var(--deep);color:#f3eee6;border-color:var(--deep);box-shadow:0 26px 60px rgba(22,69,63,.3)}
-.plan.featured .desc{color:#b9d5cf}
-.plan.featured li{color:#e6e0d6}
-.plan.featured li::before{background:#d8a47a}
-.badge-pop{position:absolute;top:-14px;left:30px;background:var(--terracota);color:#fff;font-size:11.5px;font-weight:700;padding:6px 16px;border-radius:999px;letter-spacing:.1em}
-.plan h3{font-family:'Fraunces',serif;font-size:26px;font-weight:500;margin-bottom:8px}
-.plan .desc{color:var(--ink-soft);font-size:14px;margin-bottom:24px}
-.plan .price{font-family:'Fraunces',serif;font-size:52px;font-weight:500;letter-spacing:-.02em;line-height:1;margin-bottom:4px}
-.plan .price small{font-size:16px;font-weight:400;color:var(--ink-soft)}
-.plan.featured .price small{color:#b9d5cf}
-.plan ul{list-style:none;margin:26px 0;flex:1}
-.plan li{padding:9px 0 9px 26px;position:relative;font-size:14.5px}
-.plan li::before{content:"";position:absolute;left:0;top:17px;width:12px;height:1px;background:var(--deep)}
-.plan .btn{width:100%;justify-content:center;margin-top:6px}
-
-/* ---------- FAQ tipográfico ---------- */
-.faq{max-width:760px;margin:0 auto}
-.faq-item{border-bottom:1px solid var(--line);padding:24px 0}
-.faq-q{display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-family:'Fraunces',serif;font-size:21px;font-weight:500;user-select:none}
-.faq-q::after{content:"+";font-size:26px;font-weight:300;color:var(--terracota);transition:transform .25s}
-.faq-item.open .faq-q::after{transform:rotate(45deg)}
-.faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease;color:var(--ink-soft);font-size:15.5px}
-.faq-item.open .faq-a{max-height:200px}
-.faq-a div{padding-top:12px}
+.visual-band img{aspect-ratio:3/2.2;object-fit:cover;transition:transform .6s ease}
+.visual-band a:hover img{transform:scale(1.04)}
 
 /* ---------- Leva e Traz ---------- */
-.leva{background:var(--deep);color:#f3eee6}
+.leva{background:linear-gradient(180deg,#0a2e24,#08231c);color:#f3efe8;position:relative}
+.leva::before{content:"";position:absolute;inset:0;background:radial-gradient(900px 400px at 15% 110%, rgba(63,191,160,.10), transparent 60%);pointer-events:none}
+.leva .wrap{position:relative;z-index:1}
 .leva .sec-head{color:inherit}
-.leva .sec-head p{color:#b9d5cf}
-.leva .eyebrow{color:#9fc3bc} .leva .eyebrow::before{background:#d8a47a}
+.leva .sec-head p{color:rgba(243,239,232,.62)}
 .leva-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start}
-.leva-card{background:rgba(250,247,242,.97);color:var(--ink);border-radius:10px;padding:40px 36px;box-shadow:0 30px 80px rgba(0,0,0,.35)}
+.leva-card{background:#fff;color:var(--ink);border-radius:18px;padding:40px 36px;box-shadow:0 30px 80px rgba(0,0,0,.4)}
 .leva-card h3{font-family:'Fraunces',serif;font-size:26px;font-weight:500;margin-bottom:6px}
 .leva-card .sub{color:var(--ink-soft);font-size:14.5px;margin-bottom:26px}
-.leva label{display:block;font-size:13px;font-weight:600;letter-spacing:.04em;margin-bottom:7px}
-.leva input,.leva textarea,.leva select{width:100%;font-family:'Inter',sans-serif;font-size:15px;padding:13px 14px;border:1.5px solid var(--line);border-radius:var(--radius);background:#fff;color:var(--ink);transition:border-color .2s}
-.leva input:focus,.leva textarea:focus,.leva select:focus{outline:none;border-color:var(--deep)}
+.leva label{display:block;font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:7px}
+.leva input,.leva textarea,.leva select{width:100%;font-family:'Inter',sans-serif;font-size:15px;padding:13px 15px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);transition:border-color .2s,box-shadow .2s}
+.leva input:focus,.leva textarea:focus,.leva select:focus{outline:none;border-color:var(--teal-2);box-shadow:0 0 0 4px rgba(63,191,160,.14)}
 .leva .field{margin-bottom:18px}
 .leva textarea{min-height:92px;resize:vertical}
 .leva .btn{width:100%;justify-content:center;font-size:16px;padding:16px}
-.leva-result{margin-top:22px;border-radius:var(--radius);padding:18px 20px;font-size:14.5px;display:none}
+.leva-result{margin-top:22px;border-radius:12px;padding:18px 20px;font-size:14.5px;display:none}
 .leva-result.ok{display:block;background:#e8f0e2;color:#2c5420;border:1px solid #c8d9bc}
 .leva-result.err{display:block;background:#f9e8e3;color:#8a3a22;border:1px solid #eccdbf}
 .leva-result b.code{display:block;font-family:'Fraunces',serif;font-size:30px;letter-spacing:.18em;color:#2c5420;margin:6px 0 8px}
 .leva-steps{margin-top:30px}
-.leva-steps div{display:flex;gap:14px;padding:12px 0;font-size:14.5px;color:#b9d5cf}
-.leva-steps i{font-style:normal;width:28px;height:28px;border-radius:50%;background:rgba(250,247,242,.14);border:1px solid rgba(243,238,230,.3);display:flex;align-items:center;justify-content:center;font-size:12px;color:#f3eee6;flex:none}
-.leva-steps b{color:#f3eee6;font-weight:600}
-.track-box{margin-top:40px;background:rgba(250,247,242,.07);border:1px solid rgba(243,238,230,.18);border-radius:10px;padding:28px 32px}
-.track-box h4{font-family:'Fraunces',serif;font-size:20px;font-weight:500;margin-bottom:4px;color:#f3eee6}
-.track-box p{color:#b9d5cf;font-size:14px;margin-bottom:16px}
+.leva-steps div{display:flex;gap:14px;padding:12px 0;font-size:14.5px;color:rgba(243,239,232,.72)}
+.leva-steps i{font-style:normal;width:28px;height:28px;border-radius:50%;background:rgba(63,191,160,.16);border:1px solid rgba(63,191,160,.4);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--teal);flex:none}
+.leva-steps b{color:#fff;font-weight:600}
+.track-box{margin-top:40px;background:rgba(250,248,244,.06);border:1px solid rgba(250,248,244,.16);border-radius:16px;padding:28px 32px}
+.track-box h4{font-family:'Fraunces',serif;font-size:20px;font-weight:500;margin-bottom:4px;color:#fff}
+.track-box p{color:rgba(243,239,232,.62);font-size:14px;margin-bottom:16px}
 .track-row{display:flex;gap:12px}
 .track-row input{flex:1;background:rgba(255,255,255,.95);border-color:transparent}
-.track-status{margin-top:16px;font-size:14.5px;color:#f3eee6;display:none}
-.track-status b{color:#e3c29b}
+.track-status{margin-top:16px;font-size:14.5px;color:#f3efe8;display:none}
+.track-status b{color:#8fe4cd}
 @media(max-width:940px){
   .leva-grid{grid-template-columns:1fr}
   .leva-card{padding:30px 24px}
   section.leva{padding:70px 0}
 }
 
+/* ---------- Planos ---------- */
+.pricing{background:var(--cream-2)}
+.price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;align-items:stretch}
+.plan{background:#fff;border:1px solid var(--line);border-radius:18px;padding:38px 32px;display:flex;flex-direction:column;position:relative;transition:all .25s}
+.plan:hover{box-shadow:0 24px 60px -28px rgba(10,46,36,.3);transform:translateY(-4px)}
+.plan.featured{background:linear-gradient(160deg,#0a2e24 0%, #0d3d2f 100%);color:#f3efe8;border-color:var(--deep);box-shadow:0 32px 80px -24px rgba(10,46,36,.55);transform:scale(1.03);z-index:2}
+.plan.featured:hover{transform:scale(1.03) translateY(-4px)}
+.plan.featured .desc{color:rgba(243,239,232,.65)}
+.plan.featured li{color:rgba(243,239,232,.92)}
+.plan.featured li::before{color:#8fe4cd}
+.badge-pop{position:absolute;top:-13px;left:32px;background:linear-gradient(120deg,var(--terracota),#d87a3e);color:#fff;font-size:11px;font-weight:700;padding:6px 16px;border-radius:999px;letter-spacing:.1em;box-shadow:0 8px 20px rgba(196,98,44,.35)}
+.plan h3{font-family:'Fraunces',serif;font-size:26px;font-weight:500;margin-bottom:8px}
+.plan .desc{color:var(--ink-soft);font-size:14px;margin-bottom:24px}
+.plan .price{font-family:'Fraunces',serif;font-size:54px;font-weight:500;letter-spacing:-.02em;line-height:1;margin-bottom:4px}
+.plan .price small{font-size:16px;font-weight:400;color:var(--ink-soft)}
+.plan.featured .price small{color:rgba(243,239,232,.6)}
+.plan ul{list-style:none;margin:26px 0;flex:1}
+.plan li{padding:9px 0 9px 26px;position:relative;font-size:14.5px}
+.plan li::before{content:"✓";position:absolute;left:0;top:9px;color:var(--teal-2);font-weight:700;font-size:13px}
+.plan .btn{width:100%;justify-content:center;margin-top:6px}
+
+/* ---------- FAQ ---------- */
+.faq{max-width:760px;margin:0 auto}
+.faq-item{border-bottom:1px solid var(--line);padding:24px 0}
+.faq-q{display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-family:'Fraunces',serif;font-size:21px;font-weight:500;user-select:none}
+.faq-q::after{content:"+";font-size:26px;font-weight:300;color:var(--teal-2);transition:transform .25s}
+.faq-item.open .faq-q::after{transform:rotate(45deg)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease;color:var(--ink-soft);font-size:15.5px}
+.faq-item.open .faq-a{max-height:200px}
+.faq-a div{padding-top:12px}
+
 /* ---------- CTA final ---------- */
-.cta-band{display:grid;grid-template-columns:1.2fr .8fr;gap:0;align-items:stretch;border-radius:10px;overflow:hidden;margin-top:10px}
-.cta-copy{background:var(--deep);color:#f3eee6;padding:76px 64px}
-.cta-copy .eyebrow{color:#9fc3bc} .cta-copy .eyebrow::before{background:#d8a47a}
+.cta-band{display:grid;grid-template-columns:1.25fr .75fr;gap:0;align-items:stretch;border-radius:20px;overflow:hidden;margin-top:10px;box-shadow:var(--shadow-lg)}
+.cta-copy{background:linear-gradient(135deg,#0a2e24 0%, #10403a 100%);color:#f3efe8;padding:76px 64px;position:relative}
+.cta-copy::before{content:"";position:absolute;inset:0;background:radial-gradient(600px 300px at 90% 0%, rgba(63,191,160,.14), transparent 60%);pointer-events:none}
+.cta-copy > *{position:relative}
+.cta-copy .eyebrow{color:rgba(143,228,205,.9);background:rgba(63,191,160,.16)}
 .cta-copy h2{color:#fff}
-.cta-copy p{color:#b9d5cf;font-size:17px;margin-bottom:32px}
+.cta-copy p{color:rgba(243,239,232,.7);font-size:17px;margin-bottom:32px}
 .cta-img img{width:100%;height:100%;object-fit:cover;min-height:380px}
 
 /* ---------- Footer ---------- */
-footer{padding:64px 0 40px;border-top:1px solid var(--line)}
+footer{padding:64px 0 40px;border-top:1px solid var(--line);background:#fff}
 .foot-grid{display:flex;justify-content:space-between;align-items:flex-start;gap:40px;flex-wrap:wrap}
-.foot-left{max-width:360px}
-.foot-left .brand-name{font-size:28px}
+.foot-left{max-width:380px}
+.foot-brand{display:inline-flex;align-items:center;gap:10px;text-decoration:none}
+.foot-brand img{width:36px;height:36px;border-radius:10px;box-shadow:0 2px 10px rgba(10,46,36,.25)}
+.foot-brand b{font-family:'Fraunces',serif;font-size:26px;font-weight:600;color:var(--ink)}
 .foot-left p{color:var(--ink-soft);font-size:14px;margin-top:14px}
 .foot-links{display:flex;gap:56px}
-.foot-links div b{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);margin-bottom:14px;font-weight:600}
+.foot-links div b{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);margin-bottom:14px;font-weight:700}
 .foot-links a{display:block;text-decoration:none;color:var(--ink-soft);font-size:14.5px;padding:5px 0;transition:color .2s}
-.foot-links a:hover{color:var(--deep)}
+.foot-links a:hover{color:var(--teal-2)}
 .foot-bottom{margin-top:48px;padding-top:24px;border-top:1px solid var(--line);display:flex;justify-content:space-between;color:var(--ink-soft);font-size:13px;flex-wrap:wrap;gap:12px}
 
 /* ---------- Animar no scroll ---------- */
@@ -201,13 +236,21 @@ footer{padding:64px 0 40px;border-top:1px solid var(--line)}
 
 /* ---------- Mobile ---------- */
 @media(max-width:940px){
-  .hero-grid{grid-template-columns:1fr} .hero-tag{left:0;bottom:-22px}
-  h1{font-size:44px} h2{font-size:33px} .feat h3{font-size:26px}
-  .feat,.feat.reverse{grid-template-columns:1fr;gap:40px;margin-bottom:70px;direction:ltr}
+  .hero-grid{grid-template-columns:1fr;gap:48px}
+  h1{font-size:44px}
+  .float-chip.chip-pix{left:0}
+  .float-chip.chip-order{right:0}
+  h2{font-size:33px}
+  .bento{grid-template-columns:1fr}
+  .bcard.tall{grid-row:auto}
   .price-grid{grid-template-columns:1fr}
-  .cta-band{grid-template-columns:1fr} .cta-copy{padding:56px 32px}
+  .plan.featured{transform:none}
+  .plan.featured:hover{transform:translateY(-4px)}
+  .cta-band{grid-template-columns:1fr}
+  .cta-copy{padding:56px 32px}
   .pipe{flex-wrap:wrap;justify-content:flex-start}
-  .pstep{flex:0 0 33.3%;margin-bottom:30px} .pipe::before{display:none}
+  .pstep{flex:0 0 33.3%;margin-bottom:30px}
+  .pipe::before{display:none}
   .visual-band{grid-template-columns:1fr}
   nav{display:none}
   section{padding:70px 0}
@@ -219,9 +262,7 @@ footer{padding:64px 0 40px;border-top:1px solid var(--line)}
 <header>
   <div class="wrap hdr">
     <a href="#" class="brand">
-      <span class="brandmark">
-        <img src="/img/images/logo_mark.png" alt="LavTr" style="width:40px;height:40px;border-radius:10px" />
-      </span>
+      <span class="brandmark"><img src="/img/images/logo_mark_dark.png" alt="LavTr"></span>
       <span class="brand-name">LavTr<small>Sistema para Lavanderias</small></span>
     </a>
     <nav>
@@ -237,10 +278,10 @@ footer{padding:64px 0 40px;border-top:1px solid var(--line)}
 
 <section class="hero">
   <div class="wrap hero-grid">
-    <div>
-      <span class="eyebrow">Feito para lavanderias no Brasil</span>
-      <h1>O sistema que sua lavanderia vai <em>amar usar</em></h1>
-      <p class="lead">Pedidos, produção, cobranças por Pix e financeiro — sem planilha, sem caderno, sem confusão. Teste grátis por 14 dias, sem cartão de crédito.</p>
+    <div class="up">
+      <span class="badge"><i></i>Novidade — Leva e Traz online</span>
+      <h1>Sua lavanderia inteira, <em>no mesmo lugar</em></h1>
+      <p class="lead">Pedidos em segundos, produção no painel, cobranças por Pix e caixa em dia — com coleta e entrega online para o seu cliente. Teste grátis por 14 dias, sem cartão.</p>
       <div class="hero-cta">
         <a class="btn btn-terracota" href="https://ewash-production.up.railway.app/login">Começar teste grátis</a>
         <a class="btn btn-ghost" href="#planos">Ver planos</a>
@@ -248,14 +289,24 @@ footer{padding:64px 0 40px;border-top:1px solid var(--line)}
       <div class="hero-proof">
         <div><b>R$ 99</b><span>/mês no plano inicial</span></div>
         <div><b>Pix</b><span>registro de pagamentos</span></div>
-        <div><b>5 min</b><span>para começar a usar</span></div>
+        <div><b>5 min</b><span>para começar</span></div>
       </div>
     </div>
-    <div class="hero-photo up">
-      <img src="/img/hero.jpg" alt="Atendente entregando roupas lavadas a um cliente na lavanderia">
-      <div class="hero-tag">
-        <b>Lavanderia Demo · Pedido entregue</b>
-        <span>Pix registrado · Caixa atualizado</span>
+    <div class="hero-visual up">
+      <div class="mockup">
+        <div class="m-bar">
+          <span class="m-dot"></span><span class="m-dot"></span><span class="m-dot"></span>
+          <span class="m-title">lavatr.app — Painel · Pedidos</span>
+        </div>
+        <img src="/img/passadoria.jpg" alt="Painel de pedidos LavTr">
+      </div>
+      <div class="float-chip chip-pix">
+        <span class="chip-check">✓</span>
+        <span><b>Pix recebido</b><span>R$ 156,00 · Pedido JP-0103</span></span>
+      </div>
+      <div class="float-chip chip-order">
+        <span class="chip-check">🚚</span>
+        <span><b>Coleta confirmada</b><span>Rua Augusta, 1430 · 15h</span></span>
       </div>
     </div>
   </div>
@@ -263,31 +314,29 @@ footer{padding:64px 0 40px;border-top:1px solid var(--line)}
 
 <section class="trust">
   <div class="wrap">
-    <p>Simples como anotação no caderno. Forte como um ERP.</p>
+    <p>Do balcão ao caixa — tudo em um só painel</p>
     <div class="trust-row">
-      <span>📋 &nbsp;Pedidos</span>
-      <span>🧵 &nbsp;Produção</span>
-      <span>💠 &nbsp;Pix</span>
-      <span>📊 &nbsp;Financeiro</span>
-      <span>👥 &nbsp;Clientes</span>
+      <span><i></i>Pedidos</span>
+      <span><i></i>Produção</span>
+      <span><i></i>Pix</span>
+      <span><i></i>Financeiro</span>
+      <span><i></i>Clientes</span>
+      <span><i></i>Leva e Traz</span>
     </div>
   </div>
 </section>
 
 <section id="funcionalidades">
   <div class="wrap">
-    <div class="sec-head">
+    <div class="sec-head center">
       <span class="eyebrow">Funcionalidades</span>
       <h2>Feito para o balcão, a produção e <em>o caixa</em></h2>
       <p>Sua equipe aprende em uma tarde. Você acompanha tudo do celular.</p>
     </div>
 
-    <div class="feat up">
-      <div class="feat-img">
-        <span class="feat-num">01</span>
-        <img src="/img/passadoria.jpg" alt="Camisa sendo passada na lavanderia">
-      </div>
-      <div>
+    <div class="bento">
+      <div class="bcard tall up">
+        <img src="/img/hero.jpg" alt="Atendente entregando roupas lavadas a um cliente">
         <h3>Pedidos em segundos, preços na mão</h3>
         <p>Receba o cliente no balcão e crie o pedido na hora: por quilo, por peça ou por tamanho. O orçamento fica fixado quando o cliente confirma — sem surpresa no final.</p>
         <ul>
@@ -296,36 +345,52 @@ footer{padding:64px 0 40px;border-top:1px solid var(--line)}
           <li>Notificação automática para o cliente</li>
         </ul>
       </div>
-    </div>
-
-    <div class="feat reverse up">
-      <div class="feat-img">
-        <span class="feat-num">02</span>
-        <img src="/img/dobradas.jpg" alt="Roupas limpas e dobradas na prateleira">
-      </div>
-      <div>
-        <h3>Produção em cinco passos visíveis</h3>
-        <p>Recebido → Lavando → Passando → Pronto → Entregue. Cada pedido avança no painel e você sabe exatamente onde está cada peça, sem perguntar para ninguém.</p>
+      <div class="bcard up">
+        <span class="bnum">02</span>
+        <img src="/img/passadoria.jpg" alt="Camisa sendo passada na lavanderia">
+        <h3>Produção em 5 passos visíveis</h3>
+        <p>Recebido → Lavando → Passando → Pronto → Entregue. Você sabe onde está cada peça, sem perguntar para ninguém.</p>
         <ul>
           <li>Painel kanban para toda a equipe</li>
           <li>Fila de retirada e entrega organizada</li>
-          <li>Controle de coletas e entregas (delivery)</li>
         </ul>
       </div>
-    </div>
-
-    <div class="feat up">
-      <div class="feat-img">
-        <span class="feat-num">03</span>
-        <img src="/img/hero.jpg" alt="Atendimento ao cliente com roupa limpa embalada">
-      </div>
-      <div>
+      <div class="bcard up">
+        <span class="bnum">03</span>
+        <img src="/img/dobradas.jpg" alt="Roupas limpas e dobradas na prateleira">
         <h3>Pix na hora, caixa em dia</h3>
-        <p>Registre pagamentos Pix ou dinheiro no ato da entrega, veja quem deve, gere recibos e feche o caixa diário com confiança — e o lucro do mês sem planilha.</p>
+        <p>Registre Pix ou dinheiro na entrega, veja quem deve e feche o caixa com confiança.</p>
         <ul>
           <li>Quem deve, quanto deve, desde quando</li>
           <li>Despesas por categoria e P&amp;L mensal</li>
-          <li>Exportação em CSV para o contador</li>
+          <li>Exportação CSV para o contador</li>
+        </ul>
+      </div>
+      <div class="bcard up">
+        <span class="bnum">04</span>
+        <h3>Coletas e entregas organizadas</h3>
+        <p>Fila de coletas e entregas com endereço, horário e entregador — direto no painel de produção.</p>
+        <ul>
+          <li>Rota do dia para o entregador</li>
+          <li>Controle de ida e volta das peças</li>
+        </ul>
+      </div>
+      <div class="bcard up">
+        <span class="bnum">05</span>
+        <h3>Equipe com papéis definidos</h3>
+        <p>Dono, atendente, operador e entregador — cada um vê só o que precisa, sem risco de bagunça.</p>
+        <ul>
+          <li>Permissões por papel</li>
+          <li>Auditoria de tudo o que acontece</li>
+        </ul>
+      </div>
+      <div class="bcard up">
+        <span class="bnum">06</span>
+        <h3>Relatórios que falam</h3>
+        <p>Serviços mais vendidos, faturamento por período e comparação mês a mês — para tomar decisão com números.</p>
+        <ul>
+          <li>Gráficos em tempo real</li>
+          <li>Dados exportáveis</li>
         </ul>
       </div>
     </div>
@@ -438,7 +503,7 @@ footer{padding:64px 0 40px;border-top:1px solid var(--line)}
           <li>Pagamentos Pix e dinheiro</li>
           <li>Relatórios básicos</li>
         </ul>
-        <a class="btn btn-ghost" style="border:1px solid var(--line)" href="https://ewash-production.up.railway.app/login">Começar grátis</a>
+        <a class="btn btn-ghost" style="border:1px solid var(--line);color:var(--ink)" href="https://ewash-production.up.railway.app/login">Começar grátis</a>
       </div>
       <div class="plan featured up">
         <span class="badge-pop">MAIS ESCOLHIDO</span>
@@ -465,7 +530,7 @@ footer{padding:64px 0 40px;border-top:1px solid var(--line)}
           <li>API de integrações</li>
           <li>Suporte prioritário</li>
         </ul>
-        <a class="btn btn-ghost" style="border:1px solid var(--line)" href="https://ewash-production.up.railway.app/login">Começar grátis</a>
+        <a class="btn btn-ghost" style="border:1px solid var(--line);color:var(--ink)" href="https://ewash-production.up.railway.app/login">Começar grátis</a>
       </div>
     </div>
   </div>
@@ -528,7 +593,7 @@ footer{padding:64px 0 40px;border-top:1px solid var(--line)}
   <div class="wrap">
     <div class="foot-grid">
       <div class="foot-left">
-        <span class="brand-name serif" style="display:flex;align-items:center;gap:10px"><img src="/img/images/logo_mark.png" alt="LavTr" style="width:34px;height:34px;border-radius:9px" />LavTr</span>
+        <a class="foot-brand" href="#"><img src="/img/images/logo_mark.png" alt="LavTr"><b>LavTr</b></a>
         <p>O sistema de gestão feito para lavanderias brasileiras. Pedidos, produção, Pix e financeiro num só lugar.</p>
       </div>
       <div class="foot-links">
