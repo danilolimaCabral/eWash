@@ -10,6 +10,17 @@ import { applyMigrations } from './migrate.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
 
+// Railway pode ter APP_URL=PLACEHOLDER antes do dominio ser gerado.
+// Derivamos uma base valida (localhost) para a delegacao Hono funcionar sempre.
+const APP_URL_BASE = (() => {
+  try {
+    const u = new URL(process.env.APP_URL || `http://localhost:${PORT}`);
+    return u.origin;
+  } catch {
+    return `http://localhost:${PORT}`;
+  }
+})();
+
 const env = {
   ENVIRONMENT: process.env.NODE_ENV === 'production' ? 'production' : 'development',
   DATABASE_URL: process.env.DATABASE_URL || '',
@@ -21,7 +32,7 @@ const env = {
   SMTP_PORT: process.env.SMTP_PORT || '465',
   SMTP_USERNAME: process.env.SMTP_USERNAME || '',
   SMTP_PASSWORD: process.env.SMTP_PASSWORD || '',
-  APP_URL: process.env.APP_URL || `http://localhost:${PORT}`,
+  APP_URL: APP_URL_BASE,
   PLATFORM_ADMIN_EMAIL: process.env.PLATFORM_ADMIN_EMAIL || '',
   PLATFORM_ADMIN_PASSWORD: process.env.PLATFORM_ADMIN_PASSWORD || '',
   PLATFORM_ADMIN_NAME: process.env.PLATFORM_ADMIN_NAME || '',
@@ -37,7 +48,7 @@ server.use(express.json({ limit: '64kb' }));
 
 // API Hono: delega todas as rotas /api/*
 server.use('/api{*rest}', (req, res) => {
-  const url = new URL(req.originalUrl, env.APP_URL);
+  const url = new URL(req.originalUrl, APP_URL_BASE);
   const isGet = ['GET', 'HEAD'].includes(req.method);
   const request = new Request(url.toString(), {
     method: req.method,
