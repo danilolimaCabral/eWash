@@ -34,7 +34,7 @@ onMounted(async () => {
   <div v-if="session.me" class="shell">
     <div v-if="drawer" class="backdrop" @click="drawer = false" />
     <aside :class="{ open: drawer }">
-      <div class="brand"><span><AppIcon name="shield" :size="19" /></span><div>LavTr<small>Central de Controle</small></div></div>
+      <div class="brand"><span><img src="/lavtr_mark.png" alt="LavTr" style="width:30px;height:30px;border-radius:7px;margin-right:6px" /></span><div>LavTr<small>Central de Controle</small></div></div>
       <div class="nav-label">Platform</div>
       <router-link v-for="item in nav" :key="item.name" :to="{ name: item.name }" :class="{ active: route.name === item.name }">
         <AppIcon :name="item.icon" :size="17" />{{ item.label }}

@@ -103,7 +103,7 @@ onMounted(async () => {
   <div class="auth-wrap">
     <div class="auth-card">
       <div class="auth-brand">
-        <span class="brand-mark"><AppIcon name="shirt" :size="22" /></span>
+        <span class="brand-mark"><img src="/lavtr_mark.png" alt="LavTr" style="width:44px;height:44px;border-radius:11px" /></span>
         <div><b>LavTr</b><small>Sistema de Gestão para Lavanderias</small></div>
       </div>
 

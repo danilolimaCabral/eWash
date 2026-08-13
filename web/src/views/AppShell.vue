@@ -70,7 +70,7 @@ onMounted(async () => {
     <div v-if="drawerOpen" class="drawer-backdrop" @click="drawerOpen = false" />
     <aside class="side" :class="{ open: drawerOpen }">
       <div class="brand">
-        <span class="brand-mark"><AppIcon name="shirt" :size="20" /></span>
+        <span class="brand-mark"><img src="/lavtr_mark.png" alt="LavTr" style="width:32px;height:32px;border-radius:8px" /></span>
         <span>LavTr<small>{{ session.tenant?.name }}</small></span>
       </div>
       <template v-for="group in visibleNav" :key="group.label">
