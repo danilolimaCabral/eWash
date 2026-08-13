@@ -70,8 +70,11 @@ export async function issueAccountActivation(db, env, user, origin, requestedIp 
   } catch (error) {
     console.error('activation email failed:', error.message);
     // outside production the link is surfaced to the caller instead, so keep
-    // the token alive for local testing without an inbox
-    if (env.ENVIRONMENT !== 'production') return { sent: false, activationUrl };
+    // the token alive for local testing without an inbox.
+    // ALLOW_ACTIVATION_URL: admin escape hatch — surface the link even in
+    // production (e.g. creating the first account before SMTP is configured)
+    const allow = env.ALLOW_ACTIVATION_URL === 'true';
+    if (env.ENVIRONMENT !== 'production' || allow) return { sent: false, activationUrl };
     await db.update(passwordResetTokens).set({ usedAt: now() }).where(eq(passwordResetTokens.id, id));
     return { sent: false, activationUrl: null };
   }
