@@ -124,7 +124,7 @@ const historyColumns = [
           </template>
         </DataTable>
         <EmptyState v-else icon="checkCircle" title="Nothing waiting for pickup"
-          hint="Orders appear here when they reach the “Ready” stage on the pipeline." />
+          hint="Pedidos aparecem aqui quando chegam ao estágio “Pronto” no pipeline." />
       </template>
     </Panel>
 

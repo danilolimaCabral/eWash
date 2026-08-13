@@ -79,8 +79,8 @@ function payOrderChanged() {
   if (row) payForm.value.amount = (row.totalCents - row.paidCents) / 100;
 }
 async function savePayment() {
-  if (!payForm.value.order_id) { toast.error('Choose an order'); return; }
-  if (!(payForm.value.amount > 0)) { toast.error('Enter an amount'); return; }
+  if (!payForm.value.order_id) { toast.error('Escolha um pedido'); return; }
+  if (!(payForm.value.amount > 0)) { toast.error('Informe um valor'); return; }
   busy.value = true;
   try {
     await api.post(`/orders/${payForm.value.order_id}/payments`, {
@@ -88,7 +88,7 @@ async function savePayment() {
       amount_cents: Math.round(payForm.value.amount * 100),
       mpesa_ref: payForm.value.mpesa_ref || undefined,
     });
-    toast.success('Payment recorded ✔ — the customer gets a receipt message');
+    toast.success('Pagamento registrado ✔ — o cliente recebe a confirmação');
     payModal.value = false;
     await load();
   } catch (e) { toast.error(e.message); }
@@ -181,7 +181,7 @@ const momDelta = computed(() => {
 });
 
 async function saveExpense() {
-  if (!(exForm.value.amount > 0)) { toast.error('Enter an amount'); return; }
+  if (!(exForm.value.amount > 0)) { toast.error('Informe um valor'); return; }
   busy.value = true;
   try {
     const payload = {
@@ -230,7 +230,7 @@ async function voidExpense() {
   busy.value = true;
   try {
     await api.post(`/expenses/${row.id}/void`);
-    toast.success('Expense voided and audit-logged');
+    toast.success('Despesa anulada e registrada');
     voidingExpense.value = null;
     await load();
   } catch (e) { toast.error(e.message); }
@@ -245,7 +245,7 @@ async function saveProvider() {
     else await api.post('/service-providers', payload);
     providerForm.value = { id: '', name: '', service_type: '', phone: '', email: '', notes: '', active: true };
     providerModal.value = false;
-    toast.success('Service provider saved');
+    toast.success('Prestador de serviço salvo');
     await load();
   } catch (e) { toast.error(e.message); }
   finally { busy.value = false; }
@@ -276,7 +276,7 @@ async function exportCsv() {
     ['Operating profit', pl.value.profitCents / 100],
     [],
     ['Expenses detail'],
-    ['Date', 'Category', 'Amount', 'Pago via', 'Note'],
+    ['Data', 'Categoria', 'Valor', 'Pago via', 'Observação'],
     ...allExpenses.map((e) => [e.expenseDate, e.categoryName, e.amountCents / 100, e.paidVia, e.note || '']),
   ];
   const csv = rows.map((r) => r.map((c) => `"${String(c ?? '').replaceAll('"', '""')}"`).join(',')).join('\n');
@@ -284,7 +284,7 @@ async function exportCsv() {
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
   a.download = `LavTr-pl-${month.value}.csv`;
   a.click();
-  toast.success('CSV exported for your accountant');
+  toast.success('CSV exportado para o seu contador');
 }
 
 const exColumns = [
@@ -312,45 +312,45 @@ const provColumns = [
   <div>
     <div class="section-head">
       <div>
-        <h2>Finance — Your books</h2>
+        <h2>Financeiro — Seus livros</h2>
         <p>Owner only · Money is counted once an order is <b>finished</b> (delivered or collected)</p>
       </div>
       <div class="head-actions">
         <select v-model="month" style="width: 170px;" @change="load">
           <option v-for="m in months" :key="m" :value="m">{{ monthLabel(m) }}</option>
         </select>
-        <button class="btn btn-ghost" @click="exportCsv">Export CSV</button>
+        <button class="btn btn-ghost" @click="exportCsv">Exportar CSV</button>
       </div>
     </div>
 
     <div class="finance-tabs">
-      <button v-for="tab in [{ key: 'overview', label: 'Overview' }, { key: 'expenses', label: 'Despesas' }, { key: 'credit', label: 'Clientes devedores' }, { key: 'providers', label: 'Fornecedores' }, { key: 'billing', label: 'Sua fatura LavTr' }]"
+      <button v-for="tab in [{ key: 'overview', label: 'Visão geral' }, { key: 'expenses', label: 'Despesas' }, { key: 'credit', label: 'Clientes devedores' }, { key: 'providers', label: 'Fornecedores' }, { key: 'billing', label: 'Sua fatura LavTr' }]"
         :key="tab.key" :class="{ active: activeTab === tab.key }" @click="activeTab = tab.key">{{ tab.label }}</button>
     </div>
 
     <div v-if="activeTab === 'overview' && !pl" class="cards"><Skeleton variant="kpi" :count="4" /></div>
     <div v-else-if="activeTab === 'overview'" class="cards">
-      <KpiCard label="Money earned · finished orders" :value="money(pl.netCents, session.currency)" icon="finance" icon-tone="green"
+      <KpiCard label="Receita · pedidos concluídos" :value="money(pl.netCents, session.currency)" icon="finance" icon-tone="green"
         :delta="momDelta" :delta-kind="pl.netCents >= (pl.previous?.netCents || 0) ? 'up' : 'down'" />
       <KpiCard label="Despesas" :value="money(pl.expensesCents, session.currency)" icon="cash" icon-tone="orange"
         :delta="`${exPage?.total ?? 0} entries`" />
-      <KpiCard label="Profit" :value="money(pl.profitCents, session.currency)" icon="chart" icon-tone="violet"
+      <KpiCard label="Lucro" :value="money(pl.profitCents, session.currency)" icon="chart" icon-tone="violet"
         :delta="`you keep ${pl.marginPct}% of sales`" :delta-kind="pl.profitCents >= 0 ? 'up' : 'down'" />
       <KpiCard label="Dinheiro recebido" :value="money(pl.collectedCents, session.currency)" icon="clock" icon-tone="blue"
-        :delta="pl.receivablesCents > 0 ? `${money(pl.receivablesCents, session.currency)} still owed by customers` : 'everything collected'"
+        :delta="pl.receivablesCents > 0 ? `${money(pl.receivablesCents, session.currency)} a receber de clientes` : 'tudo recebido'"
         :delta-kind="pl.receivablesCents > 0 ? 'down' : 'up'" />
     </div>
 
     <div class="fin-cols">
-      <Panel v-if="activeTab === 'overview'" :title="`Money in, money out — ${monthLabel(month)}`"
-        :subtitle="`${pl?.closedOrders ?? 0} finished orders${pl?.rewashCount ? ` · ${pl.rewashCount} re-wash redo` : ''}`">
+      <Panel v-if="activeTab === 'overview'" :title="`Entradas e saídas — ${monthLabel(month)}`"
+        :subtitle="`${pl?.closedOrders ?? 0} pedidos concluídos${pl?.rewashCount ? ` · ${pl.rewashCount} re-lavagem` : ''}`">
         <Skeleton v-if="!pl" variant="table" :count="6" />
         <table v-else class="pl-table">
           <tbody>
-            <tr><td><b>Total sales</b> <span class="muted small">(finished orders — counted automatically)</span></td><td class="text-right mono">{{ money(pl.grossCents, session.currency) }}</td></tr>
-            <tr><td class="indent">minus Discounts given</td><td class="text-right mono text-red">({{ money(pl.discountsCents, session.currency) }})</td></tr>
+            <tr><td><b>Vendas totais</b> <span class="muted small">(pedidos concluídos — contado automaticamente)</span></td><td class="text-right mono">{{ money(pl.grossCents, session.currency) }}</td></tr>
+            <tr><td class="indent">menos Descontos concedidos</td><td class="text-right mono text-red">({{ money(pl.discountsCents, session.currency) }})</td></tr>
             <tr><td class="indent">minus Refunds &amp; re-washes</td><td class="text-right mono text-red">({{ money(pl.refundsCents, session.currency) }})</td></tr>
-            <tr class="rule"><td><b>Money earned</b> <span class="muted small">(after discounts &amp; refunds)</span></td><td class="text-right mono"><b>{{ money(pl.netCents, session.currency) }}</b></td></tr>
+            <tr class="rule"><td><b>Receita líquida</b> <span class="muted small">(após descontos e reembolsos)</span></td><td class="text-right mono"><b>{{ money(pl.netCents, session.currency) }}</b></td></tr>
             <tr v-for="e in pl.expensesByCategory" :key="e.category">
               <td class="indent">minus {{ e.category }}</td>
               <td class="text-right mono text-red">({{ money(e.amountCents, session.currency) }})</td>
@@ -363,8 +363,8 @@ const provColumns = [
         </table>
       </Panel>
 
-      <Panel v-if="activeTab === 'overview'" title="Financial health"
-        subtitle="Money earned vs money spent — last 6 months">
+      <Panel v-if="activeTab === 'overview'" title="Saúde financeira"
+        subtitle="Receita vs despesas — últimos 6 meses">
         <Skeleton v-if="!trend" variant="table" :count="4" />
         <template v-else>
           <template v-if="trendHasData">
@@ -373,7 +373,7 @@ const provColumns = [
             <details class="chart-table">
               <summary>View as numbers</summary>
               <table class="mini-table">
-                <thead><tr><th>Month</th><th>Earned</th><th>Spent</th><th>Profit</th></tr></thead>
+                <thead><tr><th>Mês</th><th>Receita</th><th>Despesas</th><th>Lucro</th></tr></thead>
                 <tbody>
                   <tr v-for="p in trend" :key="p.month">
                     <td>{{ monthLabel(p.month) }}</td>
@@ -406,8 +406,8 @@ const provColumns = [
       <template #actions>
         <div class="ex-filter">
           <select v-model="exFilter.mode" @change="loadExpenses(0)">
-            <option value="month">By month</option>
-            <option value="range">Pick dates</option>
+            <option value="month">Por mês</option>
+            <option value="range">Selecionar período</option>
           </select>
           <template v-if="exFilter.mode === 'range'">
             <DatePicker v-model="exFilter.from" placeholder="From" class="dp-filter" @change="loadExpenses(0)" />
@@ -423,8 +423,8 @@ const provColumns = [
         <template #cell-expenseDate="{ row }">{{ dateOnly(row.expenseDate) }}</template>
         <template #cell-categoryName="{ row }">
           {{ row.categoryName }}
-          <StatusBadge v-if="row.recurring" status="generic" kind="generic" label="monthly" />
-          <StatusBadge v-else-if="row.recurringSourceId" status="queued" kind="generic" label="auto-posted" />
+          <StatusBadge v-if="row.recurring" status="generic" kind="generic" label="mensal" />
+          <StatusBadge v-else-if="row.recurringSourceId" status="queued" kind="generic" label="gerado automát." />
           <small v-if="row.note" class="muted block">{{ row.note }}</small>
           <small v-if="row.providerName" class="muted block">Provider: {{ row.providerName }}</small>
         </template>
@@ -442,7 +442,7 @@ const provColumns = [
 
     <Modal v-if="exModal" :title="editingExpenseId ? 'Editar despesa' : 'Nova despesa'" @close="closeExpenseModal">
       <div class="row">
-        <FormField label="Category">
+        <FormField label="Categoria">
           <select v-model="exForm.category_id">
             <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
           </select>
@@ -452,8 +452,8 @@ const provColumns = [
         </FormField>
       </div>
       <div class="row">
-        <FormField label="Date"><DatePicker v-model="exForm.expense_date" /></FormField>
-        <FormField label="Paid via">
+        <FormField label="Data"><DatePicker v-model="exForm.expense_date" /></FormField>
+        <FormField label="Pago via">
           <select v-model="exForm.paid_via">
             <option value="pix">Pix</option>
             <option value="cash">Dinheiro</option>
@@ -475,7 +475,7 @@ const provColumns = [
       </template>
     </Modal>
 
-    <Panel v-if="activeTab === 'credit'" title="Customers who still owe you" subtitle="Tap a row to open the order, or record a payment directly">
+    <Panel v-if="activeTab === 'credit'" title="Clientes que ainda devem" subtitle="Clique numa linha para abrir o pedido ou registrar um pagamento direto">
       <template #actions>
         <button v-if="session.can('payments.receive')" class="btn btn-primary btn-sm" @click="openRecordPayment">
           <AppIcon name="plus" :size="12" /> Record payment
@@ -512,9 +512,9 @@ const provColumns = [
     </Panel>
 
     <Modal v-if="providerModal" :title="providerForm.id ? 'Editar fornecedor' : 'Add service provider'" @close="providerModal = false">
-      <div class="row"><FormField label="Name"><input v-model="providerForm.name" type="text" /></FormField><FormField label="Service type"><input v-model="providerForm.service_type" type="text" placeholder="Delivery, water, maintenance…" /></FormField></div>
-      <div class="row"><FormField label="Phone"><input v-model="providerForm.phone" type="tel" /></FormField><FormField label="Email"><input v-model="providerForm.email" type="email" /></FormField></div>
-      <FormField label="Notes"><input v-model="providerForm.notes" type="text" /></FormField>
+      <div class="row"><FormField label="Nome"><input v-model="providerForm.name" type="text" /></FormField><FormField label="Tipo de serviço"><input v-model="providerForm.service_type" type="text" placeholder="Entrega, água, manutenção…" /></FormField></div>
+      <div class="row"><FormField label="Telefone"><input v-model="providerForm.phone" type="tel" /></FormField><FormField label="E-mail"><input v-model="providerForm.email" type="email" /></FormField></div>
+      <FormField label="Observações"><input v-model="providerForm.notes" type="text" /></FormField>
       <template #footer>
         <button class="btn btn-ghost" @click="providerModal = false">Cancel</button>
         <button class="btn btn-primary" :disabled="busy" @click="saveProvider">Save provider</button>
@@ -522,7 +522,7 @@ const provColumns = [
     </Modal>
 
     <Modal v-if="payModal" title="Record a payment" @close="payModal = false">
-      <FormField label="Order" hint="Who is paying, and for which order">
+      <FormField label="Pedido" hint="Quem paga e de qual pedido">
         <select v-model="payForm.order_id" @change="payOrderChanged">
           <option v-for="r in owing" :key="r.orderId" :value="r.orderId">
             {{ r.code }} · {{ r.customerName }} — owes {{ money(r.totalCents - r.paidCents, session.currency) }}
@@ -531,7 +531,7 @@ const provColumns = [
       </FormField>
       <div class="row">
         <FormField :label="`Amount (${session.currency})`"><input v-model.number="payForm.amount" type="number" min="1" /></FormField>
-        <FormField label="Paid via">
+        <FormField label="Pago via">
           <select v-model="payForm.method">
             <option value="cash">Dinheiro</option>
             <option value="pix_manual">Pix (informar código)</option>
@@ -543,7 +543,7 @@ const provColumns = [
       </FormField>
       <template #footer>
         <button class="btn btn-ghost" @click="payModal = false">Cancel</button>
-        <button class="btn btn-primary" :disabled="busy" @click="savePayment">Record payment</button>
+        <button class="btn btn-primary" :disabled="busy" @click="savePayment">Registrar pagamento</button>
       </template>
     </Modal>
 
@@ -553,7 +553,7 @@ const provColumns = [
         <select v-model="billingStatus" @change="loadBilling(0)">
           <option value="">All invoices</option>
           <option value="issued">Issued</option>
-          <option value="partially_paid">Partially paid</option>
+          <option value="partially_paid">Parcialmente pago</option>
           <option value="paid">Paid</option>
           <option value="overdue">Overdue</option>
           <option value="void">Void</option>

@@ -99,7 +99,7 @@ const applyDiscount = () => run(async () => {
 </script>
 
 <template>
-  <Modal :title="order ? `Order ${order.code}` : 'Order'" wide @close="$emit('close')">
+  <Modal :title="order ? `Pedido ${order.code}` : 'Pedido'" wide @close="$emit('close')">
     <template #header-extra>
       <template v-if="order">
         <StatusBadge :status="order.status" />
@@ -234,13 +234,13 @@ const applyDiscount = () => run(async () => {
       @close="handoffOpen = false" @collected="completeHandoff" />
     <ConfirmDialog v-if="voidOpen" danger :busy="busy"
       :title="`Void order ${order?.code}?`"
-      message="The order is cancelled and removed from the pipeline. This is written to the audit log."
-      confirm-label="Void order"
+      message="O pedido é cancelado e removido do pipeline. Isso é registrado no log de auditoria."
+      confirm-label="Cancelar pedido"
       @confirm="voidOrder" @close="voidOpen = false" />
     <ConfirmDialog v-if="refundingId" danger :busy="busy"
-      title="Refund this payment?"
-      message="The amount is returned to the customer and the refund is written to the audit log."
-      confirm-label="Refund payment"
+      title="Reembolsar este pagamento?"
+      message="O valor é devolvido ao cliente e o reembolso é registrado no log de auditoria."
+      confirm-label="Reembolsar pagamento"
       @confirm="refund" @close="refundingId = null" />
   </Modal>
 </template>

@@ -53,8 +53,8 @@ async function advance(order) {
   busyId.value = order.id;
   try {
     const updated = await api.post(`/orders/${order.id}/advance`);
-    if (updated.status === 'ready') toast.success(`SMS sent to ${order.customerName}: “Order ${order.code} is ready for pickup”${order.paidCents < order.totalCents ? ' + payment reminder' : ''}`);
-    else if (updated.status === 'delivered') toast.success(`${order.code} closed — ${money(order.totalCents, session.currency)} recognized as revenue in the P&L`);
+    if (updated.status === 'ready') toast.success(`SMS enviado a ${order.customerName}: “Pedido ${order.code} pronto para retirada”${order.paidCents < order.totalCents ? ' + lembrete de pagamento' : ''}`);
+    else if (updated.status === 'delivered') toast.success(`${order.code} encerrado — ${money(order.totalCents, session.currency)} contabilizados na receita do Financeiro`);
     await load();
   } catch (e) { toast.error(e.message); }
   finally { busyId.value = null; }
@@ -66,11 +66,11 @@ async function advance(order) {
   <div>
     <div class="section-head">
       <div>
-        <h2>Orders Pipeline</h2>
-        <p>Tap ▶ to advance an order. Customers are notified automatically at “Ready”.</p>
+        <h2>Pipeline de Pedidos</h2>
+        <p>Avance um pedido com ▶. Os clientes são avisados automaticamente ao chegar em “Pronto”.</p>
       </div>
       <div class="head-actions">
-        <input v-model="q" type="search" placeholder="Search code, name, phone…" style="width: 220px;" />
+        <input v-model="q" type="search" placeholder="Buscar código, nome, telefone…" style="width: 220px;" />
         <button class="btn btn-ghost" @click="showClosed = !showClosed; load()">
           {{ showClosed ? 'Ocultar fechadas' : 'Mostrar fechadas' }}
         </button>
@@ -98,7 +98,7 @@ async function advance(order) {
               class="btn btn-primary btn-sm" :disabled="busyId === c.id"
               @click.stop="advance(c)"
             >▶ {{ ORDER_STATUS_LABELS[STAGES[STAGES.indexOf(col.stage) + 1]] }}</button>
-            <StatusBadge v-else-if="col.stage === 'delivered'" status="delivered" label="closed" />
+            <StatusBadge v-else-if="col.stage === 'delivered'" status="delivered" label="fechado" />
           </div>
         </div>
       </div>

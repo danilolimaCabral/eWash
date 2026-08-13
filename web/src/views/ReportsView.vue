@@ -22,7 +22,7 @@ const auditLog = ref(null); // null = first load (skeleton)
 const tab = ref('revenue');
 const tabs = computed(() => [
   { key: 'revenue', label: 'Receita por categoria', icon: 'chart' },
-  { key: 'compare', label: 'This month vs last', icon: 'finance' },
+  { key: 'compare', label: 'Este mês vs último', icon: 'finance' },
   { key: 'register', label: 'Caixa diário', icon: 'cash' },
   { key: 'audit', label: 'Registro de auditoria', icon: 'history', count: auditLog.value?.length ?? undefined },
 ]);
@@ -60,7 +60,7 @@ const cmpRows = computed(() => {
   return [
     { label: 'Receita ganha', cur: c.netCents, prev: p.netCents, isMoney: true },
     { label: 'Despesas', cur: c.expensesCents, prev: p.expensesCents, isMoney: true, downIsGood: true },
-    { label: 'Profit', cur: c.profitCents, prev: p.profitCents, isMoney: true },
+    { label: 'Lucro', cur: c.profitCents, prev: p.profitCents, isMoney: true },
     { label: 'Pedidos concluídos', cur: c.closedOrders, prev: p.closedOrders, isMoney: false },
   ];
 });
@@ -123,7 +123,7 @@ const auditDetail = (row) => {
   <div>
     <div class="section-head">
       <div>
-        <h2>Reports</h2>
+        <h2>Relatórios</h2>
         <p>Owner/Admin only · revenue mix, daily register &amp; audit trail</p>
       </div>
       <div class="head-actions">
@@ -149,7 +149,7 @@ const auditDetail = (row) => {
 
     <Tabs v-model="tab" :tabs="tabs" />
 
-    <Panel v-if="tab === 'revenue'" title="Revenue by category"
+    <Panel v-if="tab === 'revenue'" title="Receita por categoria"
       :subtitle="`closed orders · avg turnaround ${summary?.avgTurnaroundHours ?? 0}h`">
       <Skeleton v-if="!summary" variant="list" :count="4" />
       <div v-else-if="summary.byCategory.length" class="catbars">
@@ -163,7 +163,7 @@ const auditDetail = (row) => {
     </Panel>
 
     <div v-else-if="tab === 'compare'" class="cmp-grid">
-      <Panel title="This month vs last month"
+      <Panel title="Este mês vs mês passado"
         :subtitle="`Day ${dayOfMonth} of ${daysInMonth} · change is measured against the same point last month`">
         <Skeleton v-if="!compare" variant="table" :count="4" />
         <table v-else class="cmp-table">
@@ -191,7 +191,7 @@ const auditDetail = (row) => {
         </table>
       </Panel>
 
-      <Panel title="Where this month is heading"
+      <Panel title="Para onde este mês está indo"
         :subtitle="`A rough estimate from this month's pace — ${daysInMonth - dayOfMonth} days to go`">
         <Skeleton v-if="!projection" variant="list" :count="3" />
         <template v-else>
@@ -217,7 +217,7 @@ const auditDetail = (row) => {
       </Panel>
     </div>
 
-    <Panel v-else-if="tab === 'register'" title="Daily register" :subtitle="`reconciles the till · ${date}`">
+    <Panel v-else-if="tab === 'register'" title="Registro diário" :subtitle="`confere o caixa · ${date}`">
       <template #actions>
         <DatePicker v-model="date" style="width: 150px;" @change="load" />
       </template>
@@ -230,7 +230,7 @@ const auditDetail = (row) => {
       </DataTable>
     </Panel>
 
-    <Panel v-else title="Audit log" subtitle="every price-affecting action — immutable">
+    <Panel v-else title="Log de auditoria" subtitle="toda ação que afeta preço — imutável">
       <Skeleton v-if="!auditLog" variant="table" :count="5" />
       <DataTable v-else :columns="auditColumns" :rows="auditLog" empty-text="No audit entries yet.">
         <template #cell-at="{ row }">{{ dateTime(row.at) }}</template>

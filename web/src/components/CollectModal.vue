@@ -99,7 +99,7 @@ async function handOver() {
 </script>
 
 <template>
-  <Modal :title="order ? `Collect — tag ${order.code}` : 'Coletar'" @close="$emit('close')">
+  <Modal :title="order ? `Coletar — pedido ${order.code}` : 'Coletar'" @close="$emit('close')">
     <div v-if="order">
       <div class="collect-head">
         <div class="tag-chip"><AppIcon name="tag" :size="14" />{{ order.code }}</div>
@@ -120,28 +120,28 @@ async function handOver() {
 
       <template v-if="!paid">
         <div v-if="pendingStk" class="stk-wait">
-          <StatusBadge status="pending" kind="generic" label="STK sent" />
+          <StatusBadge status="pending" kind="generic" label="Pix enviado" />
           <span class="small">Waiting for the customer to enter their M-Pesa PIN ({{ money(pendingStk.amountCents, session.currency) }})…</span>
           <button class="btn btn-green btn-sm" :disabled="busy" @click="confirmStk">Confirm received</button>
         </div>
         <template v-else>
-          <label class="field-label" style="margin-top: 12px;">Take payment</label>
+          <label class="field-label" style="margin-top: 12px;">Receber pagamento</label>
           <div class="row">
-            <FormField label="Method">
+            <FormField label="Método">
               <select v-model="method">
                 <option value="mpesa_manual">M-Pesa — enter reference</option>
                 <option value="cash">Cash</option>
                 <option value="mpesa_stk" disabled>M-Pesa STK push — Coming soon</option>
               </select>
             </FormField>
-            <FormField :label="`Amount (${session.currency})`">
+            <FormField :label="`Valor (${session.currency})`">
               <input v-model.number="amount" type="number" min="1" />
             </FormField>
           </div>
           <div v-if="method === 'mpesa_manual'" class="row">
-            <FormField label="M-Pesa reference" :error="refError"
-              hint="From the customer's confirmation SMS — stored against this tag">
-              <input v-model="mpesaRef" type="text" placeholder="e.g. SGH61KXTOP" style="text-transform: uppercase;" />
+            <FormField label="Código Pix" :error="refError"
+              hint="Do comprovante do cliente — registrado neste pedido">
+              <input v-model="mpesaRef" type="text" placeholder="ex. 123e4567-e89b" style="text-transform: uppercase;" />
             </FormField>
           </div>
           <button class="btn btn-green" :disabled="busy" @click="takePayment">
@@ -152,7 +152,7 @@ async function handOver() {
       </template>
 
       <div v-if="order.payments.some((p) => p.status === 'completed')" class="paid-list">
-        <label class="field-label" style="margin-top: 12px;">Payments on this tag</label>
+        <label class="field-label" style="margin-top: 12px;">Pagamentos deste pedido</label>
         <div v-for="p in order.payments.filter((x) => x.status === 'completed')" :key="p.id" class="paid-row small">
           <StatusBadge status="completed" kind="generic" />
           {{ p.method.replace('_', ' ') }} · <b>{{ money(p.amountCents, session.currency) }}</b>
@@ -175,8 +175,8 @@ async function handOver() {
               <option value="delivery">Taken for delivery</option>
             </select>
           </FormField>
-          <FormField :label="handoffType === 'pickup' ? 'Coletado por' : 'Taken for delivery by'"
-            hint="Select the customer or type another person’s name.">
+          <FormField :label="handoffType === 'pickup' ? 'Coletado por' : 'Entregue por'"
+            hint="Selecione o cliente ou digite o nome de outra pessoa.">
             <ComboBox v-model="collectedByName" :items="customerOption" :allow-create="false"
               placeholder="Type or select a name…" @select="selectPerson" />
           </FormField>

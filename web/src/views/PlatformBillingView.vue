@@ -20,7 +20,7 @@ const createOpen = ref(false);
 const selected = ref(null);
 const error = ref('');
 const invoiceMode = ref('plan'); // plan | manual
-const invoice = ref({ tenant_id: '', description: 'Monthly LavTr subscription', quantity: 1, amount: '', tax: 0, due_at: '', notes: '' });
+const invoice = ref({ tenant_id: '', description: 'Assinatura mensal LavTr', quantity: 1, amount: '', tax: 0, due_at: '', notes: '' });
 const invoiceErrors = ref({});
 const payment = ref({ amount: '', method: 'pix_manual', reference: '', paid_at: new Date().toISOString().slice(0, 10) });
 const subPreview = ref(null); // { planName, termMonths, perMonthCents, periodStart, periodEnd, custom }
@@ -28,9 +28,9 @@ const planEdit = ref(null); // { id, name, trial_days, active, prices: [{term_mo
 const planErrors = ref('');
 
 const columns = [
-  { key: 'number', label: 'Invoice' }, { key: 'tenantName', label: 'Tenant' },
+  { key: 'number', label: 'Invoice' }, { key: 'tenantName', label: 'Lavanderia' },
   { key: 'status', label: 'Status' }, { key: 'total', label: 'Total', align: 'right' },
-  { key: 'balance', label: 'Balance', align: 'right' }, { key: 'dueAt', label: 'Due' },
+  { key: 'balance', label: 'Saldo', align: 'right' }, { key: 'dueAt', label: 'Vencimento' },
 ];
 
 async function load(nextOffset = 0) {
@@ -74,12 +74,12 @@ async function savePlan() {
     await loadPlans();
   } catch (e) { planErrors.value = e.message; }
 }
-const termSummary = (plan) => plan.prices.map((p) => `${p.termMonths}mo ${money(p.priceCents, 'KES')}/mo`).join(' · ');
+const termSummary = (plan) => plan.prices.map((p) => `${p.termMonths}mo ${money(p.priceCents, 'BRL')}/mo`).join(' · ');
 
 // ---- Invoice creation ----
 function openCreate() {
   invoiceMode.value = 'plan';
-  invoice.value = { tenant_id: '', description: 'Monthly LavTr subscription', quantity: 1, amount: '', tax: 0, due_at: '', notes: '' };
+  invoice.value = { tenant_id: '', description: 'Assinatura mensal LavTr', quantity: 1, amount: '', tax: 0, due_at: '', notes: '' };
   invoiceErrors.value = {};
   subPreview.value = null;
   createOpen.value = true;
@@ -94,7 +94,7 @@ async function loadSubPreview() {
   const detail = await platformApi.get(`/tenants/${invoice.value.tenant_id}`);
   const sub = (detail.subscriptions || []).find((s) => s.status !== 'cancelled');
   if (!sub) {
-    invoiceErrors.value.tenant_id = 'No subscription — assign a plan in Tenants first';
+    invoiceErrors.value.tenant_id = 'Sem assinatura — atribua um plano em Lavanderias primeiro';
     return;
   }
   const plan = plans.value.find((p) => p.id === sub.planId);
@@ -198,13 +198,13 @@ onMounted(async () => {
     </DataTable>
   </Panel>
 
-  <Modal v-if="planEdit" :title="`Edit plan · ${planEdit.name}`" @close="planEdit = null">
+  <Modal v-if="planEdit" :title="`Editar plano · ${planEdit.name}`" @close="planEdit = null">
     <div class="form-grid">
-      <FormField label="Plan name"><input v-model="planEdit.name" type="text" /></FormField>
-      <FormField label="Trial days"><input v-model.number="planEdit.trial_days" type="number" min="0" max="90" /></FormField>
+      <FormField label="Nome do plano"><input v-model="planEdit.name" type="text" /></FormField>
+      <FormField label="Dias de teste"><input v-model.number="planEdit.trial_days" type="number" min="0" max="90" /></FormField>
     </div>
     <FormField label="Status"><select v-model="planEdit.active"><option :value="true">Active</option><option :value="false">Inactive</option></select></FormField>
-    <div class="terms-head"><b>Term pricing</b><small class="muted">Price per month when paying for the whole term upfront</small></div>
+    <div class="terms-head"><b>Preço por período</b><small class="muted">Preço por mês ao pagar o período inteiro adiantado</small></div>
     <div v-for="(price, i) in planEdit.prices" :key="i" class="term-row">
       <FormField label="Months"><input v-model.number="price.term_months" type="number" min="1" max="24" /></FormField>
       <FormField label="KES / month"><input v-model.number="price.price_kes" type="number" min="0" step="1" /></FormField>
@@ -213,7 +213,7 @@ onMounted(async () => {
     </div>
     <button class="btn btn-ghost btn-sm" @click="addTerm">+ Add term</button>
     <p v-if="planErrors" class="error-text">{{ planErrors }}</p>
-    <template #footer><button class="btn btn-outline" @click="planEdit = null">Cancel</button><button class="btn btn-primary" @click="savePlan">Save plan</button></template>
+    <template #footer><button class="btn btn-outline" @click="planEdit = null">Cancelar</button><button class="btn btn-primary" @click="savePlan">Salvar plano</button></template>
   </Modal>
 
   <Modal v-if="createOpen" title="Create tenant invoice" @close="createOpen = false">
@@ -222,10 +222,10 @@ onMounted(async () => {
       <button :class="{ active: invoiceMode === 'manual' }" @click="invoiceMode = 'manual'">Manual line</button>
     </div>
     <div class="form-grid">
-      <FormField label="Tenant" :error="invoiceErrors.tenant_id">
+      <FormField label="Lavanderia" :error="invoiceErrors.tenant_id">
         <select v-model="invoice.tenant_id" @change="invoiceMode === 'plan' ? loadSubPreview() : (invoiceErrors.tenant_id = '')"><option disabled value="">Select tenant</option><option v-for="tenant in tenants" :key="tenant.id" :value="tenant.id">{{ tenant.name }}</option></select>
       </FormField>
-      <FormField label="Due date" :hint="invoiceMode === 'plan' ? 'Defaults to period start + 7 days' : ''"><DatePicker v-model="invoice.due_at" /></FormField>
+      <FormField label="Data de vencimento" :hint="invoiceMode === 'plan' ? 'Padrão: início do período + 7 dias' : ''"><DatePicker v-model="invoice.due_at" /></FormField>
     </div>
     <template v-if="invoiceMode === 'plan'">
       <div v-if="subPreview" class="sub-preview">
@@ -238,19 +238,19 @@ onMounted(async () => {
     </template>
     <template v-else>
       <div class="form-grid">
-        <FormField label="Description" :error="invoiceErrors.description"><input v-model="invoice.description" type="text" @input="invoiceErrors.description = ''" /></FormField>
+        <FormField label="Descrição" :error="invoiceErrors.description"><input v-model="invoice.description" type="text" @input="invoiceErrors.description = ''" /></FormField>
         <FormField label="Quantity" :error="invoiceErrors.quantity"><input v-model.number="invoice.quantity" type="number" min="1" @input="invoiceErrors.quantity = ''" /></FormField>
         <FormField label="Unit amount (KES)" :error="invoiceErrors.amount"><input v-model="invoice.amount" type="number" min="0" step="1" @input="invoiceErrors.amount = ''" /></FormField>
-        <FormField label="Tax (KES)" hint="Defaults to 0"><input v-model="invoice.tax" type="number" min="0" step="1" /></FormField>
+        <FormField label="Taxa (R$)" hint="Padrão: 0"><input v-model="invoice.tax" type="number" min="0" step="1" /></FormField>
       </div>
-      <FormField label="Notes"><textarea v-model="invoice.notes" rows="2" /></FormField>
+      <FormField label="Observações"><textarea v-model="invoice.notes" rows="2" /></FormField>
     </template>
     <template #footer><button class="btn btn-outline" @click="createOpen = false">Cancel</button><button class="btn btn-primary" @click="createInvoice">{{ invoiceMode === 'plan' ? 'Generate invoice' : 'Save draft' }}</button></template>
   </Modal>
 
   <Modal v-if="selected" :title="`Record payment · ${selected.number}`" @close="selected = null">
     <div class="form-grid">
-      <FormField label="Amount (KES)"><input v-model="payment.amount" type="number" min="1" step="1" /></FormField>
+      <FormField label="Valor (R$)"><input v-model="payment.amount" type="number" min="1" step="1" /></FormField>
       <FormField label="Payment date"><DatePicker v-model="payment.paid_at" /></FormField>
       <FormField label="Method"><select v-model="payment.method"><option value="pix_manual">Código Pix (manual)</option><option value="bank">Transferência bancária</option><option value="cash">Dinheiro</option></select></FormField>
       <FormField label="Referência"><input v-model="payment.reference" type="text" placeholder="Código Pix ou referência bancária" /></FormField>

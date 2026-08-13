@@ -83,7 +83,7 @@ onMounted(() => load());
         :delta="`${data.total.count} invoices · ${data.voidCount} void · ${data.draftCount} draft`" />
     </div>
 
-    <Panel title="Income by period" :subtitle="scope === 'all' ? 'Monthly totals across the platform — newest first' : `Daily totals · ${scopeLabel}`">
+    <Panel title="Receita por período" :subtitle="scope === 'all' ? 'Totais mensais de toda a plataforma — mais recentes primeiro' : `Totais diários · ${scopeLabel}`">
       <template #actions>
         <select v-model="scope" class="filter" @change="load(0)">
           <option value="all">All time</option>

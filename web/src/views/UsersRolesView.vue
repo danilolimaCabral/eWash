@@ -68,7 +68,7 @@ function togglePolicy(key, on) {
 }
 function onRoleChange() {
   pendingOverrides.value = {}; // switching template clears overrides (matches API behavior)
-  toast.show(`Role template “${selectedRole.value?.name}” applied — overrides cleared on save`);
+  toast.show(`Modelo de papel “${selectedRole.value?.name}” aplicado — substituições serão salvas`);
 }
 
 const overrideCount = (u) => Object.keys(u.overrides || {}).length;
@@ -142,8 +142,8 @@ async function saveBranch() {
   <div>
     <div class="section-head">
       <div>
-        <h2>Users &amp; Roles</h2>
-        <p>Role templates + granular per-user overrides · explicit deny beats the role · every change is audit-logged</p>
+        <h2>Usuários e Papéis</h2>
+        <p>Modelos de papel + permissões individuais · negação explícita prevalece · toda mudança é registrada</p>
       </div>
       <div class="head-actions">
         <button class="btn btn-primary" @click="inviteOpen = true; inviteForm.role_id = roles[0]?.id || ''">

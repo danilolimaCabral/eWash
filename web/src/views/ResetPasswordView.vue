@@ -34,14 +34,14 @@ async function submit() {
     <div class="reset-card">
       <div class="reset-brand"><span><AppIcon name="shirt" :size="22" /></span><div><b>LavTr</b><small>Laundry Management System</small></div></div>
       <template v-if="done">
-        <div class="success"><AppIcon name="checkCircle" :size="30" /><h2>Password updated</h2><p>All previous sessions have been signed out.</p></div>
+        <div class="success"><AppIcon name="checkCircle" :size="30" /><h2>Senha atualizada</h2><p>Todas as sessões anteriores foram encerradas.</p></div>
         <button class="btn btn-primary full" @click="router.push({ name: 'login' })">Continue to sign in</button>
       </template>
       <form v-else @submit.prevent="submit">
-        <h2>Choose a new password</h2>
+        <h2>Escolha uma nova senha</h2>
         <p class="muted">The reset link expires after 30 minutes and works once.</p>
-        <FormField label="New password" hint="At least 8 characters"><input v-model="password" type="password" autocomplete="new-password" required minlength="8" /></FormField>
-        <FormField label="Confirm password"><input v-model="confirmPassword" type="password" autocomplete="new-password" required minlength="8" /></FormField>
+        <FormField label="Nova senha" hint="Mínimo de 8 caracteres"><input v-model="password" type="password" autocomplete="new-password" required minlength="8" /></FormField>
+        <FormField label="Confirmar senha"><input v-model="confirmPassword" type="password" autocomplete="new-password" required minlength="8" /></FormField>
         <p v-if="!token" class="error-text">This reset link is incomplete.</p>
         <p v-if="error" class="error-text">{{ error }}</p>
         <button class="btn btn-primary full" :disabled="busy || !token">{{ busy ? 'Updating…' : 'Redefinir senha' }}</button>

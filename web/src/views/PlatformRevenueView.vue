@@ -43,12 +43,12 @@ onMounted(() => load());
   <p v-if="error" class="error-text">{{ error }}</p>
   <template v-else-if="data">
     <div class="kpis">
-      <KpiCard label="Tenant revenue" :value="money(data.grossCents)" icon="chart" icon-tone="green"
+      <KpiCard label="Receita dos tenants" :value="money(data.grossCents)" icon="chart" icon-tone="green"
         :delta="month ? monthLabel(month) : 'all time'" />
       <KpiCard label="Recebido (dinheiro + Pix)" :value="money(data.collectedCents)" icon="finance" icon-tone="blue"
         :delta="month ? monthLabel(month) : 'all time'" />
-      <KpiCard label="Closed orders" :value="String(data.closedOrders)" icon="orders" icon-tone="violet" />
-      <KpiCard label="Businesses" :value="String(data.total)" icon="branch" icon-tone="orange" />
+      <KpiCard label="Pedidos fechados" :value="String(data.closedOrders)" icon="orders" icon-tone="violet" />
+      <KpiCard label="Lavanderias" :value="String(data.total)" icon="branch" icon-tone="orange" />
     </div>
 
     <Panel title="Revenue by tenant" subtitle="Operational income each business earns through LavTr — ranked highest first">

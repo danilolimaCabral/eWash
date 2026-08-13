@@ -17,17 +17,17 @@ const supportOpen = ref(false);
 useIdleLock(); // auto-lock after inactivity — unlock requires the password
 
 const NAV = [
-  { label: 'Workspace', items: [
-    { name: 'dashboard', label: 'Overview', icon: 'grid' },
-    { name: 'new-order', label: 'New Order', icon: 'plus', policy: 'orders.create' },
+  { label: 'Operação', items: [
+    { name: 'dashboard', label: 'Painel', icon: 'grid' },
+    { name: 'new-order', label: 'Novo pedido', icon: 'plus', policy: 'orders.create' },
     { name: 'orders', label: 'Pedidos', icon: 'orders' },
     { name: 'pickups', label: 'Coletas', icon: 'checkCircle', policy: 'payments.receive' },
     { name: 'customers', label: 'Clientes', icon: 'customers' },
   ]},
-  { label: 'Manage', items: [
+  { label: 'Gerenciar', items: [
     { name: 'builder', label: 'Construtor de Serviços', icon: 'builder', policy: 'catalog.edit' },
-    { name: 'finance', label: 'Finance / P&L', icon: 'finance', policy: 'finance.view' },
-    { name: 'users', label: 'Users & Roles', icon: 'shield', policy: 'users.manage' },
+    { name: 'finance', label: 'Financeiro / P&L', icon: 'finance', policy: 'finance.view' },
+    { name: 'users', label: 'Usuários & Papéis', icon: 'shield', policy: 'users.manage' },
     { name: 'reports', label: 'Relatórios', icon: 'chart', policy: 'finance.view' },
   ]},
 ];
@@ -86,11 +86,11 @@ onMounted(async () => {
       <div class="sidefoot help" role="button" tabindex="0"
         @click="supportOpen = true; drawerOpen = false" @keydown.enter="supportOpen = true; drawerOpen = false">
         <div class="help-icon"><AppIcon name="help" :size="14" /></div>
-        <div><strong>Need help?</strong><span>{{ SUPPORT_EMAIL }}</span></div>
+        <div><strong>Precisa de ajuda?</strong><span>{{ SUPPORT_EMAIL }}</span></div>
       </div>
       <div class="sidefoot" @click="logout">
         <div class="help-icon"><AppIcon name="logout" :size="14" /></div>
-        <div><strong>Sign out</strong><span>{{ session.user?.email }}</span></div>
+        <div><strong>Sair</strong><span>{{ session.user?.email }}</span></div>
       </div>
     </aside>
 
@@ -117,10 +117,10 @@ onMounted(async () => {
           v-for="item in mobileNav" :key="item.name" :to="{ name: item.name }"
           :class="{ active: route.name === item.name }"
         >
-          <AppIcon :name="item.icon" :size="19" /><span>{{ item.label.replace('New Order', 'New') }}</span>
+          <AppIcon :name="item.icon" :size="19" /><span>{{ item.label.replace('Novo pedido', 'Novo') }}</span>
         </router-link>
         <button :class="{ active: !mobileNav.some((item) => item.name === route.name) }" @click="drawerOpen = true">
-          <AppIcon name="more" :size="19" /><span>More</span>
+          <AppIcon name="more" :size="19" /><span>Mais</span>
         </button>
       </nav>
     </div>

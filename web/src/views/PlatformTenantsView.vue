@@ -39,7 +39,7 @@ const branchModal = ref('');
 const branchForm = ref({ id: '', name: '', location: '', active: true, reason: '' });
 
 const columns = [
-  { key: 'name', label: 'Business' }, { key: 'plan', label: 'Plan' },
+  { key: 'name', label: 'Lavanderia' }, { key: 'plan', label: 'Plano' },
   { key: 'branches', label: 'Filiais', align: 'right' }, { key: 'users', label: 'Users', align: 'right' },
   { key: 'outstanding', label: 'Pendente', align: 'right' }, { key: 'status', label: 'Status' },
   { key: 'createdAt', label: 'Joined' },
@@ -209,13 +209,13 @@ onMounted(async () => {
 
   <Modal v-if="detail" :title="detail.tenant.name" wide @close="detail = null">
     <Tabs v-model="detailTab" :tabs="[
-      { key: 'overview', label: 'Overview' }, { key: 'branches', label: 'Filiais', count: branchData.total }, { key: 'subscription', label: 'Subscription' },
+      { key: 'overview', label: 'Visão geral' }, { key: 'branches', label: 'Filiais', count: branchData.total }, { key: 'subscription', label: 'Assinatura' },
       { key: 'invoices', label: 'Faturas', count: detail.invoices.length }, { key: 'users', label: 'Members', count: memberData.total },
     ]" />
     <div v-if="detailTab === 'overview'" class="detail-grid">
       <div><span>Status</span><StatusBadge :status="detail.tenant.status" kind="generic" /></div>
       <div v-if="detail.tenant.status === 'active' && detail.tenant.cancelledAt"><span>Cancellation scheduled</span><b>{{ dateOnly(detail.tenant.cancelledAt) }}</b></div>
-      <div><span>Plan</span><b>{{ detail.tenant.plan }}</b></div>
+      <div><span>Plano</span><b>{{ detail.tenant.plan }}</b></div>
       <div class="billing-card">
         <span>Billing email</span>
         <template v-if="billingEdit">
@@ -235,15 +235,15 @@ onMounted(async () => {
       </DataTable>
     </div>
     <div v-else-if="detailTab === 'subscription'" class="subscription-form">
-      <FormField label="Plan"><select v-model="subscription.plan_id" @change="onPlanChange"><option v-for="plan in plans" :key="plan.id" :value="plan.id">{{ plan.name }}</option></select></FormField>
+      <FormField label="Plano"><select v-model="subscription.plan_id" @change="onPlanChange"><option v-for="plan in plans" :key="plan.id" :value="plan.id">{{ plan.name }}</option></select></FormField>
       <FormField label="Billing term" hint="Longer commitments get the lower per-month rate">
         <select v-model.number="subscription.term_months">
           <option v-for="t in planTerms" :key="t.termMonths" :value="t.termMonths">{{ t.termMonths }} {{ t.termMonths === 1 ? 'month' : 'months' }} — {{ money(t.priceCents, 'KES') }}/mo</option>
         </select>
       </FormField>
-      <FormField label="Subscription status"><select v-model="subscription.status"><option>trial</option><option>active</option><option>past_due</option><option>suspended</option><option>cancelled</option></select></FormField>
+      <FormField label="Status da assinatura"><select v-model="subscription.status"><option value="trial">Teste</option><option value="active">Ativa</option><option value="past_due">Em atraso</option><option value="suspended">Suspensa</option><option value="cancelled">Cancelada</option></select></FormField>
       <FormField label="Custom price per month (KES)" hint="Leave blank to use the plan's term rate"><input v-model="subscription.custom_price" type="number" min="0" step="1" /></FormField>
-      <button class="btn btn-primary" @click="saveSubscription">Save subscription</button>
+      <button class="btn btn-primary" @click="saveSubscription">Salvar assinatura</button>
     </div>
     <DataTable v-else-if="detailTab === 'invoices'" :columns="[{key:'number',label:'Invoice'},{key:'status',label:'Status'},{key:'totalCents',label:'Total',align:'right'},{key:'dueAt',label:'Due'}]" :rows="detail.invoices">
       <template #cell-status="{ row }"><StatusBadge :status="row.status" kind="generic" /></template><template #cell-totalCents="{ row }">{{ money(row.totalCents) }}</template><template #cell-dueAt="{ row }">{{ dateOnly(row.dueAt) }}</template>

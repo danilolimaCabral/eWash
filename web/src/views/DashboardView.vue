@@ -58,12 +58,12 @@ const filters = computed(() => {
   const counts = ordersPage.value?.counts || {};
   const n = (s) => counts[s] || 0;
   return [
-    { key: 'all', label: 'All', n: n('received') + n('washing') + n('ironing') + n('ready') + n('delivered') },
-    { key: 'received', label: 'Received', n: n('received') },
-    { key: 'washing', label: 'Washing', n: n('washing') },
-    { key: 'ironing', label: 'Ironing', n: n('ironing') },
-    { key: 'ready', label: 'Ready', n: n('ready') },
-    { key: 'delivered', label: 'Done', n: n('delivered') },
+    { key: 'all', label: 'Todos', n: n('received') + n('washing') + n('ironing') + n('ready') + n('delivered') },
+    { key: 'received', label: 'Recebidos', n: n('received') },
+    { key: 'washing', label: 'Lavando', n: n('washing') },
+    { key: 'ironing', label: 'Passando', n: n('ironing') },
+    { key: 'ready', label: 'Prontos', n: n('ready') },
+    { key: 'delivered', label: 'Entregues', n: n('delivered') },
   ];
 });
 
@@ -105,26 +105,26 @@ const columns = [
 
     <div class="cards">
       <template v-if="kpis">
-        <KpiCard label="Today's orders" :value="String(kpis.todayOrders)" icon="orders" icon-tone="blue"
-          :delta="kpis.dueSoon ? `${kpis.dueSoon} due soon` : 'on track'" :delta-kind="kpis.dueSoon ? 'down' : 'up'"
+        <KpiCard label="Pedidos hoje" :value="String(kpis.todayOrders)" icon="orders" icon-tone="blue"
+          :delta="kpis.dueSoon ? `${kpis.dueSoon} vencendo em breve` : 'em dia'" :delta-kind="kpis.dueSoon ? 'down' : 'up'"
           :bars="[24, 45, 38, 64, 82, 100]" />
-        <KpiCard label="Today's billed" :value="money(kpis.todayRevenueCents, session.currency)" icon="finance" icon-tone="green"
-          :delta="`${money(kpis.todayCollectedCents, session.currency)} collected`" delta-kind="up"
+        <KpiCard label="Faturado hoje" :value="money(kpis.todayRevenueCents, session.currency)" icon="finance" icon-tone="green"
+          :delta="`${money(kpis.todayCollectedCents, session.currency)} recebido`" delta-kind="up"
           :bars="[28, 52, 43, 68, 78, 96]" />
-        <KpiCard label="In progress" :value="String(kpis.inProgress)" icon="clock" icon-tone="violet"
+        <KpiCard label="Em andamento" :value="String(kpis.inProgress)" icon="clock" icon-tone="violet"
           :delta="kpis.unpaidReady ? `${kpis.unpaidReady} ready & unpaid` : ''"
           :progress="kpis.inProgress ? Math.min(100, Math.round((kpis.ready / kpis.inProgress) * 100)) : 0" />
-        <KpiCard label="Ready to collect" :value="String(kpis.ready)" icon="checkCircle" icon-tone="orange"
-          :delta="kpis.readyOverdue ? `${kpis.readyOverdue} waiting 48h+` : 'none overdue'"
+        <KpiCard label="Pronto p/ retirada" :value="String(kpis.ready)" icon="checkCircle" icon-tone="orange"
+          :delta="kpis.readyOverdue ? `${kpis.readyOverdue} aguardando 48h+` : 'nenhum atrasado'"
           :delta-kind="kpis.readyOverdue ? 'down' : 'up'" :bars="[88, 72, 66, 48, 42, 30]" />
       </template>
       <Skeleton v-else variant="kpi" :count="4" />
     </div>
 
     <div class="dash-grid">
-      <Panel flush title="Orders" :subtitle="`${ordersPage?.total ?? '…'} orders — active and completed`">
+      <Panel flush title="Pedidos" :subtitle="`${ordersPage?.total ?? '…'} pedidos — ativos e concluídos`">
         <template #actions>
-          <button class="text-btn" @click="router.push({ name: 'orders' })">View pipeline →</button>
+          <button class="text-btn" @click="router.push({ name: 'orders' })">Ver pipeline →</button>
         </template>
         <div class="ftabs">
           <button v-for="f in filters" :key="f.key" :class="{ active: filter === f.key }" @click="setFilter(f.key)">
@@ -132,10 +132,10 @@ const columns = [
           </button>
         </div>
         <DataTable :columns="columns" :page="ordersPage" clickable compact
-          empty-text="No orders here yet." @page="loadOrders" @row-click="(r) => openOrderId = r.id">
+          empty-text="Nenhum pedido por aqui ainda." @page="loadOrders" @row-click="(r) => openOrderId = r.id">
           <template #cell-code="{ row }">
             <strong>{{ row.code }}</strong>
-            <small class="muted block">{{ row.itemCount }} item{{ row.itemCount === 1 ? '' : 's' }}<template v-if="row.kgTotal"> · {{ row.kgTotal }} kg</template></small>
+            <small class="muted block">{{ row.itemCount }} {{ row.itemCount === 1 ? 'item' : 'itens' }}<template v-if="row.kgTotal"> · {{ row.kgTotal }} kg</template></small>
           </template>
           <template #cell-customer="{ row }">
             <span class="cust"><Avatar :name="row.customerName" /> <span><b>{{ row.customerName }}</b><small class="muted block">{{ row.customerPhone }}</small></span></span>
@@ -149,9 +149,9 @@ const columns = [
         </DataTable>
       </Panel>
 
-      <Panel title="Recent notifications" subtitle="The last 5 SMS sent to customers">
+      <Panel title="Notificações recentes" subtitle="As últimas 5 mensagens enviadas aos clientes">
         <template #actions>
-          <button class="text-btn" @click="openAllNotifs">View all →</button>
+          <button class="text-btn" @click="openAllNotifs">Ver todas →</button>
         </template>
         <Skeleton v-if="!notifs" variant="list" :count="3" />
         <div v-else-if="notifs.length" class="notif-list">

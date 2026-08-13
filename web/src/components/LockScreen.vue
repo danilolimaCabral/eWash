@@ -42,7 +42,7 @@ async function logout() {
       <Avatar :name="session.user?.name || '?'" :size="54" />
       <h2>{{ session.user?.name }}</h2>
       <template v-if="session.user?.hasPassword">
-        <p>Screen locked after inactivity. Enter your password to continue.</p>
+        <p>Tela bloqueada por inatividade. Digite sua senha para continuar.</p>
         <form @submit.prevent="unlock">
           <input
             v-model="password" type="password" placeholder="Password"
@@ -50,12 +50,12 @@ async function logout() {
           />
           <p v-if="error" class="error-text">{{ error }}</p>
           <button class="btn btn-primary" type="submit" :disabled="busy || !password">
-            {{ busy ? 'Checking…' : 'Unlock' }}
+            {{ busy ? 'Verificando…' : 'Desbloquear' }}
           </button>
         </form>
       </template>
       <p v-else>
-        Screen locked after inactivity. This account signs in with Google —
+        Tela bloqueada por inatividade. Esta conta entra com o Google —
         sign out below and continue with Google to unlock.
       </p>
       <button class="switch-user" @click="logout">

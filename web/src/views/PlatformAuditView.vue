@@ -23,7 +23,7 @@ onMounted(load);
 </script>
 
 <template>
-  <Panel title="Platform audit log" subtitle="Immutable record of central administrative actions">
+  <Panel title="Log de auditoria da plataforma" subtitle="Registro imutável das ações administrativas centrais">
     <DataTable :columns="columns" :page="{ rows, total, limit, offset }" @page="load">
       <template #cell-at="{ row }">{{ dateTime(row.at) }}</template>
       <template #cell-action="{ row }"><b>{{ row.action }}</b><small>{{ row.entity }}</small></template>

@@ -74,7 +74,7 @@ async function saveCredit() {
       credit_limit_cents: Math.round(creditForm.value.limit * 100),
       credit_terms_days: creditForm.value.terms,
     });
-    toast.success('Customer credit settings saved and audit-logged');
+    toast.success('Configurações de crédito salvas e registradas');
     await openDetail(detail.value);
     await load();
   } catch (e) { toast.error(e.message); }
@@ -82,8 +82,8 @@ async function saveCredit() {
 }
 
 const columns = [
-  { key: 'name', label: 'Name' },
-  { key: 'phone', label: 'Phone' },
+  { key: 'name', label: 'Nome' },
+  { key: 'phone', label: 'Telefone' },
   { key: 'orderCount', label: 'Pedidos', align: 'right' },
   { key: 'ltv', label: 'Valor acumulado', align: 'right' },
   { key: 'last', label: 'Último pedido' },
@@ -94,12 +94,12 @@ const columns = [
   <div>
     <div class="section-head">
       <div>
-        <h2>Customers</h2>
-        <p>Phone number is the customer ID — auto-created at first order</p>
+        <h2>Clientes</h2>
+        <p>O telefone é o ID do cliente — criado automaticamente no primeiro pedido</p>
       </div>
       <div class="head-actions">
-        <input v-model="q" type="search" placeholder="Search name or phone…" style="width: 220px;" />
-        <button class="btn btn-primary" @click="addOpen = true"><AppIcon name="plus" :size="14" /> Add customer</button>
+        <input v-model="q" type="search" placeholder="Buscar nome ou telefone…" style="width: 220px;" />
+        <button class="btn btn-primary" @click="addOpen = true"><AppIcon name="plus" :size="14" /> Adicionar cliente</button>
       </div>
     </div>
 
@@ -121,15 +121,15 @@ const columns = [
 
     <Modal v-if="addOpen" title="New customer" @close="addOpen = false">
       <div class="row">
-        <FormField label="Name"><input v-model="addForm.name" type="text" /></FormField>
-        <FormField label="Phone"><input v-model="addForm.phone" type="tel" placeholder="07xx xxx xxx" /></FormField>
+        <FormField label="Nome"><input v-model="addForm.name" type="text" /></FormField>
+        <FormField label="Telefone"><input v-model="addForm.phone" type="tel" placeholder="(11) 9xxxx-xxxx" /></FormField>
       </div>
       <div class="row">
-        <FormField label="Notes"><input v-model="addForm.notes" type="text" placeholder="e.g. prefers softener" /></FormField>
+        <FormField label="Observações"><input v-model="addForm.notes" type="text" placeholder="ex.: prefere amaciante" /></FormField>
       </div>
       <template #footer>
         <button class="btn btn-ghost" @click="addOpen = false">Cancel</button>
-        <button class="btn btn-primary" :disabled="busy" @click="saveCustomer">Save customer</button>
+        <button class="btn btn-primary" :disabled="busy" @click="saveCustomer">Salvar cliente</button>
       </template>
     </Modal>
 
@@ -141,10 +141,10 @@ const columns = [
       <div v-if="session.can('finance.manage')" class="credit-settings">
         <label><input v-model="creditForm.enabled" type="checkbox" /> Allow this customer to collect on credit</label>
         <FormField :label="`Credit limit (${session.currency})`"><input v-model.number="creditForm.limit" type="number" min="0" /></FormField>
-        <FormField label="Payment terms (days)"><input v-model.number="creditForm.terms" type="number" min="1" max="365" /></FormField>
-        <button class="btn btn-primary btn-sm" :disabled="busy" @click="saveCredit">Save credit settings</button>
+        <FormField label="Prazo de pagamento (dias)"><input v-model.number="creditForm.terms" type="number" min="1" max="365" /></FormField>
+        <button class="btn btn-primary btn-sm" :disabled="busy" @click="saveCredit">Salvar configurações de crédito</button>
       </div>
-      <h4 class="hist-title">Order history</h4>
+      <h4 class="hist-title">Histórico de pedidos</h4>
       <DataTable
         :columns="[
           { key: 'code', label: 'Order' },
@@ -153,7 +153,7 @@ const columns = [
           { key: 'total', label: 'Total', align: 'right' },
           { key: 'created', label: 'Date' },
         ]"
-        :rows="detail.orders" clickable empty-text="No orders yet."
+        :rows="detail.orders" clickable empty-text="Nenhum pedido ainda."
         @row-click="(r) => openOrderId = r.id"
       >
         <template #cell-code="{ row }"><b>{{ row.code }}</b></template>

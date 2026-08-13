@@ -75,25 +75,25 @@ onMounted(async () => {
 
       <div v-if="state === 'loading'" class="pending">
         <span class="spin" aria-hidden="true" />
-        <h2>Activating your account…</h2>
+        <h2>Ativando sua conta…</h2>
         <p class="muted">Hang tight — signing you in.</p>
       </div>
 
       <form v-else-if="state === 'set-password'" @submit.prevent="acceptInvite">
-        <h2>Join {{ invite.business }}</h2>
+        <h2>Entrar em {{ invite.business }}</h2>
         <p class="muted lead">Bem-vindo(a), {{ invite.name }} — escolha a senha com que você entrará como <b>{{ invite.email }}</b>.</p>
-        <FormField label="Password" hint="At least 8 characters"><input v-model="password" type="password" autocomplete="new-password" required minlength="8" /></FormField>
-        <FormField label="Confirm password"><input v-model="confirmPassword" type="password" autocomplete="new-password" required minlength="8" /></FormField>
+        <FormField label="Senha" hint="Mínimo de 8 caracteres"><input v-model="password" type="password" autocomplete="new-password" required minlength="8" /></FormField>
+        <FormField label="Confirmar senha"><input v-model="confirmPassword" type="password" autocomplete="new-password" required minlength="8" /></FormField>
         <p v-if="error" class="error-text">{{ error }}</p>
         <button class="btn btn-primary full" :disabled="busy">{{ busy ? 'Joining…' : 'Accept invitation & join' }}</button>
       </form>
 
       <div v-else class="failed">
         <AppIcon name="alert" :size="30" />
-        <h2>Activation failed</h2>
+        <h2>Falha na ativação</h2>
         <p class="muted">{{ error }}</p>
         <p class="muted">Links expire and work once. Ask for a fresh link, or sign in if your account is already active.</p>
-        <button class="btn btn-primary full" @click="router.push({ name: 'login' })">Back to sign in</button>
+        <button class="btn btn-primary full" @click="router.push({ name: 'login' })">Voltar ao login</button>
       </div>
     </div>
   </div>

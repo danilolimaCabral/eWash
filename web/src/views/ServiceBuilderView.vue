@@ -90,12 +90,12 @@ function startNew() {
 }
 
 const rateLabel = computed(() =>
-  form.value.pricing_model === 'PER_KG' ? `Price per kg (${session.currency})`
-  : form.value.pricing_model === 'PER_ITEM' ? `Price per item (${session.currency})`
-  : form.value.pricing_model === 'TIERED' ? `Default price (${session.currency})`
-  : `Price (${session.currency})`);
+  form.value.pricing_model === 'PER_KG' ? `Preço por kg (${session.currency})`
+  : form.value.pricing_model === 'PER_ITEM' ? `Preço por item (${session.currency})`
+  : form.value.pricing_model === 'TIERED' ? `Preço padrão (${session.currency})`
+  : `Preço (${session.currency})`);
 const rateHint = computed(() =>
-  form.value.pricing_model === 'TIERED' ? 'Used when the quantity falls outside every range below' : '');
+  form.value.pricing_model === 'TIERED' ? 'Usado quando a quantidade fica fora das faixas abaixo' : '');
 
 // live preview mirrors the server pricing engine
 const preview = computed(() => {
@@ -123,7 +123,7 @@ const preview = computed(() => {
 
 async function save() {
   const f = form.value;
-  if (!f.name.trim()) { toast.error('Service name is required'); return; }
+  if (!f.name.trim()) { toast.error('O nome do serviço é obrigatório'); return; }
   busy.value = true;
   try {
     const payload = {
@@ -182,7 +182,7 @@ async function addCategory() {
     form.value.category_id = cat.id;
     catalogStore.invalidate();
     catModal.value = { open: false, name: '', error: '' };
-    toast.success(`Category “${name}” added`);
+    toast.success(`Categoria “${name}” adicionada`);
   } catch (e) { catModal.value.error = e.message; }
   finally { busy.value = false; }
 }
@@ -193,7 +193,7 @@ async function addCategory() {
     <div class="section-head">
       <div>
         <h2>Service &amp; Pricing Builder</h2>
-        <p>Admin only · Changes apply to new orders — existing orders keep their price snapshot</p>
+        <p>Somente admin · Alterações valem para novos pedidos — pedidos existentes mantêm o preço salvo</p>
       </div>
     </div>
 
@@ -208,23 +208,23 @@ async function addCategory() {
           <span class="sp">{{ s.pricingModel }}<template v-if="!s.active"> · retired</template></span>
         </div>
         <button class="btn btn-ghost" style="width: 100%;" @click="startNew">
-          <AppIcon name="plus" :size="14" /> New service
+          <AppIcon name="plus" :size="14" /> Novo serviço
         </button>
       </div>
 
-      <Panel :title="selectedId ? 'Editar serviço' : 'New service'">
+      <Panel :title="selectedId ? 'Editar serviço' : 'Novo serviço'">
         <section class="sect first">
           <div class="sect-head">
-            <h4><span class="sect-num">1</span> Basics</h4>
+            <h4><span class="sect-num">1</span> Básico</h4>
             <button class="btn btn-ghost btn-sm push-right" @click="catModal = { open: true, name: '', error: '' }">
-              <AppIcon name="plus" :size="12" /> Category
+              <AppIcon name="plus" :size="12" /> Categoria
             </button>
           </div>
           <div class="row">
-            <FormField label="Service name" style="flex: 2;">
-              <input v-model="form.name" type="text" placeholder="e.g. Wash &amp; Fold (per kg)" />
+            <FormField label="Nome do serviço" style="flex: 2;">
+              <input v-model="form.name" type="text" placeholder="ex. Lavagem &amp; Passadoria (por kg)" />
             </FormField>
-            <FormField label="Category">
+            <FormField label="Categoria">
               <select v-model="form.category_id">
                 <option v-for="c in catalog.categories" :key="c.id" :value="c.id">{{ c.name }}</option>
               </select>
@@ -234,7 +234,7 @@ async function addCategory() {
 
         <section class="sect">
           <div class="sect-head"><h4><span class="sect-num">2</span> Pricing</h4></div>
-          <label class="field-label">How is this service charged?</label>
+          <label class="field-label">Como este serviço é cobrado?</label>
           <div class="radio-cards">
             <div
               v-for="m in MODELS" :key="m.key"
@@ -245,8 +245,8 @@ async function addCategory() {
 
           <div class="row">
             <FormField :label="rateLabel" :hint="rateHint"><input v-model.number="form.base_rate" type="number" min="0" /></FormField>
-            <FormField :label="`Minimum charge (${session.currency})`" hint="The least a customer pays"><input v-model.number="form.min_charge" type="number" min="0" /></FormField>
-            <FormField label="Express extra charge (%)" hint="Added for same-day / rush orders"><input v-model.number="form.express_pct" type="number" min="0" /></FormField>
+            <FormField :label="`Cobrança mínima (${session.currency})`" hint="O mínimo que o cliente paga"><input v-model.number="form.min_charge" type="number" min="0" /></FormField>
+            <FormField label="Taxa express extra (%)" hint="Adicionada para pedidos no mesmo dia / urgentes"><input v-model.number="form.express_pct" type="number" min="0" /></FormField>
           </div>
 
           <template v-if="form.pricing_model === 'PER_ITEM'">
@@ -259,33 +259,33 @@ async function addCategory() {
               <div class="gr-h">Price ({{ session.currency }})</div>
               <div class="gr-h" />
               <template v-for="(v, i) in form.variants" :key="i">
-                <input v-model="v.label" type="text" placeholder="e.g. King size" :aria-label="`Option ${i + 1} name`" />
+                <input v-model="v.label" type="text" placeholder="ex. Tamanho Casal" :aria-label="`Nome da opção ${i + 1}`" />
                 <input v-model.number="v.price" type="number" min="0" :aria-label="`Option ${i + 1} price`" />
-                <button class="row-rm" aria-label="Remove option" @click="form.variants.splice(i, 1)"><AppIcon name="x" :size="12" /></button>
+                <button class="row-rm" aria-label="Remover opção" @click="form.variants.splice(i, 1)"><AppIcon name="x" :size="12" /></button>
               </template>
             </div>
-            <button class="btn btn-ghost btn-sm" @click="form.variants.push({ label: '', price: 0 })"><AppIcon name="plus" :size="12" /> Add size / option</button>
+            <button class="btn btn-ghost btn-sm" @click="form.variants.push({ label: '', price: 0 })"><AppIcon name="plus" :size="12" /> Adicionar tamanho/opção</button>
           </template>
 
           <template v-if="form.pricing_model === 'PER_KG' || form.pricing_model === 'TIERED'">
             <div class="sub-head">
-              <span>{{ form.pricing_model === 'PER_KG' ? 'Cheaper rate for bigger loads' : 'Price by quantity range' }}</span>
-              <small>{{ form.pricing_model === 'PER_KG' ? 'optional — from a certain quantity, a lower price per kg applies' : 'each range gets one fixed price' }}</small>
+              <span>{{ form.pricing_model === 'PER_KG' ? 'Preço menor para cargas maiores' : 'Preço por faixa de quantidade' }}</span>
+              <small>{{ form.pricing_model === 'PER_KG' ? 'opcional — a partir de certa quantidade, aplica-se um preço menor por kg' : 'cada faixa tem um preço fixo' }}</small>
             </div>
             <div v-if="form.tiers.length" class="grid-rows cols-3">
-              <div class="gr-h">From qty</div>
-              <div class="gr-h">Up to qty (blank = no limit)</div>
-              <div class="gr-h">{{ form.pricing_model === 'PER_KG' ? `New price per kg (${session.currency})` : `Fixed price (${session.currency})` }}</div>
+              <div class="gr-h">A partir de (qtd)</div>
+              <div class="gr-h">Até (vazio = sem limite)</div>
+              <div class="gr-h">{{ form.pricing_model === 'PER_KG' ? `Novo preço/kg (${session.currency})` : `Preço fixo (${session.currency})` }}</div>
               <div class="gr-h" />
               <template v-for="(t, i) in form.tiers" :key="i">
                 <input v-model.number="t.min_qty" type="number" min="0" step="0.5" aria-label="From quantity" />
                 <input v-model="t.max_qty" type="number" min="0" step="0.5" aria-label="Up to quantity" />
-                <input v-if="form.pricing_model === 'PER_KG'" v-model="t.rate" type="number" min="0" aria-label="New price per kg" />
+                <input v-if="form.pricing_model === 'PER_KG'" v-model="t.rate" type="number" min="0" aria-label="Novo preço/kg" />
                 <input v-else v-model="t.band_price" type="number" min="0" aria-label="Fixed price for this range" />
-                <button class="row-rm" aria-label="Remove range" @click="form.tiers.splice(i, 1)"><AppIcon name="x" :size="12" /></button>
+                <button class="row-rm" aria-label="Remover faixa" @click="form.tiers.splice(i, 1)"><AppIcon name="x" :size="12" /></button>
               </template>
             </div>
-            <button class="btn btn-ghost btn-sm" @click="form.tiers.push({ min_qty: 0, max_qty: '', rate: '', band_price: '' })"><AppIcon name="plus" :size="12" /> Add {{ form.pricing_model === 'PER_KG' ? 'quantity discount' : 'quantity range' }}</button>
+            <button class="btn btn-ghost btn-sm" @click="form.tiers.push({ min_qty: 0, max_qty: '', rate: '', band_price: '' })"><AppIcon name="plus" :size="12" /> {{ form.pricing_model === 'PER_KG' ? 'Adicionar desconto por quantidade' : 'Adicionar faixa de quantidade' }}</button>
           </template>
         </section>
 
@@ -296,7 +296,7 @@ async function addCategory() {
             <span class="caret" aria-hidden="true" />
           </summary>
           <p class="sect-hint">
-            Let customers add this service on top of another one — e.g. Ironing added to Wash &amp; Fold.
+            Permite que clientes adicionem este serviço junto de outro — ex. Passadoria junto da Lavagem.
             You can give it a cheaper price when it's added this way.
           </p>
           <div v-for="p in attachParents" :key="p.id" class="attach-row">
@@ -304,7 +304,7 @@ async function addCategory() {
             <span class="attach-name" @click="form.attach[p.id].on = !form.attach[p.id].on">{{ p.name }}</span>
             <template v-if="form.attach[p.id].on">
               <input v-model="form.attach[p.id].override" type="number" min="0"
-                class="ov-input" placeholder="price when added (blank = normal price)" />
+                class="ov-input" placeholder="preço quando anexado (vazio = preço normal)" />
               <label class="attach-check small">
                 <input v-model="form.attach[p.id].inherit" type="checkbox" /> use same quantity as the main service
               </label>
@@ -316,43 +316,43 @@ async function addCategory() {
           <div class="sect-head"><h4><span class="sect-num">4</span> Price preview</h4></div>
           <div class="preview-box pv">
             <div class="pv-qty">
-              <label class="pv-cap" for="pv-qty">Try a quantity</label>
+              <label class="pv-cap" for="pv-qty">Simular quantidade</label>
               <input id="pv-qty" v-model.number="previewQty" type="number" min="0.5" step="0.5" />
             </div>
             <div class="pv-main">
-              <div class="pv-cap">On its own · {{ preview.qty }} {{ preview.unit }}</div>
+              <div class="pv-cap">Sozinho · {{ preview.qty }} {{ preview.unit }}</div>
               <div class="big">{{ money(preview.amount * 100, session.currency) }}</div>
               <div v-if="preview.minHit" class="warn">minimum charge applied</div>
             </div>
             <div class="pv-extra">
               <div v-if="preview.bundled != null">Added to another service: <b class="teal">{{ money(preview.bundled * 100, session.currency) }}</b></div>
-              <div v-if="form.express_pct">With express (+{{ form.express_pct }}%): <b class="teal">{{ money(preview.express * 100, session.currency) }}</b></div>
+              <div v-if="form.express_pct">Com express (+{{ form.express_pct }}%): <b class="teal">{{ money(preview.express * 100, session.currency) }}</b></div>
             </div>
           </div>
         </section>
 
         <div class="actions">
-          <button class="btn btn-primary" :disabled="busy" @click="save">Save service</button>
-          <button v-if="selectedId && form.active" class="btn btn-danger" :disabled="busy" @click="retireOpen = true">Retire service</button>
+          <button class="btn btn-primary" :disabled="busy" @click="save">Salvar serviço</button>
+          <button v-if="selectedId && form.active" class="btn btn-danger" :disabled="busy" @click="retireOpen = true">Excluir serviço</button>
         </div>
       </Panel>
     </div>
 
     <Modal v-if="catModal.open" title="New category" @close="catModal.open = false">
-      <FormField label="Category name" :error="catModal.error"
-        hint="Groups services in the builder, on the order screen, and in reports">
-        <input v-model="catModal.name" type="text" placeholder="e.g. Curtains & Drapes" @keyup.enter="addCategory" />
+      <FormField label="Nome da categoria" :error="catModal.error"
+        hint="Agrupa serviços no construtor, na tela de pedidos e nos relatórios">
+        <input v-model="catModal.name" type="text" placeholder="ex. Cortinas e Persianas" @keyup.enter="addCategory" />
       </FormField>
       <template #footer>
-        <button class="btn btn-ghost" @click="catModal.open = false">Cancel</button>
-        <button class="btn btn-primary" :disabled="busy" @click="addCategory">Add category</button>
+        <button class="btn btn-ghost" @click="catModal.open = false">Cancelar</button>
+        <button class="btn btn-primary" :disabled="busy" @click="addCategory">Adicionar categoria</button>
       </template>
     </Modal>
 
     <ConfirmDialog v-if="retireOpen" danger :busy="busy"
       :title="`Retire “${form.name}”?`"
       message="It stops being sellable immediately. Existing orders keep their price snapshots, and you can rebuild it later."
-      confirm-label="Retire service"
+      confirm-label="Excluir serviço"
       @confirm="retire" @close="retireOpen = false" />
   </div>
 </template>

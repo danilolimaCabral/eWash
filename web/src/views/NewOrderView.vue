@@ -74,12 +74,12 @@ function pickCustomer(item) {
 }
 function newCustomer(name) {
   customer.value = { name, phone: custPhone.value };
-  toast.show(`New customer “${name}” will be created with this order${custPhone.value ? '' : ' — add a phone number'}`);
+  toast.show(`Novo cliente “${name}” será criado com este pedido${custPhone.value ? '' : ' — adicione um telefone'}`);
 }
 
 function addLine() {
   if (!svc.value) return;
-  if (!(qty.value > 0)) { toast.error('Enter a valid quantity'); return; }
+  if (!(qty.value > 0)) { toast.error('Informe uma quantidade válida'); return; }
   lines.value.push({
     serviceId: svcId.value,
     variantId: svc.value.variants.length ? variantId.value : null,
@@ -117,9 +117,9 @@ const smsPreview = computed(() => {
 });
 
 async function sendQuote() {
-  if (!lines.value.length) { toast.error('Add at least one service line first'); return; }
-  if (!customer.value?.name) { toast.error('Pick or add a customer first'); return; }
-  if (!(customer.value.id || custPhone.value.trim())) { toast.error('A phone number is required — it is how the customer gets the quote'); return; }
+  if (!lines.value.length) { toast.error('Adicione pelo menos um serviço primeiro'); return; }
+  if (!customer.value?.name) { toast.error('Selecione ou adicione um cliente primeiro'); return; }
+  if (!(customer.value.id || custPhone.value.trim())) { toast.error('Telefone é obrigatório — é como o cliente recebe o orçamento'); return; }
   busy.value = true;
   try {
     const body = {
@@ -165,20 +165,20 @@ function clearAll() {
   <div>
     <div class="section-head">
       <div>
-        <h2>New Order — Assessment</h2>
-        <p>Intake → <b>Assessment</b> → Confirmation → Processing · price snapshot locks at customer confirmation</p>
+        <h2>Novo Pedido — Orçamento</h2>
+        <p>Recebimento → <b>Orçamento</b> → Confirmação → Produção · o preço é fixado na confirmação do cliente</p>
       </div>
       <label v-if="session.can('finance.manage')" class="historical-toggle"><input v-model="historical" type="checkbox" /> Record historical fulfilled order</label>
     </div>
 
     <Panel v-if="historical" title="Historical accounting details" subtitle="Admin-only · dates determine the accounting month">
       <div class="history-grid">
-        <FormField label="Order date"><DatePicker v-model="historyForm.order_date" /></FormField>
-        <FormField label="Fulfilled / revenue date"><DatePicker v-model="historyForm.fulfilled_date" /></FormField>
-        <FormField label="Handoff"><select v-model="historyForm.handoff_type"><option value="pickup">Picked up</option><option value="delivery">Delivered</option></select></FormField>
-        <FormField label="Collected / delivered by"><input v-model="historyForm.collected_by_name" type="text" placeholder="Defaults to customer" /></FormField>
-        <FormField label="Payment method"><select v-model="historyForm.payment_method"><option value="pix_manual">Pix (manual)</option><option value="cash">Dinheiro</option></select></FormField>
-        <FormField :label="`Payment amount (${session.currency})`"><input v-model.number="historyForm.payment_amount" type="number" min="0" /></FormField>
+        <FormField label="Data do pedido"><DatePicker v-model="historyForm.order_date" /></FormField>
+        <FormField label="Data de conclusão / receita"><DatePicker v-model="historyForm.fulfilled_date" /></FormField>
+        <FormField label="Tipo"><select v-model="historyForm.handoff_type"><option value="pickup">Coleta</option><option value="delivery">Entrega</option></select></FormField>
+        <FormField label="Coletado/entregue por"><input v-model="historyForm.collected_by_name" type="text" placeholder="Padrão: o próprio cliente" /></FormField>
+        <FormField label="Método de pagamento"><select v-model="historyForm.payment_method"><option value="pix_manual">Pix (manual)</option><option value="cash">Dinheiro</option></select></FormField>
+        <FormField :label="`Valor do pagamento (${session.currency})`"><input v-model.number="historyForm.payment_amount" type="number" min="0" /></FormField>
         <FormField v-if="historyForm.payment_method === 'pix_manual' && historyForm.payment_amount > 0" label="Código Pix"><input v-model="historyForm.payment_ref" type="text" /></FormField>
       </div>
     </Panel>
@@ -186,11 +186,11 @@ function clearAll() {
     <div class="intake-grid">
       <div style="flex: 2;">
         <FormField label="Customer — search or add new">
-          <ComboBox v-model="custQuery" :items="customerItems" placeholder="Type a name or phone…"
+          <ComboBox v-model="custQuery" :items="customerItems" placeholder="Digite um nome ou telefone…"
             @select="pickCustomer" @create="newCustomer" />
         </FormField>
       </div>
-      <FormField label="Phone">
+      <FormField label="Telefone">
         <input v-model="custPhone" type="tel" placeholder="07xx xxx xxx" :disabled="!!customer?.id" />
       </FormField>
       <FormField label="Express (same day)">

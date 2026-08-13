@@ -181,7 +181,7 @@ onMounted(async () => {
       </form>
 
       <p class="support">
-        Need help? <a :href="`mailto:${SUPPORT_EMAIL}`">{{ SUPPORT_EMAIL }}</a>
+        Precisa de ajuda? <a :href="`mailto:${SUPPORT_EMAIL}`">{{ SUPPORT_EMAIL }}</a>
       </p>
     </div>
   </div>
