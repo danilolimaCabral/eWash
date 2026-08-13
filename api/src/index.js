@@ -17,6 +17,7 @@ import { userRoutes } from './routes/users.js';
 import { platformAuthRequired } from './platform.js';
 import { platformAuthRoutes, platformRoutes } from './routes/platform.js';
 import { ApiError } from './util.js';
+import { publicRoutes, adminRoutes as levaEtrazAdminRoutes } from './routes/publicOrders.js';
 import { getDb } from './db/index.js';
 import { sessions, platformSessions, passwordResetTokens, rateLimits, tenantSubscriptions, tenants } from './db/schema.js';
 import { now } from './util.js';
@@ -84,6 +85,8 @@ app.route('/api/auth', authRoutes);
 app.route('/api/auth', googleRoutes);
 app.route('/api/platform/auth', platformAuthRoutes);
 app.route('/api', pixCallbackRoute);
+// Leva e Traz: rotas públicas (sem login), resolvidas por code_prefix (?tenant=LV)
+app.route('/api/public', publicRoutes);
 
 const platformApi = new Hono();
 platformApi.use('*', platformAuthRequired);
@@ -102,6 +105,8 @@ api.route('/', paymentRoutes);
 api.route('/', financeRoutes);
 api.route('/', reportRoutes);
 api.route('/', userRoutes);
+// Leva e Traz: gestão interna (admin logado)
+api.route('/levae-traz', levaEtrazAdminRoutes);
 app.route('/api', api);
 
 app.all('/api/*', (c) => c.json({ error: 'Not found' }, 404));

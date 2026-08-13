@@ -22,6 +22,7 @@ const NAV = [
     { name: 'new-order', label: 'Novo pedido', icon: 'plus', policy: 'orders.create' },
     { name: 'orders', label: 'Pedidos', icon: 'orders' },
     { name: 'pickups', label: 'Coletas', icon: 'checkCircle', policy: 'payments.receive' },
+    { name: 'leva-traz', label: 'Leva e Traz', icon: 'truck', policy: 'payments.receive' },
     { name: 'customers', label: 'Clientes', icon: 'customers' },
   ]},
   { label: 'Gerenciar', items: [

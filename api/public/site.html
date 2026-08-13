@@ -139,6 +139,42 @@ h2 em{font-style:italic;color:var(--deep)}
 .faq-item.open .faq-a{max-height:200px}
 .faq-a div{padding-top:12px}
 
+/* ---------- Leva e Traz ---------- */
+.leva{background:var(--deep);color:#f3eee6}
+.leva .sec-head{color:inherit}
+.leva .sec-head p{color:#b9d5cf}
+.leva .eyebrow{color:#9fc3bc} .leva .eyebrow::before{background:#d8a47a}
+.leva-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start}
+.leva-card{background:rgba(250,247,242,.97);color:var(--ink);border-radius:10px;padding:40px 36px;box-shadow:0 30px 80px rgba(0,0,0,.35)}
+.leva-card h3{font-family:'Fraunces',serif;font-size:26px;font-weight:500;margin-bottom:6px}
+.leva-card .sub{color:var(--ink-soft);font-size:14.5px;margin-bottom:26px}
+.leva label{display:block;font-size:13px;font-weight:600;letter-spacing:.04em;margin-bottom:7px}
+.leva input,.leva textarea,.leva select{width:100%;font-family:'Inter',sans-serif;font-size:15px;padding:13px 14px;border:1.5px solid var(--line);border-radius:var(--radius);background:#fff;color:var(--ink);transition:border-color .2s}
+.leva input:focus,.leva textarea:focus,.leva select:focus{outline:none;border-color:var(--deep)}
+.leva .field{margin-bottom:18px}
+.leva textarea{min-height:92px;resize:vertical}
+.leva .btn{width:100%;justify-content:center;font-size:16px;padding:16px}
+.leva-result{margin-top:22px;border-radius:var(--radius);padding:18px 20px;font-size:14.5px;display:none}
+.leva-result.ok{display:block;background:#e8f0e2;color:#2c5420;border:1px solid #c8d9bc}
+.leva-result.err{display:block;background:#f9e8e3;color:#8a3a22;border:1px solid #eccdbf}
+.leva-result b.code{display:block;font-family:'Fraunces',serif;font-size:30px;letter-spacing:.18em;color:#2c5420;margin:6px 0 8px}
+.leva-steps{margin-top:30px}
+.leva-steps div{display:flex;gap:14px;padding:12px 0;font-size:14.5px;color:#b9d5cf}
+.leva-steps i{font-style:normal;width:28px;height:28px;border-radius:50%;background:rgba(250,247,242,.14);border:1px solid rgba(243,238,230,.3);display:flex;align-items:center;justify-content:center;font-size:12px;color:#f3eee6;flex:none}
+.leva-steps b{color:#f3eee6;font-weight:600}
+.track-box{margin-top:40px;background:rgba(250,247,242,.07);border:1px solid rgba(243,238,230,.18);border-radius:10px;padding:28px 32px}
+.track-box h4{font-family:'Fraunces',serif;font-size:20px;font-weight:500;margin-bottom:4px;color:#f3eee6}
+.track-box p{color:#b9d5cf;font-size:14px;margin-bottom:16px}
+.track-row{display:flex;gap:12px}
+.track-row input{flex:1;background:rgba(255,255,255,.95);border-color:transparent}
+.track-status{margin-top:16px;font-size:14.5px;color:#f3eee6;display:none}
+.track-status b{color:#e3c29b}
+@media(max-width:940px){
+  .leva-grid{grid-template-columns:1fr}
+  .leva-card{padding:30px 24px}
+  section.leva{padding:70px 0}
+}
+
 /* ---------- CTA final ---------- */
 .cta-band{display:grid;grid-template-columns:1.2fr .8fr;gap:0;align-items:stretch;border-radius:10px;overflow:hidden;margin-top:10px}
 .cta-copy{background:var(--deep);color:#f3eee6;padding:76px 64px}
@@ -191,6 +227,7 @@ footer{padding:64px 0 40px;border-top:1px solid var(--line)}
     <nav>
       <a href="#funcionalidades">Funcionalidades</a>
       <a href="#como-funciona">Como funciona</a>
+      <a href="#leva-e-traz">Leva e Traz</a>
       <a href="#planos">Planos</a>
       <a href="#faq">Dúvidas</a>
     </nav>
@@ -320,6 +357,68 @@ footer{padding:64px 0 40px;border-top:1px solid var(--line)}
   </div>
 </section>
 
+<section id="leva-e-traz" class="leva">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="eyebrow">Leva e Traz</span>
+      <h2>Seu cliente pede a coleta <em>pela internet</em></h2>
+      <p>O cliente preenche, a lavanderia recebe na hora — e ele acompanha o código de rastreio sem precisar ligar.</p>
+    </div>
+    <div class="leva-grid">
+      <div class="leva-card up" id="leva">
+        <h3>Pedir Leva e Traz</h3>
+        <p class="sub">Preencha abaixo. A lavanderia confirma e passa na sua casa para buscar.</p>
+        <form id="leva-form" novalidate>
+          <div class="field">
+            <label for="lv-nome">Nome</label>
+            <input id="lv-nome" name="name" placeholder="Ex.: Maria Silva" required>
+          </div>
+          <div class="field">
+            <label for="lv-tel">Telefone / WhatsApp</label>
+            <input id="lv-tel" name="phone" type="tel" placeholder="(11) 99999-9999" required>
+          </div>
+          <div class="field">
+            <label for="lv-end">Endereço completo</label>
+            <input id="lv-end" name="address" placeholder="Rua, número, bairro, cidade" required>
+          </div>
+          <div class="field">
+            <label for="lv-serv">O que precisa lavar?</label>
+            <select id="lv-serv" name="service_kind">
+              <option value="lavagem">Lavagem geral (por quilo)</option>
+              <option value="passadoria">Passadoria</option>
+              <option value="edredom">Edredom</option>
+              <option value="outros">Outros</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="lv-itens">Descreva os itens</label>
+            <textarea id="lv-itens" name="items" placeholder="Ex.: 5kg de roupa do dia a dia + 1 edredom queen" required></textarea>
+          </div>
+          <button type="submit" class="btn btn-terracota" id="lv-submit">Enviar pedido de coleta</button>
+        </form>
+        <div class="leva-result" id="lv-result"></div>
+      </div>
+      <div class="up" style="padding-top:8px">
+        <div class="leva-steps">
+          <div><i>1</i><span>Você envia o pedido e recebe um <b>código de 6 dígitos</b> na hora</span></div>
+          <div><i>2</i><span>A lavanderia recebe a notificação e <b>confirma a coleta</b></span></div>
+          <div><i>3</i><span>O entregador passa no endereço e <b>busca as peças</b></span></div>
+          <div><i>4</i><span>Tudo fica pronto e você acompanha pelo <b>código</b> abaixo</span></div>
+        </div>
+        <div class="track-box">
+          <h4>Acompanhe seu pedido</h4>
+          <p>Digitou o código recebido? Veja em que etapa está agora.</p>
+          <div class="track-row">
+            <input id="lv-code" placeholder="Seu código, ex.: A3F8C2" maxlength="8" style="text-transform:uppercase">
+            <button class="btn btn-primary" id="lv-track">Ver</button>
+          </div>
+          <div class="track-status" id="lv-track-status"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="planos" class="pricing">
   <div class="wrap">
     <div class="sec-head center">
@@ -399,6 +498,10 @@ footer{padding:64px 0 40px;border-top:1px solid var(--line)}
       <div class="faq-a"><div>No plano Premium é possível integrar um gateway de pagamento automático. Nos demais planos, basta registrar o Pix na hora do pagamento — o sistema dá baixa no pedido e atualiza o caixa na hora.</div></div>
     </div>
     <div class="faq-item" onclick="this.classList.toggle('open')">
+      <div class="faq-q">Meus clientes podem pedir coleta online?</div>
+      <div class="faq-a"><div>Sim! A página pública de <b>Leva e Traz</b> permite que o cliente peça a coleta pela internet, receba um código de rastreio e acompanhe as etapas — buscando, na lavanderia, pronto e entregue — sem precisar ligar para a loja.</div></div>
+    </div>
+    <div class="faq-item" onclick="this.classList.toggle('open')">
       <div class="faq-q">Posso cancelar quando quiser?</div>
       <div class="faq-a"><div>Sim, sem multa e sem burocracia. E você pode exportar todos os seus dados em CSV antes de sair.</div></div>
     </div>
@@ -464,6 +567,66 @@ const io=new IntersectionObserver(es=>{
   es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');io.unobserve(e.target)}});
 },{threshold:.12});
 document.querySelectorAll('.up').forEach(el=>io.observe(el));
+
+/* ---------- Leva e Traz ---------- */
+(function(){
+  const BASE=location.origin;
+  const TENANT='LV';
+  const fmt=(s)=>String(s||'').trim();
+  const phoneDigits=(v)=>(String(v||'').replace(/\D/g,'').slice(-11)||'');
+  const STATUS_PT={'requested':'Pedido recebido — aguardando confirmação','accepted':'Aceito — vamos buscar suas peças','picked_up':'Peças na lavanderia — em produção','done':'Pronto e entregue — obrigado!'};
+  const result=document.getElementById('lv-result');
+  const form=document.getElementById('leva-form');
+  const submit=document.getElementById('lv-submit');
+  function showResult(msg,code){
+    if(code){
+      result.className='leva-result ok';
+      result.innerHTML=`<b>Código de acompanhamento</b><b class="code">${code}</b>${fmt(msg)}<br>Guarde o código e acompanhe abaixo.`;
+    }else{
+      result.className='leva-result err';
+      result.innerHTML=fmt(msg);
+    }
+    result.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+  form.addEventListener('submit',async (e)=>{
+    e.preventDefault();
+    const data={
+      name:fmt(document.getElementById('lv-nome').value),
+      phone:fmt(document.getElementById('lv-tel').value),
+      address:fmt(document.getElementById('lv-end').value),
+      service_kind:document.getElementById('lv-serv').value,
+      items:fmt(document.getElementById('lv-itens').value),
+    };
+    if(data.name.length<2)return showResult('Por favor, informe seu nome.');
+    if(phoneDigits(data.phone).length<10)return showResult('Informe um telefone válido (com DDD).');
+    if(data.address.length<8)return showResult('Informe o endereço completo (rua, número e bairro).');
+    if(data.items.length<3)return showResult('Descreva o que precisa lavar ou trazer.');
+    submit.disabled=true;submit.textContent='Enviando...';
+    try{
+      const r=await fetch(`${BASE}/api/public/requests?tenant=${TENANT}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+      const j=await r.json();
+      if(!r.ok||!j.ok){showResult(j.error||'Não foi possível enviar o pedido. Tente novamente em instantes.');return;}
+      showResult(`${j.message||''} ${data.name.split(' ')[0]}, sua lavanderia vai confirmar em breve.`,j.request.access_code);
+      form.reset();
+    }catch(err){showResult('Sem conexão. Verifique a internet e tente novamente.');}
+    submit.disabled=false;submit.textContent='Enviar pedido de coleta';
+  });
+  const trackBtn=document.getElementById('lv-track');
+  const trackIn=document.getElementById('lv-code');
+  const trackSt=document.getElementById('lv-track-status');
+  trackBtn.addEventListener('click',async ()=>{
+    const code=trackIn.value.trim().toUpperCase().slice(0,6);
+    if(code.length<6){trackSt.style.display='block';trackSt.innerHTML='Digite o código de 6 caracteres.';return;}
+    try{
+      const r=await fetch(`${BASE}/api/public/r/${code}?tenant=${TENANT}`);
+      const j=await r.json();
+      if(!r.ok||!j.ok){trackSt.style.display='block';trackSt.innerHTML='<b>Não encontrado.</b> Verifique o código (ex.: A3F8C2).';return;}
+      const p=j.request;
+      trackSt.style.display='block';
+      trackSt.innerHTML=`<b>${p.customer_name}</b> — ${STATUS_PT[p.status]||p.status}<br><small style="color:#b9d5cf">${p.items}</small>`;
+    }catch(err){trackSt.style.display='block';trackSt.innerHTML='Sem conexão. Tente novamente.';}
+  });
+})();
 </script>
 </body>
 </html>

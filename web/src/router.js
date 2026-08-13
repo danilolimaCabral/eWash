@@ -29,6 +29,7 @@ const routes = [
       { path: 'orders/new', name: 'new-order', component: () => import('./views/NewOrderView.vue') },
       { path: 'orders', name: 'orders', component: () => import('./views/OrdersBoardView.vue') },
       { path: 'pickups', name: 'pickups', component: () => import('./views/PickupsView.vue') },
+      { path: 'levaetrz', name: 'leva-traz', component: () => import('./views/LevaTrView.vue') },
       { path: 'customers', name: 'customers', component: () => import('./views/CustomersView.vue') },
       { path: 'builder', name: 'builder', component: () => import('./views/ServiceBuilderView.vue') },
       { path: 'finance', name: 'finance', component: () => import('./views/FinanceView.vue') },
