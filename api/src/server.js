@@ -77,6 +77,7 @@ async function fixupSchema() {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
 
+
 // Railway pode ter APP_URL=PLACEHOLDER antes do dominio ser gerado.
 // Derivamos uma base valida (localhost) para a delegacao Hono funcionar sempre.
 const APP_URL_BASE = (() => {
@@ -112,30 +113,6 @@ const env = {
 
 const server = express();
 server.use(express.json({ limit: '64kb' }));
-
-// Debug público temporário: inspeciona o estado do banco no Railway (remover após diagnóstico)
-server.get('/api/debug/db', async (_req, res) => {
-  try {
-    const db = createClient({ url: String(process.env.DATABASE_URL || '') });
-    const t = await db.execute("SELECT name FROM _lavtr_migrations ORDER BY name");
-    const migs = t.rows.map((r) => r.name);
-    const cnt = async (q) => (await db.execute(q)).rows[0].c;
-    const result = {
-      url: process.env.DATABASE_URL,
-      migrations: migs,
-      tenants: await cnt("SELECT COUNT(*) c FROM tenants"),
-      branches: await cnt("SELECT COUNT(*) c FROM branches"),
-      roles: await cnt("SELECT COUNT(*) c FROM roles"),
-      users: await cnt("SELECT COUNT(*) c FROM users"),
-      platform_users: await cnt("SELECT COUNT(*) c FROM platform_users"),
-      tables: (await db.execute("SELECT name FROM sqlite_master WHERE type='table'")).rows.map((r)=>r.name),
-    };
-    db.close();
-    res.json({ ok: true, data: result });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: String(e && e.message || e) });
-  }
-});
 
 // API Hono: delega todas as rotas /api/*
 server.use('/api{*rest}', (req, res) => {
