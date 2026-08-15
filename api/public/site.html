@@ -46,14 +46,14 @@ nav{display:flex;gap:30px;align-items:center}
 nav a{text-decoration:none;color:rgba(250,248,244,.78);font-weight:500;font-size:14.5px;transition:color .2s}
 nav a:hover{color:#fff}
 .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:999px;font-weight:600;font-size:14.5px;text-decoration:none;cursor:pointer;border:none;transition:all .22s ease;white-space:nowrap}
-.btn-primary{background:#fff;color:var(--deep)}
-.btn-primary:hover{background:var(--cream);transform:translateY(-1px);box-shadow:0 12px 30px rgba(0,0,0,.25)}
+.btn-primary{background:#fff;color:var(--deep);box-shadow:0 8px 24px -8px rgba(255,255,255,.35)}
+.btn-primary:hover{background:var(--cream);transform:translateY(-2px);box-shadow:0 16px 34px -8px rgba(255,255,255,.45)}
 .btn-ghost{background:transparent;color:rgba(250,248,244,.9);border:1px solid rgba(250,248,244,.28)}
 .btn-ghost:hover{background:rgba(250,248,244,.1);border-color:rgba(250,248,244,.45)}
 .btn-dark{background:var(--deep);color:#fff}
 .btn-dark:hover{background:var(--deep-2);transform:translateY(-1px);box-shadow:0 12px 30px rgba(10,46,36,.3)}
-.btn-terracota{background:var(--terracota);color:#fff}
-.btn-terracota:hover{background:#a8511f;transform:translateY(-1px);box-shadow:0 12px 30px rgba(196,98,44,.35)}
+.btn-terracota{background:linear-gradient(135deg,#d9703a,var(--terracota));color:#fff;box-shadow:0 8px 24px -8px rgba(196,98,44,.55)}
+.btn-terracota:hover{background:linear-gradient(135deg,#e27b45,#d06530);transform:translateY(-2px);box-shadow:0 16px 36px -8px rgba(196,98,44,.6)}
 /* menu mobile */
 .menu-btn{display:none;background:none;border:1px solid rgba(250,248,244,.25);color:#fff;width:40px;height:40px;border-radius:10px;cursor:pointer;align-items:center;justify-content:center;font-size:18px}
 
@@ -65,7 +65,7 @@ nav a:hover{color:#fff}
 .badge{display:inline-flex;align-items:center;gap:9px;padding:7px 7px 7px 16px;border-radius:999px;font-size:12.5px;font-weight:600;letter-spacing:.06em;color:rgba(243,239,232,.92);background:rgba(63,191,160,.14);border:1px solid rgba(63,191,160,.35);margin-bottom:22px}
 .badge i{width:8px;height:8px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 4px rgba(63,191,160,.22);display:inline-block;animation:pulse 2.2s ease infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-h1{font-family:'Fraunces',serif;font-weight:500;font-size:62px;line-height:1.06;letter-spacing:-.015em;margin-bottom:20px}
+h1{font-family:'Fraunces',serif;font-weight:500;font-size:64px;line-height:1.04;letter-spacing:-.02em;margin-bottom:20px;text-wrap:balance}
 h1 em{font-style:italic;font-weight:500;background:linear-gradient(120deg,#7fe3cb,#3fbfa0 60%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .hero p.lead{font-size:18px;color:rgba(243,239,232,.72);max-width:500px;margin-bottom:32px}
 .hero-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
@@ -75,7 +75,8 @@ h1 em{font-style:italic;font-weight:500;background:linear-gradient(120deg,#7fe3c
 
 /* Mockup do dashboard */
 .hero-visual{position:relative}
-.mockup{position:relative;border-radius:18px;overflow:hidden;box-shadow:0 50px 120px -30px rgba(0,0,0,.55),0 0 0 1px rgba(250,248,244,.10);background:#12372c}
+.mockup{position:relative;border-radius:18px;overflow:hidden;box-shadow:0 50px 120px -30px rgba(0,0,0,.55),0 0 0 1px rgba(250,248,244,.12),0 0 90px -30px rgba(63,191,160,.28);background:#12372c;transition:transform .5s ease}
+.hero-visual:hover .mockup{transform:translateY(-6px) rotate(-.4deg)}
 .mockup img{width:100%;aspect-ratio:4/3;object-fit:cover}
 .mockup .m-bar{display:flex;align-items:center;gap:7px;padding:14px 18px;background:rgba(6,33,25,.85);border-bottom:1px solid rgba(250,248,244,.08)}
 .mockup .m-dot{width:10px;height:10px;border-radius:50%;background:rgba(250,248,244,.5)}
@@ -105,7 +106,7 @@ section{padding:96px 0}
 .sec-head.center{margin-left:auto;margin-right:auto;text-align:center}
 .sec-head.center .eyebrow{justify-content:center}
 .eyebrow{display:inline-flex;align-items:center;gap:10px;color:var(--teal-2);font-size:12.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;margin-bottom:18px;background:rgba(63,191,160,.10);padding:7px 14px;border-radius:999px}
-h2{font-family:'Fraunces',serif;font-weight:500;font-size:42px;line-height:1.12;letter-spacing:-.012em;margin-bottom:16px}
+h2{font-family:'Fraunces',serif;font-weight:500;font-size:44px;line-height:1.1;text-wrap:balance;letter-spacing:-.018em;margin-bottom:16px}
 h2 em{font-style:italic;color:var(--teal-2)}
 .sec-head p{color:var(--ink-soft);font-size:17px}
 
