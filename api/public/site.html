@@ -75,7 +75,7 @@ h1 em{font-style:italic;font-weight:500;color:var(--teal-2)}
 .hero-visual{position:relative}
 .mockup{position:relative;border-radius:20px;overflow:hidden;box-shadow:0 60px 130px -34px rgba(6,38,28,.32),0 0 0 1px rgba(18,27,23,.08);background:#fff;transition:transform .5s ease}
 .hero-visual:hover .mockup{transform:translateY(-6px) rotate(-.4deg)}
-.mockup img{width:100%;aspect-ratio:4/3;object-fit:cover}
+.mockup img{width:100%;aspect-ratio:3/2;object-fit:cover}
 .mockup .m-bar{display:flex;align-items:center;gap:7px;padding:14px 18px;background:#fff;border-bottom:1px solid var(--line)}
 .mockup .m-dot{width:10px;height:10px;border-radius:50%;background:#e5ddcf}
 .mockup .m-dot:first-child{background:#f2a89f}
@@ -88,7 +88,9 @@ h1 em{font-style:italic;font-weight:500;color:var(--teal-2)}
 .chip-check{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--teal-2),var(--teal));display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;flex:none}
 .chip-pix{top:30%;left:-24px}
 .chip-order{bottom:8%;right:-20px;animation-delay:1.4s}
-@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.dock-strip{display:flex;gap:12px}
+.dock-item{background:#fff;border:1px solid var(--line);border-radius:999px;padding:10px 18px;font-size:13px;font-weight:600;color:var(--ink);box-shadow:0 10px 26px -12px rgba(6,38,28,.22)}
+@media(max-width:940px){.dock-item{font-size:11.5px;padding:8px 12px}}
 
 /* ---------- Trust band ---------- */
 .trust{padding:34px 0;background:#fff;border-bottom:1px solid var(--line)}
@@ -238,7 +240,7 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
 .foot-bottom{margin-top:44px;padding-top:22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;color:var(--ink-soft);font-size:12.5px;flex-wrap:wrap;gap:12px}
 
 /* ---------- Animar no scroll ---------- */
-.up{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s ease}
+.up{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
 .up.visible{opacity:1;transform:none}
 
 /* ---------- Mobile ---------- */
@@ -310,15 +312,11 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
           <span class="m-dot"></span><span class="m-dot"></span><span class="m-dot"></span>
           <span class="m-title">lavatr.app — Painel · Pedidos</span>
         </div>
-        <img src="/img/passadoria.jpg" alt="Painel de pedidos LavTr">
+        <img src="/img/panel_demo.png" alt="Painel de pedidos LavTr" style="aspect-ratio:auto">
       </div>
-      <div class="float-chip chip-pix">
-        <span class="chip-check">✓</span>
-        <span><b>Pix recebido</b><span>R$ 156,00 · Pedido JP-0103</span></span>
-      </div>
-      <div class="float-chip chip-order">
-        <span class="chip-check">🚚</span>
-        <span><b>Coleta confirmada</b><span>Rua Augusta, 1430 · 15h</span></span>
+      <div class="dock-strip" style="margin-top:18px;display:flex;gap:12px">
+        <div class="dock-item">✓ Pix registrado na entrega</div>
+        <div class="dock-item">🚚 Coleta confirmada para hoje</div>
       </div>
     </div>
   </div>
@@ -327,10 +325,10 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
 <section class="trust">
   <div class="wrap">
     <div class="trust-row">
-      <div class="trust-item"><b>R$ 359</b><span>faturados na demo</span></div>
-      <div class="trust-item"><b>4 pedidos</b><span>no fluxo completo</span></div>
+      <div class="trust-item"><b>R$ 99</b><span>a partir de, por mês</span></div>
+      <div class="trust-item"><b>Pix</b><span>pagamentos na hora</span></div>
       <div class="trust-item"><b>5 etapas</b><span>do recebimento à entrega</span></div>
-      <div class="trust-item"><b>14 dias</b><span>grátis para testar</span></div>
+      <div class="trust-item"><b>14 dias</b><span>grátis, sem cartão</span></div>
     </div>
   </div>
 </section>
@@ -366,7 +364,7 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
       </div>
       <div class="bcard up">
         <span class="bnum">03</span>
-        <img src="/img/dobradas.jpg" alt="Roupas limpas e dobradas na prateleira">
+        <img src="/img/caixa.jpg" alt="Pagamento no caixa da lavanderia">
         <h3>Pix na hora, caixa em dia</h3>
         <p>Registre Pix ou dinheiro na entrega, veja quem deve e feche o caixa com confiança.</p>
         <ul>
@@ -376,7 +374,7 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
       </div>
       <div class="bcard up">
         <span class="bnum">04</span>
-        <img src="/img/dobradas.jpg" alt="Pilha de roupas prontas">
+        <img src="/img/entrega.jpg" alt="Entregador buscando peças">
         <h3>Coletas e entregas organizadas</h3>
         <p>Fila de coletas e entregas com endereço, horário e entregador — direto no painel de produção.</p>
         <ul>
@@ -396,7 +394,7 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
       </div>
       <div class="bcard up">
         <span class="bnum">06</span>
-        <img src="/img/passadoria.jpg" alt="Relatórios de vendas">
+        <img src="/img/relatorios.jpg" alt="Dono de lavanderia analisando relatórios">
         <h3>Relatórios que falam</h3>
         <p>Serviços mais vendidos, faturamento por período e comparação mês a mês — para tomar decisão com números.</p>
         <ul>
@@ -431,7 +429,7 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
     <div class="visual-band">
       <div><img src="/img/hero.jpg" alt="Lavanderia LavTr" loading="lazy"><span class="caption">Atendimento no balcão</span></div>
       <div><img src="/img/passadoria.jpg" alt="Passadoria LavTr" loading="lazy"><span class="caption">Passadoria profissional</span></div>
-      <div><img src="/img/dobradas.jpg" alt="Roupas prontas LavTr" loading="lazy"><span class="caption">Prontas para entregar</span></div>
+      <div><img src="/img/caixa.jpg" alt="Caixa da lavanderia LavTr" loading="lazy"><span class="caption">Caixa em dia</span></div>
     </div>
   </div>
 </section>
@@ -598,7 +596,7 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
         <a class="btn btn-terracota" href="https://ewash-production.up.railway.app/login">Criar minha conta grátis</a>
       </div>
       <div class="cta-img">
-        <img src="/img/dobradas.jpg" alt="Roupas limpas e organizadas" loading="lazy">
+        <img src="/img/entrega.jpg" alt="Entrega LavTr" loading="lazy">
       </div>
     </div>
   </div>
