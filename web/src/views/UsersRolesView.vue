@@ -149,7 +149,7 @@ async function saveBranch() {
         <button class="btn btn-primary" @click="inviteOpen = true; inviteForm.role_id = roles[0]?.id || ''">
           <AppIcon name="plus" :size="14" /> Invite user
         </button>
-        <button v-if="session.can('branches.manage')" class="btn btn-outline" @click="branchesOpen = true">Manage branches</button>
+        <button v-if="session.can('branches.manage')" class="btn btn-outline" @click="branchesOpen = true">Gerenciar filiais</button>
       </div>
     </div>
 
@@ -170,7 +170,7 @@ async function saveBranch() {
             <span class="staff-copy">
               <b>{{ u.name }}</b>
               <small v-if="u.status === 'pending'" class="text-accent">Invited — awaiting acceptance</small>
-              <small v-else-if="u.status !== 'active'" class="text-red">Deactivated</small>
+              <small v-else-if="u.status !== 'active'" class="text-red">Desativado</small>
               <small v-else :class="u.online ? 'text-green' : 'muted'">
                 {{ u.online ? 'Online now' : u.lastSeenAt ? `Seen ${timeAgo(u.lastSeenAt)}` : 'Never signed in' }}
               </small>
@@ -211,13 +211,13 @@ async function saveBranch() {
         </div>
 
         <div class="role-strip">
-          <FormField label="Role template">
+          <FormField label="Modelo de papel">
             <select v-model="pendingRole" @change="onRoleChange">
               <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.name }}</option>
             </select>
           </FormField>
-          <FormField label="Access scope"><select v-model="pendingScope"><option value="branch">Assigned branch only</option><option value="tenant">All branches</option></select></FormField>
-          <FormField label="Assigned branch"><select v-model="pendingBranch"><option value="">No branch</option><option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option></select></FormField>
+          <FormField label="Escopo de acesso"><select v-model="pendingScope"><option value="branch">Somente filial atribuída</option><option value="tenant">Todas as filiais</option></select></FormField>
+          <FormField label="Filial atribuída"><select v-model="pendingBranch"><option value="">Nenhuma filial</option><option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option></select></FormField>
           <div class="role-summary">
             <span>{{ selectedRole?.policies?.length || 0 }}</span>
             <small>role permissions</small>
@@ -250,14 +250,14 @@ async function saveBranch() {
 
         <div class="save-row">
           <span class="muted small">Changes apply at next login and are written to the audit log.</span>
-          <button class="btn btn-primary" :disabled="busy" @click="save">Save permissions</button>
+          <button class="btn btn-primary" :disabled="busy" @click="save">Salvar permissões</button>
         </div>
       </Panel>
     </div>
 
     <Modal v-if="inviteOpen" title="Invite a staff member" @close="inviteOpen = false">
       <div class="row">
-        <FormField label="Name"><input v-model="inviteForm.name" type="text" /></FormField>
+        <FormField label="Nome"><input v-model="inviteForm.name" type="text" /></FormField>
         <FormField label="Role">
           <select v-model="inviteForm.role_id">
             <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.name }}</option>
@@ -265,8 +265,8 @@ async function saveBranch() {
         </FormField>
       </div>
       <div class="row">
-        <FormField label="Access scope"><select v-model="inviteForm.access_scope"><option value="branch">Assigned branch only</option><option value="tenant">All branches</option></select></FormField>
-        <FormField label="Branch"><select v-model="inviteForm.branch_id"><option value="">No branch</option><option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option></select></FormField>
+        <FormField label="Escopo de acesso"><select v-model="inviteForm.access_scope"><option value="branch">Somente filial atribuída</option><option value="tenant">Todas as filiais</option></select></FormField>
+        <FormField label="Filial"><select v-model="inviteForm.branch_id"><option value="">Nenhuma filial</option><option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option></select></FormField>
       </div>
       <div class="row">
         <FormField label="Email"><input v-model="inviteForm.email" type="email" /></FormField>
@@ -274,23 +274,23 @@ async function saveBranch() {
       </div>
       <p class="muted small invite-note">They'll receive an email invitation and choose their own password when they accept.</p>
       <template #footer>
-        <button class="btn btn-ghost" @click="inviteOpen = false">Cancel</button>
+        <button class="btn btn-ghost" @click="inviteOpen = false">Cancelar</button>
         <button class="btn btn-primary" :disabled="busy" @click="invite">Send invitation</button>
       </template>
     </Modal>
 
-    <Modal v-if="branchesOpen" title="Manage branches" wide @close="branchesOpen = false">
+    <Modal v-if="branchesOpen" title="Gerenciar filiais" wide @close="branchesOpen = false">
       <div class="branch-manager">
         <div class="branch-list">
           <button v-for="branch in branches" :key="branch.id" @click="editBranch(branch)">
-            <span><b>{{ branch.name }}</b><small>{{ branch.location || 'No location' }}</small></span>
+            <span><b>{{ branch.name }}</b><small>{{ branch.location || 'Sem localização' }}</small></span>
             <em>{{ branch.active ? 'Ativo' : 'Deactivated' }}</em>
           </button>
         </div>
         <div class="branch-form">
           <FormField label="Branch name"><input v-model="branchForm.name" /></FormField>
           <FormField label="Location"><input v-model="branchForm.location" /></FormField>
-          <FormField v-if="branchForm.id" label="Status"><select v-model="branchForm.active"><option :value="true">Active</option><option :value="false">Deactivated</option></select></FormField>
+          <FormField v-if="branchForm.id" label="Status"><select v-model="branchForm.active"><option :value="true">Ativo</option><option :value="false">Desativado</option></select></FormField>
           <button class="btn btn-primary" :disabled="!branchForm.name.trim()" @click="saveBranch">{{ branchForm.id ? 'Save branch' : 'Create branch' }}</button>
         </div>
       </div>

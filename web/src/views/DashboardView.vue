@@ -71,6 +71,17 @@ const filters = computed(() => {
 const notifAllOpen = ref(false);
 const notifPage = ref(null); // { rows, total, limit, offset }
 const NOTIF_LIMIT = 10;
+
+const TEMPLATE_LABELS = {
+  quote_ready: 'orçamento pronto',
+  payment_received: 'pagamento recebido',
+  order_ready: 'pronto para retirada',
+  order_delivered: 'pedido entregue',
+  payment_reminder: 'lembrete de pagamento',
+};
+function notifLabel(key) {
+  return TEMPLATE_LABELS[key] || (key || '').replaceAll('_', ' ');
+}
 async function loadAllNotifs(nextOffset = 0) {
   try { notifPage.value = await api.get(`/dashboard/notifications?limit=${NOTIF_LIMIT}&offset=${nextOffset}`); }
   catch (e) { toast.error(e.message); }
@@ -81,9 +92,9 @@ function openAllNotifs() {
 }
 
 const columns = [
-  { key: 'code', label: 'Order' },
-  { key: 'customer', label: 'Customer' },
-  { key: 'service', label: 'Service' },
+  { key: 'code', label: 'Pedido' },
+  { key: 'customer', label: 'Cliente' },
+  { key: 'service', label: 'Serviço' },
   { key: 'status', label: 'Status' },
   { key: 'total', label: 'Total', align: 'right' },
 ];
@@ -112,7 +123,7 @@ const columns = [
           :delta="`${money(kpis.todayCollectedCents, session.currency)} recebido`" delta-kind="up"
           :bars="[28, 52, 43, 68, 78, 96]" />
         <KpiCard label="Em andamento" :value="String(kpis.inProgress)" icon="clock" icon-tone="violet"
-          :delta="kpis.unpaidReady ? `${kpis.unpaidReady} ready & unpaid` : ''"
+          :delta="kpis.unpaidReady ? `${kpis.unpaidReady} pronto${kpis.unpaidReady === 1 ? '' : 's'} sem pagar` : ''"
           :progress="kpis.inProgress ? Math.min(100, Math.round((kpis.ready / kpis.inProgress) * 100)) : 0" />
         <KpiCard label="Pronto p/ retirada" :value="String(kpis.ready)" icon="checkCircle" icon-tone="orange"
           :delta="kpis.readyOverdue ? `${kpis.readyOverdue} aguardando 48h+` : 'nenhum atrasado'"
@@ -156,28 +167,28 @@ const columns = [
         <Skeleton v-if="!notifs" variant="list" :count="3" />
         <div v-else-if="notifs.length" class="notif-list">
           <div v-for="n in notifs" :key="n.id" class="notif">
-            <StatusBadge :status="n.status" kind="generic" :label="n.templateKey.replaceAll('_', ' ')" />
+            <StatusBadge :status="n.status" kind="generic" :label="notifLabel(n.templateKey)" />
             <p>{{ n.message }}</p>
             <small class="muted">{{ n.toPhone }} · {{ timeAgo(n.sentAt) }}</small>
           </div>
         </div>
-        <EmptyState v-else icon="bell" title="No notifications yet" hint="Quotes and ready-alerts appear here as they are sent." />
+        <EmptyState v-else icon="bell" title="Nenhuma notificação ainda" hint="Orçamentos e avisos de pronto aparecem aqui assim que são enviados." />
       </Panel>
     </div>
 
-    <Modal v-if="notifAllOpen" title="All notifications" wide @close="notifAllOpen = false">
+    <Modal v-if="notifAllOpen" title="Todas as notificações" wide @close="notifAllOpen = false">
       <Skeleton v-if="!notifPage" variant="list" :count="5" />
       <template v-else>
         <div v-if="notifPage.rows.length" class="notif-list">
           <div v-for="n in notifPage.rows" :key="n.id" class="notif all-row">
             <div class="all-head">
-              <StatusBadge :status="n.status" kind="generic" :label="n.templateKey.replaceAll('_', ' ')" />
+              <StatusBadge :status="n.status" kind="generic" :label="notifLabel(n.templateKey)" />
               <small class="muted">{{ n.toPhone }} · {{ timeAgo(n.sentAt) }}</small>
             </div>
             <p>{{ n.message }}</p>
           </div>
         </div>
-        <EmptyState v-else icon="bell" title="No notifications yet" hint="Quotes and ready-alerts appear here as they are sent." />
+        <EmptyState v-else icon="bell" title="Nenhuma notificação ainda" hint="Orçamentos e avisos de pronto aparecem aqui assim que são enviados." />
         <Pagination :total="notifPage.total" :limit="NOTIF_LIMIT" :offset="notifPage.offset" @change="loadAllNotifs" />
       </template>
     </Modal>

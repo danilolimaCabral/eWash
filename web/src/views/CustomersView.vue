@@ -105,7 +105,7 @@ const columns = [
 
     <Panel>
       <DataTable :columns="columns" :page="custPage" clickable :skeleton-count="5"
-        empty-text="No customers yet — they are created automatically with their first order."
+        empty-text="Nenhum cliente ainda — clientes são criados automaticamente com o primeiro pedido."
         @page="load" @row-click="openDetail">
         <template #cell-name="{ row }">
           <span class="cust"><Avatar :name="row.name" /> <b>{{ row.name }}</b></span>
@@ -114,12 +114,12 @@ const columns = [
         <template #cell-ltv="{ row }"><b class="mono">{{ money(row.lifetimeValueCents, session.currency) }}</b></template>
         <template #cell-last="{ row }">
           {{ row.lastOrderAt ? timeAgo(row.lastOrderAt) : 'never' }}
-          <StatusBadge v-if="isLapsing(row)" status="unpaid" kind="generic" label="lapsing" />
+          <StatusBadge v-if="isLapsing(row)" status="unpaid" kind="generic" label="inadimplente" />
         </template>
       </DataTable>
     </Panel>
 
-    <Modal v-if="addOpen" title="New customer" @close="addOpen = false">
+    <Modal v-if="addOpen" title="Novo cliente" @close="addOpen = false">
       <div class="row">
         <FormField label="Nome"><input v-model="addForm.name" type="text" /></FormField>
         <FormField label="Telefone"><input v-model="addForm.phone" type="tel" placeholder="(11) 9xxxx-xxxx" /></FormField>
@@ -128,7 +128,7 @@ const columns = [
         <FormField label="Observações"><input v-model="addForm.notes" type="text" placeholder="ex.: prefere amaciante" /></FormField>
       </div>
       <template #footer>
-        <button class="btn btn-ghost" @click="addOpen = false">Cancel</button>
+        <button class="btn btn-ghost" @click="addOpen = false">Cancelar</button>
         <button class="btn btn-primary" :disabled="busy" @click="saveCustomer">Salvar cliente</button>
       </template>
     </Modal>
@@ -149,7 +149,7 @@ const columns = [
         :columns="[
           { key: 'code', label: 'Order' },
           { key: 'status', label: 'Status' },
-          { key: 'paymentStatus', label: 'Payment' },
+          { key: 'paymentStatus', label: 'Pagamento' },
           { key: 'total', label: 'Total', align: 'right' },
           { key: 'created', label: 'Date' },
         ]"

@@ -385,7 +385,7 @@ const provColumns = [
               </table>
             </details>
           </template>
-          <EmptyState v-else icon="chart" title="No history yet"
+          <EmptyState v-else icon="chart" title="Sem histórico ainda"
             hint="Finish a few orders and record expenses — the trend builds up month by month." />
 
           <template v-if="topCategories.length">
@@ -402,7 +402,7 @@ const provColumns = [
 
     <Panel v-if="activeTab === 'expenses'"
       :title="exFilter.mode === 'range' ? 'Despesas — chosen dates' : `Despesas — ${monthLabel(month)}`"
-      subtitle="Everything the business paid for in this period">
+      subtitle="Tudo que a empresa pagou neste período">
       <template #actions>
         <div class="ex-filter">
           <select v-model="exFilter.mode" @change="loadExpenses(0)">
@@ -419,7 +419,7 @@ const provColumns = [
           </button>
         </div>
       </template>
-      <DataTable :columns="exColumns" :page="exPage" empty-text="No money spent in this period." @page="loadExpenses">
+      <DataTable :columns="exColumns" :page="exPage" empty-text="Nenhuma despesa neste período." @page="loadExpenses">
         <template #cell-expenseDate="{ row }">{{ dateOnly(row.expenseDate) }}</template>
         <template #cell-categoryName="{ row }">
           {{ row.categoryName }}
@@ -433,7 +433,7 @@ const provColumns = [
         <template #cell-actions="{ row }">
           <span v-if="row.status === 'void'" class="text-red small">Voided</span>
           <template v-else-if="session.can('finance.manage')">
-            <button class="btn btn-ghost btn-sm" @click="editExpense(row)">Edit</button>
+            <button class="btn btn-ghost btn-sm" @click="editExpense(row)">Editar</button>
             <button class="btn btn-danger btn-sm" @click="voidingExpense = row">Void</button>
           </template>
         </template>
@@ -461,7 +461,7 @@ const provColumns = [
         </FormField>
       </div>
       <div class="row">
-        <FormField label="Service provider (optional)">
+        <FormField label="Fornecedor (opcional)">
           <select v-model="exForm.provider_id"><option value="">None</option><option v-for="p in providers.filter((x) => x.active)" :key="p.id" :value="p.id">{{ p.name }}</option></select>
         </FormField>
         <FormField label="Note"><input v-model="exForm.note" type="text" placeholder="e.g. 20L detergent, Sarit" /></FormField>
@@ -470,7 +470,7 @@ const provColumns = [
         <input v-model="exForm.recurring" type="checkbox" /> Repeats every month (added automatically, with a reminder)
       </label>
       <template #footer>
-        <button class="btn btn-ghost" @click="closeExpenseModal">Cancel</button>
+        <button class="btn btn-ghost" @click="closeExpenseModal">Cancelar</button>
         <button class="btn btn-primary" :disabled="busy" @click="saveExpense">{{ editingExpenseId ? 'Atualizar despesa' : 'Salvar despesa' }}</button>
       </template>
     </Modal>
@@ -482,7 +482,7 @@ const provColumns = [
         </button>
       </template>
       <DataTable :columns="creditColumns" :page="creditPage" clickable
-        empty-text="No customer owes you money right now." @page="loadCredit" @row-click="(row) => openOrderId = row.orderId">
+        empty-text="Nenhum cliente deve dinheiro agora." @page="loadCredit" @row-click="(row) => openOrderId = row.orderId">
         <template #cell-code="{ row }"><b>{{ row.code }}</b></template>
         <template #cell-customerName="{ row }">{{ row.customerName }}<small class="muted block">{{ row.customerPhone }}</small></template>
         <template #cell-balance="{ row }"><b class="text-red mono">{{ money(row.totalCents - row.paidCents, session.currency) }}</b></template>
@@ -498,7 +498,7 @@ const provColumns = [
         </button>
       </template>
       <DataTable :columns="provColumns" :page="provPage" clickable :skeleton-count="3"
-        empty-text="No providers yet — add the people and companies you pay (delivery riders, water, detergents)."
+        empty-text="Nenhum fornecedor ainda — adicione pessoas e empresas que você paga (entregadores, água, detergentes)."
         @page="loadProviders" @row-click="editProvider">
           <template #cell-name="{ row }"><b>{{ row.name }}</b><small v-if="row.notes" class="muted block">{{ row.notes }}</small></template>
           <template #cell-contact="{ row }">
@@ -507,7 +507,7 @@ const provColumns = [
           </template>
           <template #cell-createdAt="{ row }">{{ dateOnly(row.createdAt) }}</template>
           <template #cell-active="{ row }"><span :class="row.active ? 'text-green' : 'muted'">{{ row.active ? 'Ativo' : 'Inativo' }}</span></template>
-          <template #cell-actions><button class="btn btn-ghost btn-sm">Edit</button></template>
+          <template #cell-actions><button class="btn btn-ghost btn-sm">Editar</button></template>
       </DataTable>
     </Panel>
 
@@ -516,7 +516,7 @@ const provColumns = [
       <div class="row"><FormField label="Telefone"><input v-model="providerForm.phone" type="tel" /></FormField><FormField label="E-mail"><input v-model="providerForm.email" type="email" /></FormField></div>
       <FormField label="Observações"><input v-model="providerForm.notes" type="text" /></FormField>
       <template #footer>
-        <button class="btn btn-ghost" @click="providerModal = false">Cancel</button>
+        <button class="btn btn-ghost" @click="providerModal = false">Cancelar</button>
         <button class="btn btn-primary" :disabled="busy" @click="saveProvider">Save provider</button>
       </template>
     </Modal>
@@ -542,7 +542,7 @@ const provColumns = [
         <input v-model="payForm.mpesa_ref" type="text" placeholder="e.g. QGH7KLM2P1" />
       </FormField>
       <template #footer>
-        <button class="btn btn-ghost" @click="payModal = false">Cancel</button>
+        <button class="btn btn-ghost" @click="payModal = false">Cancelar</button>
         <button class="btn btn-primary" :disabled="busy" @click="savePayment">Registrar pagamento</button>
       </template>
     </Modal>
@@ -578,7 +578,7 @@ const provColumns = [
             <template #cell-dueAt="{ row }">{{ dateOnly(row.dueAt) }}</template>
         </DataTable>
       </template>
-      <EmptyState v-else icon="receipt" title="No invoices yet"
+      <EmptyState v-else icon="receipt" title="Sem faturas ainda"
         :hint="billingStatus ? 'Nothing matches this status filter.' : 'Invoices from your LavTr subscription will appear here once issued.'" />
     </Panel>
 

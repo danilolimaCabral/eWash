@@ -159,7 +159,7 @@ const auditDetail = (row) => {
           <b class="mono">{{ money(c.revenueCents, session.currency) }}</b>
         </div>
       </div>
-      <p v-else class="muted small">No closed orders this month yet — revenue appears when orders are delivered/collected.</p>
+      <p v-else class="muted small">Nenhum pedido fechado neste mês ainda — a receita aparece quando pedidos são entregues/coletados.</p>
     </Panel>
 
     <div v-else-if="tab === 'compare'" class="cmp-grid">
@@ -223,7 +223,7 @@ const auditDetail = (row) => {
       </template>
       <Skeleton v-if="!register" variant="table" :count="3" />
       <DataTable v-else :columns="regColumns" :rows="register.rows" row-key="attendantId"
-        empty-text="No payments or orders on this date.">
+        empty-text="Nenhum pagamento ou pedido nesta data.">
         <template #cell-cash="{ row }"><span class="mono">{{ money(row.cash, session.currency) }}</span></template>
         <template #cell-mpesa="{ row }"><span class="mono">{{ money(row.mpesa, session.currency) }}</span></template>
         <template #cell-total="{ row }"><b class="mono">{{ money(row.cash + row.mpesa, session.currency) }}</b></template>
@@ -232,7 +232,7 @@ const auditDetail = (row) => {
 
     <Panel v-else title="Log de auditoria" subtitle="toda ação que afeta preço — imutável">
       <Skeleton v-if="!auditLog" variant="table" :count="5" />
-      <DataTable v-else :columns="auditColumns" :rows="auditLog" empty-text="No audit entries yet.">
+      <DataTable v-else :columns="auditColumns" :rows="auditLog" empty-text="Nenhuma entrada de auditoria ainda.">
         <template #cell-at="{ row }">{{ dateTime(row.at) }}</template>
         <template #cell-action="{ row }"><code class="action">{{ row.action }}</code></template>
         <template #cell-detail="{ row }">{{ auditDetail(row) }}</template>

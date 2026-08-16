@@ -103,7 +103,7 @@ async function advance(order) {
         </div>
       </div>
     </div>
-    <EmptyState v-if="orders && !filtered.length" icon="orders" title="No orders on the board"
+    <EmptyState v-if="orders && !filtered.length" icon="orders" title="Nenhum pedido no painel"
       hint="Create your first order from the New Order screen." />
 
     <OrderDetailModal v-if="openOrderId" :order-id="openOrderId" @close="openOrderId = null" @changed="load" />

@@ -193,9 +193,9 @@ function clearAll() {
       <FormField label="Telefone">
         <input v-model="custPhone" type="tel" placeholder="07xx xxx xxx" :disabled="!!customer?.id" />
       </FormField>
-      <FormField label="Express (same day)">
+      <FormField label="Express (mesmo dia)">
         <select v-model="express">
-          <option :value="false">No</option>
+          <option :value="false">Não</option>
           <option :value="true">Yes — surcharge applies</option>
         </select>
       </FormField>
@@ -204,14 +204,14 @@ function clearAll() {
     <div class="new-order-grid">
     <Panel title="Add service line" :subtitle="`${addonOptions.length} configured rider${addonOptions.length === 1 ? '' : 's'} for this service`">
       <div class="row">
-        <FormField label="Service">
+        <FormField label="Serviço">
           <select v-model="svcId">
             <option v-for="s in catalog.services" :key="s.id" :value="s.id">
               {{ s.name }} — {{ s.pricingModel === 'FLAT' ? money(s.baseRateCents, session.currency) : money(s.baseRateCents, session.currency) + '/' + s.unit }}
             </option>
           </select>
         </FormField>
-        <FormField v-if="svc?.variants?.length" label="Variant">
+        <FormField v-if="svc?.variants?.length" label="Variação">
           <select v-model="variantId">
             <option v-for="v in svc.variants" :key="v.id" :value="v.id">{{ v.label }} — {{ money(v.priceCents, session.currency) }}</option>
           </select>
@@ -240,7 +240,7 @@ function clearAll() {
         </label>
         </div>
         <div v-else class="no-riders">
-          No riders are configured for {{ svc?.name }}. Attach services to it in Service Builder when needed.
+          Nenhum entregador está configurado para {{ svc?.name }}. Vincule serviços no Construtor de Serviços quando necessário.
         </div>
       </div>
       <button class="btn btn-primary" @click="addLine"><AppIcon name="plus" :size="14" /> Add to order</button>
@@ -248,7 +248,7 @@ function clearAll() {
 
     <div class="order-cols">
       <Panel title="Order summary" :subtitle="`${preview?.lines?.length || 0} service line${preview?.lines?.length === 1 ? '' : 's'}`">
-        <div v-if="!preview?.lines?.length" class="muted small">No lines yet — add a service above.</div>
+        <div v-if="!preview?.lines?.length" class="muted small">Nenhuma linha ainda — adicione um serviço acima.</div>
         <div v-for="(l, i) in preview?.lines || []" :key="i" class="lineitem">
           <div class="li-head">
             <span>{{ l.serviceName }}<template v-if="l.variantLabel"> · {{ l.variantLabel }}</template></span>
@@ -265,7 +265,7 @@ function clearAll() {
         </div>
         <div v-if="preview" class="totals">
           <div class="tr"><span>Subtotal</span><span>{{ money(preview.subtotalCents, session.currency) }}</span></div>
-          <div v-if="preview.expressCents" class="tr"><span>Express surcharge</span><span>{{ money(preview.expressCents, session.currency) }}</span></div>
+          <div v-if="preview.expressCents" class="tr"><span>Taxa express</span><span>{{ money(preview.expressCents, session.currency) }}</span></div>
           <div class="tr grand"><span>Total</span><span>{{ money(preview.totalCents, session.currency) }}</span></div>
           <div class="small muted">Price snapshot locks at customer confirmation</div>
         </div>

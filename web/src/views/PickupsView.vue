@@ -66,7 +66,7 @@ const filteredReady = computed(() => {
 });
 
 const tabs = computed(() => [
-  { key: 'ready', label: 'Ready for pickup', icon: 'bell', count: orders.value?.length ?? undefined },
+  { key: 'ready', label: 'Pronto para retirada', icon: 'bell', count: orders.value?.length ?? undefined },
   { key: 'history', label: 'Histórico de coletas', icon: 'history', count: history.value?.total ?? undefined },
 ]);
 
@@ -152,11 +152,11 @@ const historyColumns = [
               </small>
             </template>
           <template #cell-action="{ row }">
-            <button class="btn btn-ghost btn-sm" @click.stop="viewing = row.id">View</button>
+            <button class="btn btn-ghost btn-sm" @click.stop="viewing = row.id">Ver</button>
           </template>
         </DataTable>
       </template>
-      <EmptyState v-else icon="history" title="No past pickups"
+      <EmptyState v-else icon="history" title="Nenhuma coleta passada"
         :hint="q ? 'Nothing matches your search — try another tag, name or phone.' : 'Collected and delivered orders will build up here.'" />
     </Panel>
 

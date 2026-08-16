@@ -47,7 +47,7 @@ const greeting = computed(() => {
   const h = new Date().getHours();
   return h < 12 ? 'Bom dia' : h < 17 ? 'Boa tarde' : 'Boa noite';
 });
-const todayLabel = new Date().toLocaleDateString('en-KE', { weekday: 'long', day: 'numeric', month: 'long' });
+const todayLabel = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 const branchName = computed(() =>
   session.branches.find((b) => b.id === session.user?.branchId)?.name || session.branches[0]?.name || '');
 
