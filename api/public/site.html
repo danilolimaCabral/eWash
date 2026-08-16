@@ -61,7 +61,7 @@ nav a:hover{color:var(--teal-2)}
 .badge{display:inline-flex;align-items:center;gap:9px;padding:8px 8px 8px 16px;border-radius:999px;font-size:12.5px;font-weight:700;letter-spacing:.05em;color:var(--teal-2);background:#e6f5ee;border:1px solid #bfe8d7;margin-bottom:24px}
 .badge i{width:8px;height:8px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 4px rgba(47,195,160,.22);display:inline-block;animation:pulse 2.2s ease infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-h1{font-family:'Fraunces',serif;font-weight:500;font-size:62px;line-height:1.05;letter-spacing:-.025em;margin-bottom:22px;text-wrap:balance;color:var(--ink)}
+h1{font-family:'Fraunces',serif;font-weight:500;font-size:clamp(42px,5.6vw,68px);line-height:1.05;letter-spacing:-.025em;margin-bottom:22px;text-wrap:balance;color:var(--ink)}
 h1 em{font-style:italic;font-weight:500;color:var(--teal-2)}
 .hero p.lead{font-size:18.5px;color:rgba(18,27,23,.68);max-width:500px;margin-bottom:34px}
 .hero-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
@@ -91,6 +91,35 @@ h1 em{font-style:italic;font-weight:500;color:var(--teal-2)}
 .dock-strip{display:flex;gap:12px}
 .dock-item{background:#fff;border:1px solid var(--line);border-radius:999px;padding:10px 18px;font-size:13px;font-weight:600;color:var(--ink);box-shadow:0 10px 26px -12px rgba(6,38,28,.22)}
 @media(max-width:940px){.dock-item{font-size:11.5px;padding:8px 12px}}
+
+/* ---------- Faixa \"feito para\" ---------- */
+.for-band{padding:34px 0;background:#fff;border-bottom:1px solid var(--line)}
+.for-row{display:flex;align-items:center;justify-content:center;gap:40px;flex-wrap:wrap}
+.for-item{display:flex;align-items:center;gap:12px;color:var(--ink-soft);font-size:14px;font-weight:600}
+.for-item i{font-style:normal;width:40px;height:40px;border-radius:12px;background:#e6f5ee;border:1px solid #bfe8d7;display:flex;align-items:center;justify-content:center;font-size:18px}
+.for-band .for-label{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);width:100%;text-align:center;margin-bottom:2px}
+
+/* ---------- Antes e depois ---------- */
+.before-after{background:var(--cream-2)}
+.ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.ba-card{border-radius:20px;padding:38px 34px;border:1px solid var(--line)}
+.ba-card.before{background:#fff}
+.ba-card.after{background:linear-gradient(135deg,#06261c,#0a3629);color:#f3efe8}
+.ba-tag{display:inline-block;font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:7px 14px;border-radius:999px;margin-bottom:18px}
+.ba-card.before .ba-tag{background:#f3ece0;color:#9a8456}
+.ba-card.after .ba-tag{background:rgba(47,195,160,.16);color:#9be7cc}
+.ba-card h3{font-family:'Fraunces',serif;font-size:24px;font-weight:500;margin-bottom:14px}
+.ba-card.before h3{color:var(--ink)}
+.ba-card.after h3{color:#fff}
+.ba-card ul{list-style:none}
+.ba-card.before li{padding:8px 0 8px 26px;position:relative;font-size:14.5px;color:var(--ink-soft)}
+.ba-card.before li::before{content:"✕";position:absolute;left:0;top:9px;color:#c4855a;font-weight:800;font-size:13px}
+.ba-card.after li{padding:8px 0 8px 26px;position:relative;font-size:14.5px;color:rgba(243,239,232,.85)}
+.ba-card.after li::before{content:"✓";position:absolute;left:0;top:9px;color:var(--teal);font-weight:800;font-size:14px}
+
+/* ---------- Sticky CTA mobile ---------- */
+.sticky-cta{display:none;position:fixed;bottom:0;left:0;right:0;z-index:70;background:rgba(253,251,247,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid rgba(18,27,23,.1);box-shadow:0 -8px 30px -12px rgba(6,38,28,.25)}
+.sticky-cta .btn{width:100%;justify-content:center;padding:15px;font-size:15.5px}
 
 /* ---------- Trust band ---------- */
 .trust{padding:34px 0;background:#fff;border-bottom:1px solid var(--line)}
@@ -245,6 +274,8 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
 
 /* ---------- Mobile ---------- */
 @media(max-width:940px){
+  .sticky-cta{display:block}
+  body{padding-bottom:76px}
   .menu-btn{display:inline-flex}
   nav.mobile-open{display:flex;position:absolute;top:72px;left:0;right:0;flex-direction:column;background:rgba(253,251,247,.98);backdrop-filter:blur(20px);padding:20px 28px 26px;gap:18px;border-bottom:1px solid rgba(18,27,23,.08)}
   .hero-grid{grid-template-columns:1fr;gap:44px}
@@ -260,6 +291,7 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
   .plan.featured:hover{transform:translateY(-4px)}
   .cta-band{grid-template-columns:1fr}
   .cta-copy{padding:52px 28px}
+  .ba-grid{grid-template-columns:1fr}
   .pipe{flex-wrap:wrap;justify-content:flex-start;gap:20px}
   .pipe .connector{display:none}
   .pstep{flex:0 0 45%;margin-bottom:0}
@@ -293,10 +325,10 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
   <div class="wrap hero-grid">
     <div class="up">
       <span class="badge"><i></i>Novidade — Leva e Traz online</span>
-      <h1>O sistema completo para a sua <em>lavanderia</em></h1>
+      <h1>Toda sua lavanderia organizada, <em>do balcão ao caixa</em></h1>
       <p class="lead">Pedidos em segundos, produção no painel, cobranças por Pix e caixa em dia — com coleta e entrega online para o seu cliente. Teste grátis por 14 dias, sem cartão.</p>
       <div class="hero-cta">
-        <a class="btn btn-terracota" href="https://ewash-production.up.railway.app/login">Começar teste grátis</a>
+        <a class="btn btn-terracota" href="https://ewash-production.up.railway.app/login">Começar em 2 minutos</a>
         <a class="btn btn-ghost" href="#planos">Ver planos</a>
       </div>
       <div class="hero-proof">
@@ -321,6 +353,54 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
     </div>
   </div>
 </section>
+
+<section class="for-band" style="padding-top:18px">
+  <div class="wrap">
+    <div class="for-row">
+      <div class="for-label">Feito para o dia a dia de quem lava roupa no Brasil</div>
+      <div class="for-item"><i>👕</i><span>Lavanderias por quilo</span></div>
+      <div class="for-item"><i>👔</i><span>Tinturarias e passadorias</span></div>
+      <div class="for-item"><i>🏨</i><span>Lavanderia de hotéis e Airbnb</span></div>
+      <div class="for-item"><i>🚚</i><span>Lavanderias com entrega</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="before-after">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="eyebrow">Na prática</span>
+      <h2>Do caderno para o <em>painel</em></h2>
+      <p>Compare como sua lavanderia funciona hoje com o LavTr.</p>
+    </div>
+    <div class="ba-grid">
+      <div class="ba-card before up">
+        <span class="ba-tag">Sem o LavTr</span>
+        <h3>Anotação, cálculo de cabeça, papel</h3>
+        <ul>
+          <li>Pedidos anotados no caderno, fáceis de perder</li>
+          <li>Preço calculado na hora, sem padrão</li>
+          <li>Ninguém sabe onde está cada peça</li>
+          <li>Cliente ligando toda hora para perguntar</li>
+          <li>Quem deve anotado em folha solta</li>
+        </ul>
+      </div>
+      <div class="ba-card after up">
+        <span class="ba-tag">Com o LavTr</span>
+        <h3>Tudo no painel, em tempo real</h3>
+        <ul>
+          <li>Pedido criado em segundos, com preço fixado</li>
+          <li>Produção em 5 etapas visíveis para a equipe</li>
+          <li>Cliente acompanha pelo código, sem ligar</li>
+          <li>Pix e pagamentos registrados no caixa</li>
+          <li>Relatórios prontos para decidir</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="sticky-cta"><a class="btn btn-terracota" href="https://ewash-production.up.railway.app/login">Começar teste grátis — 14 dias</a></div>
 
 <section class="trust">
   <div class="wrap">
