@@ -186,7 +186,7 @@ const applyDiscount = () => run(async () => {
         </div>
         <div class="actions">
           <button class="btn btn-green btn-sm" :disabled="busy" @click="takePayment">Record payment</button>
-          <button class="btn btn-ghost btn-sm" @click="payForm.open = false">Cancel</button>
+          <button class="btn btn-ghost btn-sm" @click="payForm.open = false">Cancelar</button>
         </div>
       </div>
 
@@ -197,7 +197,7 @@ const applyDiscount = () => run(async () => {
         </div>
         <div class="actions">
           <button class="btn btn-primary btn-sm" :disabled="busy" @click="applyDiscount">Apply discount</button>
-          <button class="btn btn-ghost btn-sm" @click="discountForm.open = false">Cancel</button>
+          <button class="btn btn-ghost btn-sm" @click="discountForm.open = false">Cancelar</button>
         </div>
       </div>
 
