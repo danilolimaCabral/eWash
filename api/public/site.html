@@ -66,7 +66,9 @@ h1 em{font-style:italic;font-weight:500;color:var(--teal-2)}
 .hero p.lead{font-size:18.5px;color:rgba(18,27,23,.68);max-width:500px;margin-bottom:34px}
 .hero-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
 .hero-proof{display:flex;gap:44px;margin-top:46px;padding-top:26px;border-top:1px solid rgba(18,27,23,.12)}
-.hero-proof div b{display:block;font-family:'Fraunces',serif;font-size:28px;font-weight:500;color:var(--ink);letter-spacing:-.01em}
+.hero-proof{align-items:center}
+.hero-proof div b{display:flex;align-items:baseline;gap:3px;font-family:'Fraunces',serif;font-size:28px;font-weight:500;color:var(--ink);letter-spacing:-.01em;min-height:34px}
+.hero-proof div b .u{font-size:15px;font-weight:600;color:var(--teal-2)}
 .hero-proof div span{font-size:13px;color:var(--ink-soft)}
 .hero-note{display:flex;align-items:center;gap:10px;margin-top:26px;font-size:13px;color:var(--ink-soft)}
 .hero-note i{width:7px;height:7px;border-radius:50%;background:var(--teal);flex:none}
@@ -89,7 +91,7 @@ h1 em{font-style:italic;font-weight:500;color:var(--teal-2)}
 .chip-pix{top:30%;left:-24px}
 .chip-order{bottom:8%;right:-20px;animation-delay:1.4s}
 .dock-strip{display:flex;gap:12px}
-.dock-item{background:#fff;border:1px solid var(--line);border-radius:999px;padding:10px 18px;font-size:13px;font-weight:600;color:var(--ink);box-shadow:0 10px 26px -12px rgba(6,38,28,.22)}
+.dock-item{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:10px 18px;font-size:13px;font-weight:600;color:var(--ink);box-shadow:0 10px 26px -12px rgba(6,38,28,.22)}
 @media(max-width:940px){.dock-item{font-size:11.5px;padding:8px 12px}}
 
 /* ---------- Faixa \"feito para\" ---------- */
@@ -101,14 +103,15 @@ h1 em{font-style:italic;font-weight:500;color:var(--teal-2)}
 
 /* ---------- Antes e depois ---------- */
 .before-after{background:var(--cream-2)}
-.ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
-.ba-card{border-radius:20px;padding:38px 34px;border:1px solid var(--line)}
-.ba-card.before{background:#fff}
+.ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;position:relative}
+.ba-arrow{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--line);box-shadow:0 10px 28px -10px rgba(6,38,28,.25);display:flex;align-items:center;justify-content:center;color:var(--teal-2);font-size:18px;font-weight:800;z-index:2}
+.ba-card{border-radius:20px;padding:36px 32px;border:1px solid var(--line);box-shadow:0 18px 44px -22px rgba(6,38,28,.2)}
+.ba-card.before{background:#fff;box-shadow:0 14px 36px -20px rgba(6,38,28,.14)}
 .ba-card.after{background:linear-gradient(135deg,#06261c,#0a3629);color:#f3efe8}
 .ba-tag{display:inline-block;font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:7px 14px;border-radius:999px;margin-bottom:18px}
 .ba-card.before .ba-tag{background:#f3ece0;color:#9a8456}
 .ba-card.after .ba-tag{background:rgba(47,195,160,.16);color:#9be7cc}
-.ba-card h3{font-family:'Fraunces',serif;font-size:24px;font-weight:500;margin-bottom:14px}
+.ba-card h3{font-family:'Fraunces',serif;font-size:23px;font-weight:500;margin-bottom:16px;letter-spacing:-.01em}
 .ba-card.before h3{color:var(--ink)}
 .ba-card.after h3{color:#fff}
 .ba-card ul{list-style:none}
@@ -125,7 +128,7 @@ h1 em{font-style:italic;font-weight:500;color:var(--teal-2)}
 .trust{padding:34px 0;background:#fff;border-bottom:1px solid var(--line)}
 .trust-row{display:flex;align-items:center;justify-content:center;gap:64px;flex-wrap:wrap}
 .trust-item{display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center}
-.trust-item b{font-family:'Fraunces',serif;font-size:24px;font-weight:500;color:var(--ink);letter-spacing:-.01em}
+.trust-item b{display:flex;align-items:baseline;gap:3px;min-height:30px;font-family:'Fraunces',serif;font-size:24px;font-weight:500;color:var(--ink);letter-spacing:-.01em}
 .trust-item span{font-size:12px;color:var(--ink-soft);font-weight:500}
 
 /* ---------- Seções ---------- */
@@ -292,6 +295,7 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
   .cta-band{grid-template-columns:1fr}
   .cta-copy{padding:52px 28px}
   .ba-grid{grid-template-columns:1fr}
+  .ba-arrow{display:none}
   .pipe{flex-wrap:wrap;justify-content:flex-start;gap:20px}
   .pipe .connector{display:none}
   .pstep{flex:0 0 45%;margin-bottom:0}
@@ -332,8 +336,8 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
         <a class="btn btn-ghost" href="#planos">Ver planos</a>
       </div>
       <div class="hero-proof">
-        <div><b>R$ 99</b><span>/mês no plano inicial</span></div>
-        <div><b>Pix</b><span>registro de pagamentos</span></div>
+        <div><b>R$ 99<span class="u">/mês</span></b><span>no plano inicial</span></div>
+        <div><b>Pix</b><span>pagamentos na hora</span></div>
         <div><b>5 min</b><span>para começar</span></div>
       </div>
       <div class="hero-note"><i></i>14 dias grátis · Sem cartão · Cancele quando quiser</div>
@@ -346,9 +350,9 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
         </div>
         <img src="/img/panel_demo.png" alt="Painel de pedidos LavTr" style="aspect-ratio:auto">
       </div>
-      <div class="dock-strip" style="margin-top:18px;display:flex;gap:12px">
-        <div class="dock-item">✓ Pix registrado na entrega</div>
-        <div class="dock-item">🚚 Coleta confirmada para hoje</div>
+      <div class="dock-strip">
+        <div class="dock-item"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="#1d7d64" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Pix registrado na entrega</div>
+        <div class="dock-item"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 22s-8-4.5-8-11.8A5.6 5.6 0 0 1 12 5a5.6 5.6 0 0 1 8 5.2c0 7.3-8 11.8-8 11.8Z" stroke="#c05c26" stroke-width="2"/><path d="m8 12 2.8 2.8L16 9.5" stroke="#c05c26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Coleta confirmada para hoje</div>
       </div>
     </div>
   </div>
@@ -377,6 +381,7 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
       <div class="ba-card before up">
         <span class="ba-tag">Sem o LavTr</span>
         <h3>Anotação, cálculo de cabeça, papel</h3>
+        <div class="ba-arrow">→</div>
         <ul>
           <li>Pedidos anotados no caderno, fáceis de perder</li>
           <li>Preço calculado na hora, sem padrão</li>
@@ -405,7 +410,7 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
 <section class="trust">
   <div class="wrap">
     <div class="trust-row">
-      <div class="trust-item"><b>R$ 99</b><span>a partir de, por mês</span></div>
+      <div class="trust-item"><b>R$ 99<span class="u">a partir</span></b><span>de, por mês</span></div>
       <div class="trust-item"><b>Pix</b><span>pagamentos na hora</span></div>
       <div class="trust-item"><b>5 etapas</b><span>do recebimento à entrega</span></div>
       <div class="trust-item"><b>14 dias</b><span>grátis, sem cartão</span></div>
@@ -464,7 +469,7 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
       </div>
       <div class="bcard up">
         <span class="bnum">05</span>
-        <img src="/img/hero.jpg" alt="Equipe da lavanderia atendendo">
+        <img src="/img/dobradas.jpg" alt="Equipe da lavanderia com roupas dobradas">
         <h3>Equipe com papéis definidos</h3>
         <p>Dono, atendente, operador e entregador — cada um vê só o que precisa, sem risco de bagunça.</p>
         <ul>
@@ -507,7 +512,7 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
 <section class="visual">
   <div class="wrap">
     <div class="visual-band">
-      <div><img src="/img/hero.jpg" alt="Lavanderia LavTr" loading="lazy"><span class="caption">Atendimento no balcão</span></div>
+      <div><img src="/img/dobradas.jpg" alt="Roupas dobradas LavTr" loading="lazy"><span class="caption">Roupas prontas e organizadas</span></div>
       <div><img src="/img/passadoria.jpg" alt="Passadoria LavTr" loading="lazy"><span class="caption">Passadoria profissional</span></div>
       <div><img src="/img/caixa.jpg" alt="Caixa da lavanderia LavTr" loading="lazy"><span class="caption">Caixa em dia</span></div>
     </div>
