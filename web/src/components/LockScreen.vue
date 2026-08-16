@@ -45,7 +45,7 @@ async function logout() {
         <p>Tela bloqueada por inatividade. Digite sua senha para continuar.</p>
         <form @submit.prevent="unlock">
           <input
-            v-model="password" type="password" placeholder="Password"
+            v-model="password" type="password" placeholder="Senha"
             autocomplete="current-password" autofocus
           />
           <p v-if="error" class="error-text">{{ error }}</p>
@@ -56,12 +56,12 @@ async function logout() {
       </template>
       <p v-else>
         Tela bloqueada por inatividade. Esta conta entra com o Google —
-        sign out below and continue with Google to unlock.
+        saia abaixo e continue com o Google para desbloquear.
       </p>
       <button class="switch-user" @click="logout">
-        <AppIcon name="logout" :size="13" /> Sign out &amp; log in afresh
+        <AppIcon name="logout" :size="13" /> Sair e entrar novamente
       </button>
-      <p class="support">Locked out? <a :href="`mailto:${SUPPORT_EMAIL}`">{{ SUPPORT_EMAIL }}</a></p>
+      <p class="support">Problemas para entrar? <a :href="`mailto:${SUPPORT_EMAIL}`">{{ SUPPORT_EMAIL }}</a></p>
     </div>
   </div>
 </template>
