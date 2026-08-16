@@ -57,6 +57,15 @@ async function fixupSchema() {
     }
     // Remove lock de login da conta demo (testes repetidos podem bloquear a demo)
     await demo('unlock demo login', `DELETE FROM rate_limits WHERE key='login:email:demo@lavatr.app'`);
+    await demo('unlock owner login', `DELETE FROM rate_limits WHERE key='login:email:owner@trlaundry.app'`);
+    // Conta de plataforma (admin Danilo) — scope 'platform' para gerenciar tenants
+    if (!(await has(`SELECT COUNT(*) c FROM users WHERE email='owner@trlaundry.app'`))) {
+      const crypto = await import('node:crypto');
+      const salt = crypto.randomBytes(16).toString('hex');
+      const hash = crypto.pbkdf2Sync('LavaTr2026!segura', salt, 100000, 32, 'sha256');
+      const ownerHash = `pbkdf2$100000$${salt}$${hash.toString('base64url')}`;
+      await demo('user owner', `INSERT OR IGNORE INTO users (id, tenant_id, branch_id, role_id, access_scope, name, email, phone, password_hash, status) VALUES ('00000000-0000-0000-0000-000000000002', '${T}', '${branch10Id}', '${donoRoleId}', 'platform', 'Danilo Cabral', 'owner@trlaundry.app', '11900000001', '${ownerHash}', 'active')`);
+    }
     // Catálogo demo completo (categorias BR, serviços, variantes, tiers, addons) via seedTenant
     if (!(await has(`SELECT COUNT(*) c FROM service_categories WHERE tenant_id='${T}'`))) {
       try {
