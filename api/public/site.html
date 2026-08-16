@@ -132,7 +132,7 @@ h1 em{font-style:italic;font-weight:500;color:var(--teal-2)}
 .trust-item span{font-size:12px;color:var(--ink-soft);font-weight:500}
 
 /* ---------- Seções ---------- */
-section{padding:100px 0}
+section{padding:84px 0}
 .sec-head{max-width:620px;margin-bottom:60px}
 .sec-head.center{margin-left:auto;margin-right:auto;text-align:center}
 .sec-head.center .eyebrow{justify-content:center}
@@ -224,8 +224,8 @@ h2 em{font-style:italic;color:var(--teal-2)}
 .plan h3{font-family:'Fraunces',serif;font-size:22px;font-weight:500}
 .plan .desc{color:var(--ink-soft);font-size:13.5px;margin:8px 0 22px}
 .plan.featured .desc{color:rgba(253,251,247,.62)}
-.plan .price{font-family:'Fraunces',serif;font-size:44px;font-weight:500;letter-spacing:-.02em;margin-bottom:22px}
-.plan .price small{font-family:'Inter',sans-serif;font-size:15px;font-weight:600;color:var(--ink-soft);letter-spacing:0}
+.plan .price{display:flex;align-items:baseline;gap:4px;font-family:'Fraunces',serif;font-size:42px;font-weight:500;letter-spacing:-.02em;margin-bottom:22px}
+.plan .price small{font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--ink-soft);letter-spacing:0}
 .plan.featured .price small{color:rgba(253,251,247,.62)}
 .plan ul{list-style:none;margin-bottom:28px;flex:1}
 .plan li{padding:9px 0 9px 26px;position:relative;font-size:14px}
@@ -238,8 +238,11 @@ h2 em{font-style:italic;color:var(--teal-2)}
 .guarantee i{width:8px;height:8px;border-radius:50%;background:var(--teal)}
 
 /* ---------- FAQ ---------- */
-.faq{max-width:740px;margin:0 auto}
-.faq-item{border-bottom:1px solid var(--line);padding:22px 0}
+.faq{max-width:980px;margin:0 auto}
+.faq-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 56px}
+.faq-item{border-bottom:1px solid var(--line);padding:18px 0}
+.faq-item:nth-child(odd){padding-right:56px;border-right:1px solid transparent}
+.faq-item:nth-child(even){padding-left:56px}
 .faq-q{display:flex;justify-content:space-between;align-items:center;gap:20px;cursor:pointer;font-family:'Fraunces',serif;font-size:20px;font-weight:500;user-select:none;line-height:1.3}
 .faq-q::after{content:"+";flex:none;font-size:24px;font-weight:300;color:var(--teal-2);transition:transform .25s;width:24px;text-align:center}
 .faq-item.open .faq-q::after{transform:rotate(45deg)}
@@ -296,6 +299,9 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
   .cta-copy{padding:52px 28px}
   .ba-grid{grid-template-columns:1fr}
   .ba-arrow{display:none}
+  .faq-grid{grid-template-columns:1fr}
+  .faq-item:nth-child(odd){padding-right:0}
+  .faq-item:nth-child(even){padding-left:0}
   .pipe{flex-wrap:wrap;justify-content:flex-start;gap:20px}
   .pipe .connector{display:none}
   .pstep{flex:0 0 45%;margin-bottom:0}
@@ -640,6 +646,7 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
       <span class="eyebrow">Dúvidas frequentes</span>
       <h2>Perguntas <em>que todo dono faz</em></h2>
     </div>
+    <div class="faq-grid">
     <div class="faq-item" onclick="this.classList.toggle('open')">
       <div class="faq-q">Preciso mesmo dos 14 dias de teste?</div>
       <div class="faq-a"><div>Sim. Você cria sua conta, recebe um catálogo modelo de lavanderia brasileira e usa o sistema completo por 14 dias sem pagar nada e sem cartão de crédito.</div></div>
@@ -667,6 +674,7 @@ footer{padding:60px 0 38px;border-top:1px solid var(--line);background:#fff}
     <div class="faq-item" onclick="this.classList.toggle('open')">
       <div class="faq-q">Posso cancelar quando quiser?</div>
       <div class="faq-a"><div>Sim, sem multa e sem burocracia. E você pode exportar todos os seus dados em CSV antes de sair.</div></div>
+    </div>
     </div>
   </div>
 </section>
