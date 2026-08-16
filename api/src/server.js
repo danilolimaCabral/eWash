@@ -59,11 +59,16 @@ async function fixupSchema() {
     await demo('unlock demo login', `DELETE FROM rate_limits WHERE key='login:email:demo@lavatr.app'`);
     await demo('unlock owner login', `DELETE FROM rate_limits WHERE key='login:email:owner@trlaundry.app'`);
     // Conta de plataforma (admin Danilo) — scope 'platform' para gerenciar tenants
-    if (!(await has(`SELECT COUNT(*) c FROM users WHERE email='owner@trlaundry.app'`))) {
-      const crypto = await import('node:crypto');
-      const salt = crypto.randomBytes(16).toString('hex');
-      const hash = crypto.pbkdf2Sync('LavaTr2026!segura', salt, 100000, 32, 'sha256');
-      const ownerHash = `pbkdf2$100000$${salt}$${hash.toString('base64url')}`;
+    // Remove conta antiga com hash inválido (se existir) e recria com hash correto
+    await demo('drop bad owner', `DELETE FROM users WHERE email='owner@trlaundry.app'`);
+    {
+      // Formato idêntico ao hashPassword() de auth.js (salt e hash em base64url)
+      const te = new TextEncoder();
+      const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const key = await crypto.subtle.importKey('raw', te.encode('LavaTr2026!segura'), 'PBKDF2', false, ['deriveBits']);
+      const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: 100000 }, key, 256);
+      const ownerHash = `pbkdf2$100000$${b64url(salt)}$${b64url(bits)}`;
       await demo('user owner', `INSERT OR IGNORE INTO users (id, tenant_id, branch_id, role_id, access_scope, name, email, phone, password_hash, status) VALUES ('00000000-0000-0000-0000-000000000002', '${T}', '${branch10Id}', '${donoRoleId}', 'platform', 'Danilo Cabral', 'owner@trlaundry.app', '11900000001', '${ownerHash}', 'active')`);
     }
     // Catálogo demo completo (categorias BR, serviços, variantes, tiers, addons) via seedTenant
